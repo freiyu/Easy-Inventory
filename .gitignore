@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# Environment and secrets (names only in .env.example)
+.env
+.env.*
+!.env.example
+
+# TestSprite (can contain test credentials, see CLAUDE.md)
+testsprite_tests/
+
+# Local Claude Code settings (personal)
+.claude/settings.local.json
+
+# Test and coverage output
+coverage/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Database dumps and local backups
+*.sql
+*.dump
+backups/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
