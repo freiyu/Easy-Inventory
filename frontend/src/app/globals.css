@@ -1,0 +1,147 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-link: var(--link);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success-soft: var(--success-soft);
+  --color-success-icon: var(--success-icon);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-icon: var(--warning-icon);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-icon: var(--danger-icon);
+  --color-info-soft: var(--info-soft);
+  --color-info-icon: var(--info-icon);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-icon: var(--sidebar-active-icon);
+  --color-sidebar-border: var(--sidebar-border);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
+  --radius-4xl: 9999px;
+}
+
+/* Catppuccin Latte (docs/DESIGN.md) */
+:root {
+  --background: #eff1f5;
+  --foreground: #4c4f69;
+  --card: #eff1f5;
+  --card-foreground: #4c4f69;
+  --popover: #eff1f5;
+  --popover-foreground: #4c4f69;
+  --primary: #1e66f5;
+  --primary-foreground: #ffffff;
+  --primary-hover: #0a52e1;
+  --link: #0a54e8;
+  --secondary: #e6e9ef;
+  --secondary-foreground: #4c4f69;
+  --muted: #e6e9ef;
+  --muted-foreground: #5c5f77;
+  --accent: #dce0e8;
+  --accent-foreground: #4c4f69;
+  --destructive: #d20f39;
+  --destructive-foreground: #ffffff;
+  --border: #bcc0cc;
+  --input: #7c7f93;
+  --ring: #1e66f5;
+
+  --success-soft: #cce1cd;
+  --success-icon: #2d701e;
+  --warning-soft: #ecddca;
+  --warning-icon: #895712;
+  --danger-soft: #e9c4cf;
+  --danger-icon: #c10e34;
+  --info-soft: #c5d5f5;
+  --info-icon: #0a54e8;
+
+  --sidebar: #e6e9ef;
+  --sidebar-foreground: #4c4f69;
+  --sidebar-active: #cce1cd;
+  --sidebar-active-icon: #2d701e;
+  --sidebar-border: #bcc0cc;
+}
+
+/* Catppuccin Mocha */
+.dark {
+  --background: #1e1e2e;
+  --foreground: #cdd6f4;
+  --card: #1e1e2e;
+  --card-foreground: #cdd6f4;
+  --popover: #313244;
+  --popover-foreground: #cdd6f4;
+  --primary: #89b4fa;
+  --primary-foreground: #11111b;
+  --primary-hover: #9bbffb;
+  --link: #89b4fa;
+  --secondary: #313244;
+  --secondary-foreground: #cdd6f4;
+  --muted: #313244;
+  --muted-foreground: #a6adc8;
+  --accent: #313244;
+  --accent-foreground: #cdd6f4;
+  --destructive: #f38ba8;
+  --destructive-foreground: #11111b;
+  --border: #45475a;
+  --input: #7f849c;
+  --ring: #b4befe;
+
+  --success-soft: #343e40;
+  --success-icon: #a6e3a1;
+  --warning-soft: #413d43;
+  --warning-icon: #f9e2af;
+  --danger-soft: #402f42;
+  --danger-icon: #f38ba8;
+  --info-soft: #2f364f;
+  --info-icon: #89b4fa;
+
+  --sidebar: #181825;
+  --sidebar-foreground: #cdd6f4;
+  --sidebar-active: #343e40;
+  --sidebar-active-icon: #a6e3a1;
+  --sidebar-border: #45475a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground text-[15px] antialiased;
+    font-variant-numeric: normal;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
