@@ -39,3 +39,6 @@ backups/
 Thumbs.db
 .vscode/
 .idea/
+
+# personal proof of work (private)
+proof-of-work/
