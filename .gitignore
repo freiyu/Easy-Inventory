@@ -30,10 +30,15 @@ test-results/
 *.log
 npm-debug.log*
 
-# Database dumps and local backups
+# Database dumps and local backups (Prisma migrations are source code and stay tracked)
 *.sql
+!/backend/prisma/migrations/**/*.sql
 *.dump
 backups/
+
+# Backend: generated Prisma client and the local data folder (backups, logs)
+/backend/src/generated/
+/backend/data/
 
 # OS and editor
 .DS_Store

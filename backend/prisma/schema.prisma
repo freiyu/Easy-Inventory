@@ -1,0 +1,307 @@
+// EZI data model (PRD 6.1). Table and column names follow the ERD in snake_case.
+// Status and type columns are short strings checked by the services (PRD 6.1 lists them as string).
+// Money is DECIMAL(14,2), quantities are integers. IDs are INT (well above the PRD 6.8 data size).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(20)
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  name               String    @db.VarChar(100)
+  email              String    @unique @db.VarChar(191)
+  passwordHash       String    @map("password_hash") @db.VarChar(255)
+  roleId             Int       @map("role_id")
+  status             String    @default("Active") @db.VarChar(10)
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  lastLoginAt        DateTime? @map("last_login_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  role              Role               @relation(fields: [roleId], references: [id])
+  sessions          Session[]
+  transactions      StockTransaction[]
+  loans             Loan[]             @relation("borrower")
+  approvedLoans     Loan[]             @relation("loanApprover")
+  issuedLoans       Loan[]             @relation("loanIssuer")
+  receivedLoans     Loan[]             @relation("loanReceiver")
+  purchaseRequests  PurchaseRequest[]  @relation("requester")
+  approvedPurchases PurchaseRequest[]  @relation("purchaseApprover")
+  receivedPurchases PurchaseRequest[]  @relation("purchaseReceiver")
+  activity          ActivityLog[]
+
+  @@index([roleId])
+  @@map("users")
+}
+
+/// id is the SHA-256 of the cookie token, so a database copy holds no usable session.
+model Session {
+  id        String   @id @db.VarChar(64)
+  userId    Int      @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Category {
+  id             Int      @id @default(autoincrement())
+  name           String   @unique @db.VarChar(100)
+  code           String   @unique @db.Char(3)
+  /// BR-32: per-category counter, never reused. Above 1 means the code is locked.
+  nextItemNumber Int      @default(1) @map("next_item_number")
+  description    String   @db.Text
+  status         String   @default("Active") @db.VarChar(10)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  items         Item[]
+  purchaseLines PurchaseRequestItem[]
+
+  @@map("categories")
+}
+
+model Supplier {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(150)
+  contactPerson String   @map("contact_person") @db.VarChar(100)
+  phone         String   @db.VarChar(50)
+  email         String   @db.VarChar(191)
+  address       String   @db.Text
+  notes         String   @db.Text
+  status        String   @default("Active") @db.VarChar(10)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  items        Item[]
+  transactions StockTransaction[]
+
+  @@index([name])
+  @@map("suppliers")
+}
+
+model Item {
+  id                Int      @id @default(autoincrement())
+  code              String   @unique @db.VarChar(20)
+  name              String   @db.VarChar(150)
+  categoryId        Int      @map("category_id")
+  unit              String   @db.VarChar(20)
+  /// Maintained balance: always the sum of this item's ledger lines, never negative (CHECK in the migration).
+  currentStock      Int      @default(0) @map("current_stock")
+  minimumStock      Int      @default(0) @map("minimum_stock")
+  lastPurchasePrice Decimal  @default(0) @map("last_purchase_price") @db.Decimal(14, 2)
+  supplierId        Int?     @map("supplier_id")
+  location          String   @default("") @db.VarChar(100)
+  status            String   @default("Active") @db.VarChar(10)
+  notes             String   @db.Text
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  category      Category               @relation(fields: [categoryId], references: [id])
+  supplier      Supplier?              @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  ledger        StockTransactionItem[]
+  loanLines     LoanItem[]
+  purchaseLines PurchaseRequestItem[]
+
+  @@index([name])
+  @@index([categoryId])
+  @@index([supplierId])
+  @@index([status])
+  @@map("items")
+}
+
+model StockTransaction {
+  id              Int      @id @default(autoincrement())
+  number          String   @unique @map("transaction_number") @db.VarChar(30)
+  type            String   @db.VarChar(20)
+  status          String   @default("Posted") @db.VarChar(10)
+  date            DateTime @map("transaction_date") @db.Date
+  userId          Int      @map("user_id")
+  supplierId      Int?     @map("supplier_id")
+  destination     String   @default("") @db.VarChar(200)
+  reason          String   @db.Text
+  notes           String   @db.Text
+  /// Unique: a transaction can be reversed only once (BR-05).
+  reversalOfId    Int?     @unique @map("reversal_of_id")
+  /// The loan behind a LOAN_ISSUE or LOAN_RETURN movement.
+  loanId          Int?     @map("loan_id")
+  clientRequestId String?  @unique @map("client_request_id") @db.VarChar(64)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user            User                   @relation(fields: [userId], references: [id])
+  supplier        Supplier?              @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  reversalOf      StockTransaction?      @relation("reversal", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversedBy      StockTransaction?      @relation("reversal")
+  loan            Loan?                  @relation(fields: [loanId], references: [id], onDelete: Restrict)
+  lines           StockTransactionItem[]
+  purchaseRequest PurchaseRequest?
+
+  @@index([date])
+  @@index([type, status])
+  @@index([userId])
+  @@index([supplierId])
+  @@index([loanId])
+  @@map("stock_transactions")
+}
+
+model StockTransactionItem {
+  id             Int      @id @default(autoincrement())
+  transactionId  Int      @map("transaction_id")
+  itemId         Int      @map("item_id")
+  quantityChange Int      @map("quantity_change")
+  balanceAfter   Int      @map("balance_after")
+  unitPrice      Decimal? @map("unit_price") @db.Decimal(14, 2)
+  total          Decimal? @db.Decimal(14, 2)
+
+  transaction StockTransaction @relation(fields: [transactionId], references: [id])
+  item        Item             @relation(fields: [itemId], references: [id])
+
+  @@index([transactionId])
+  @@index([itemId])
+  @@map("stock_transaction_items")
+}
+
+model Loan {
+  id                 Int       @id @default(autoincrement())
+  number             String    @unique @map("loan_number") @db.VarChar(30)
+  borrowerId         Int       @map("borrower_id")
+  status             String    @db.VarChar(20)
+  loanDate           DateTime  @map("loan_date") @db.Date
+  expectedReturnDate DateTime  @map("expected_return_date") @db.Date
+  purpose            String    @db.Text
+  notes              String    @db.Text
+  rejectReason       String    @map("reject_reason") @db.Text
+  approvedById       Int?      @map("approved_by")
+  approvedAt         DateTime? @map("approved_at")
+  issuedById         Int?      @map("issued_by")
+  issuedAt           DateTime? @map("issued_at")
+  returnedAt         DateTime? @map("returned_at") @db.Date
+  receivedById       Int?      @map("received_by")
+  returnNotes        String    @map("return_notes") @db.Text
+  clientRequestId    String?   @unique @map("client_request_id") @db.VarChar(64)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  borrower     User               @relation("borrower", fields: [borrowerId], references: [id])
+  approvedBy   User?              @relation("loanApprover", fields: [approvedById], references: [id])
+  issuedBy     User?              @relation("loanIssuer", fields: [issuedById], references: [id])
+  receivedBy   User?              @relation("loanReceiver", fields: [receivedById], references: [id])
+  lines        LoanItem[]
+  transactions StockTransaction[]
+
+  @@index([status])
+  @@index([borrowerId])
+  @@index([loanDate])
+  @@index([approvedById])
+  @@index([issuedById])
+  @@index([receivedById])
+  @@map("loans")
+}
+
+model LoanItem {
+  id       Int @id @default(autoincrement())
+  loanId   Int @map("loan_id")
+  itemId   Int @map("item_id")
+  quantity Int
+
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@index([loanId])
+  @@index([itemId])
+  @@map("loan_items")
+}
+
+model PurchaseRequest {
+  id              Int       @id @default(autoincrement())
+  number          String    @unique @map("request_number") @db.VarChar(30)
+  requesterId     Int       @map("requester_id")
+  status          String    @db.VarChar(20)
+  neededBy        DateTime  @map("needed_by") @db.Date
+  reason          String    @db.Text
+  notes           String    @db.Text
+  rejectReason    String    @map("reject_reason") @db.Text
+  approvedById    Int?      @map("approved_by")
+  approvedAt      DateTime? @map("approved_at")
+  receivedById    Int?      @map("received_by")
+  receivedAt      DateTime? @map("received_at") @db.Date
+  /// The IN transaction posted at receipt (BR-28).
+  transactionId   Int?      @unique @map("transaction_id")
+  clientRequestId String?   @unique @map("client_request_id") @db.VarChar(64)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  requester   User                  @relation("requester", fields: [requesterId], references: [id])
+  approvedBy  User?                 @relation("purchaseApprover", fields: [approvedById], references: [id])
+  receivedBy  User?                 @relation("purchaseReceiver", fields: [receivedById], references: [id])
+  transaction StockTransaction?     @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  lines       PurchaseRequestItem[]
+
+  @@index([status])
+  @@index([requesterId])
+  @@index([approvedById])
+  @@index([receivedById])
+  @@map("purchase_requests")
+}
+
+/// An existing item (itemId) or a new item (new_item_* columns); on receipt itemId is set and new_item_* stay as history (BR-31).
+model PurchaseRequestItem {
+  id                Int     @id @default(autoincrement())
+  purchaseRequestId Int     @map("purchase_request_id")
+  itemId            Int?    @map("item_id")
+  quantity          Int
+  newItemName       String? @map("new_item_name") @db.VarChar(150)
+  newItemCategoryId Int?    @map("new_item_category_id")
+  newItemUnit       String? @map("new_item_unit") @db.VarChar(20)
+
+  purchaseRequest PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  item            Item?           @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  newItemCategory Category?       @relation(fields: [newItemCategoryId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseRequestId])
+  @@index([itemId])
+  @@index([newItemCategoryId])
+  @@map("purchase_request_items")
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  action    String   @db.VarChar(100)
+  module    String   @db.VarChar(50)
+  reference String   @db.VarChar(200)
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([module])
+  @@index([userId])
+  @@map("activity_logs")
+}
+
+/// Counters for readable numbers such as IN-202610-0001 (BR-23). The row lock makes them safe under concurrent requests.
+model NumberSequence {
+  key   String @id @db.VarChar(30)
+  value Int
+
+  @@map("number_sequences")
+}

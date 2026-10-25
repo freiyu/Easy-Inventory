@@ -1,0 +1,90 @@
+// Pure domain rules (PRD 4.5, 4.6, 4.6A, 6.2, 6.4). No database access, so they are unit tested directly.
+import { dayDiff, type LoanDisplayStatus, type LoanStatus, type PurchaseStatus, type Role, type StockStatus } from "../shared";
+
+export type LoanAction = "edit" | "submit" | "cancel" | "approve" | "reject" | "issue" | "return";
+export type PurchaseAction = "edit" | "submit" | "cancel" | "approve" | "reject" | "receive";
+export interface Actor {
+  id: number;
+  role: Role;
+}
+
+/** BR-25: Safe > minimum, Low <= minimum and > 0, Out = 0. */
+export function stockStatus(stock: number, minimum: number): StockStatus {
+  if (stock <= 0) return "Out";
+  if (stock <= minimum) return "Low";
+  return "Safe";
+}
+
+/** BR-12: Overdue is derived from Borrowed plus an expected return date before today. */
+export function loanDisplayStatus(status: LoanStatus, expectedReturnDate: string, today: string): LoanDisplayStatus {
+  return status === "Borrowed" && expectedReturnDate < today ? "Overdue" : status;
+}
+
+export const daysOverdue = (status: LoanStatus, expectedReturnDate: string, today: string) =>
+  status === "Borrowed" ? Math.max(0, dayDiff(expectedReturnDate, today)) : 0;
+
+/** BR-20: a return is not before the loan date; a loan issued early can be returned from its issue day. */
+export function returnFloor(loanDate: string, issuedOn: string | null): string {
+  return issuedOn && issuedOn < loanDate ? issuedOn : loanDate;
+}
+
+/** Merges duplicate item lines so limits are checked per item. */
+export function totalsByItem(lines: { itemId: number; quantity: number }[]): Map<number, number> {
+  const map = new Map<number, number>();
+  for (const l of lines) map.set(l.itemId, (map.get(l.itemId) ?? 0) + l.quantity);
+  return map;
+}
+
+/**
+ * PRD 3.2, 6.2: what this user may do with the loan now. The owner is the borrower (a loan an Admin
+ * creates on behalf of a Staff member belongs to that Staff member). Nobody approves their own (BR-13).
+ */
+export function loanActions(loan: { status: LoanStatus; borrowerId: number }, actor: Actor): LoanAction[] {
+  const own = loan.borrowerId === actor.id;
+  const admin = actor.role === "Admin";
+  const out: LoanAction[] = [];
+  if (loan.status === "Draft" && own) out.push("edit", "submit", "cancel");
+  if (loan.status === "Pending Approval") {
+    if (own) out.push("cancel");
+    if (admin && !own) out.push("approve", "reject");
+  }
+  if (loan.status === "Approved" && admin) out.push("cancel", "issue");
+  if (loan.status === "Borrowed" && admin) out.push("return");
+  return out;
+}
+
+/** PRD 3.2, 6.2A, BR-29: same ownership rule for purchase requests (the owner is the requester). */
+export function purchaseActions(p: { status: PurchaseStatus; requesterId: number }, actor: Actor): PurchaseAction[] {
+  const own = p.requesterId === actor.id;
+  const admin = actor.role === "Admin";
+  const out: PurchaseAction[] = [];
+  if (p.status === "Draft" && own) out.push("edit", "submit", "cancel");
+  if (p.status === "Pending Approval") {
+    if (own) out.push("cancel");
+    if (admin && !own) out.push("approve", "reject");
+  }
+  if (p.status === "Approved" && admin) out.push("cancel", "receive");
+  return out;
+}
+
+/** BR-23: readable numbers such as IN-202610-0001; the counter is per prefix and month. */
+export const sequenceKey = (prefix: string, date: string) => `${prefix}-${date.slice(0, 4)}${date.slice(5, 7)}`;
+export const formatSequence = (key: string, n: number) => `${key}-${String(n).padStart(4, "0")}`;
+
+/** BR-32: `<category code>-<number>`, 4 digits (more after 9999). */
+export const itemCode = (categoryCode: string, n: number) => `${categoryCode}-${String(n).padStart(4, "0")}`;
+
+/** "2026-01" .. "2026-03" -> ["2026-01", "2026-02", "2026-03"]. */
+export function monthsBetween(from: string, to: string): string[] {
+  const out: string[] = [];
+  let [y, m] = from.split("-").map(Number);
+  const [ty, tm] = to.split("-").map(Number);
+  while (y < ty || (y === ty && m <= tm)) {
+    out.push(`${y}-${String(m).padStart(2, "0")}`);
+    if (++m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+
+/** PRD 7.5: a cell starting with = + - @ is written as text so a spreadsheet never runs it as a formula. */
+export const safeCell = (v: unknown) => (typeof v === "string" && /^[=+\-@]/.test(v) ? `'${v}` : v);

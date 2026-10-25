@@ -103,6 +103,9 @@ export const t = {
     returnInFuture: "Return date cannot be in the future.",
     atLeastOneLine: "Add at least one item.",
     differenceZero: "Physical stock equals system stock. There is nothing to adjust.",
+    tooLong: (label: string, max: number) => `${label} must be ${max} characters or fewer.`,
+    tooLarge: (label: string) => `${label} is too large.`,
+    date: (label: string) => `${label} must be a valid date.`,
   },
 
   status: {
