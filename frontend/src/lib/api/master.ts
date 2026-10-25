@@ -71,7 +71,36 @@ export const suppliers = {
   setStatus: (id: number, kind: "deactivate" | "activate") => post<null>(`/suppliers/${id}/${kind}`),
 };
 
+/** One row of the import preview (PRD 4.10). */
+export interface ImportRowDto {
+  line: number;
+  status: "ready" | "skipped" | "error" | "imported";
+  message: string;
+  name: string;
+  category: string;
+  unit: string;
+  openingStock: number;
+  minimumStock: number;
+  price: number;
+  supplier: string;
+  location: string;
+  notes: string;
+}
+export interface ImportReportDto {
+  rows: ImportRowDto[];
+  total: number;
+  ready: number;
+  skipped: number;
+  errors: number;
+  /** Items created by a confirmed import; 0 in a preview. */
+  created: number;
+}
+
 export const items = {
+  /** Validates a CSV file and returns one result per row. Saves nothing. */
+  importPreview: (csv: string) => post<ImportReportDto>("/items/import/preview", { csv }),
+  /** Confirms the import: re-validates, takes a backup, creates the ready rows in one transaction. */
+  importConfirm: (csv: string) => post<ImportReportDto>("/items/import", { csv }),
   list: (q: Query) => get<ItemDto[]>("/items", clean(q)),
   one: (id: number) => get<ItemDto>(`/items/${id}`),
   locations: () => get<string[]>("/items/locations"),

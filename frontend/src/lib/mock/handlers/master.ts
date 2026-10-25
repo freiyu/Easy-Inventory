@@ -4,7 +4,7 @@ import { availableForLoan, reservedQuantity, stockStatus } from "../rules";
 import { t } from "../../strings";
 import type { Category, Item, Supplier } from "../../types";
 import {
-  deleteCategory, deleteItem, deleteSupplier, fail, itemHasReferences, ok, saveCategory, saveSupplier, setCategoryStatus,
+  deleteCategory, deleteItem, importItems, previewItemImport, deleteSupplier, fail, itemHasReferences, ok, saveCategory, saveSupplier, setCategoryStatus,
   setItemStatus, setSupplierStatus, updateItem, createItem, type Ctx, type DB,
 } from "../ops";
 import { filterValue, paged, searchRows } from "./list";
@@ -141,6 +141,8 @@ export const masterRoutes: Route[] = [
   { method: "POST", path: "/suppliers/:id/activate", admin: true, run: (h) => setSupplierStatus(h.c, id(h), "Active") },
 
   { method: "GET", path: "/items", run: listItems },
+  { method: "POST", path: "/items/import/preview", admin: true, run: (h) => previewItemImport(h.c, String(h.body.csv ?? "")) },
+  { method: "POST", path: "/items/import", admin: true, run: (h) => importItems(h.c, String(h.body.csv ?? "")) },
   { method: "GET", path: "/items/locations", admin: true, run: ({ c }) => ok([...new Set(c.db.items.map((i) => i.location).filter(Boolean))].sort()) },
   { method: "GET", path: "/items/:id", run: oneItem },
   { method: "POST", path: "/items", admin: true, run: (h) => { const r = createItem(h.c, input(h)); return r.ok ? ok(itemDto(h.c, r.data, true)) : r; } },

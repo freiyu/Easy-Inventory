@@ -1,6 +1,7 @@
 // Mock business operations on an in-memory DB. They mirror the API contract (PRD 6.6)
 // and business rules (PRD 6.4). The real backend re-implements them (Stage 3).
 import { BACKUP_RETENTION, UNITS } from "../constants";
+import { parseCsv } from "./csv";
 import { dayDiff } from "../format";
 import { availableForLoan, reservedQuantity, returnFloor, totalsByItem } from "./rules";
 import type {
@@ -390,6 +391,127 @@ export function deleteItem(c: Ctx, id: number): Result {
   c.db.items = c.db.items.filter((i) => i.id !== id);
   log(c, "Item deleted", "Items", item.code);
   return ok(undefined);
+}
+
+// ------------------------------------------------------------- item CSV import
+// PRD 4.10, BR-33: Admin only, insert-only, validated per row, previewed, one transaction after a backup.
+
+export const IMPORT_MAX_ROWS = 500;
+export const IMPORT_MAX_BYTES = 1_000_000;
+type ImportColumn = "name" | "category" | "unit" | "opening_stock" | "minimum_stock" | "price" | "supplier" | "location" | "notes";
+const IMPORT_REQUIRED = ["name", "category", "unit"] as const;
+
+export interface ImportRow {
+  /** Line number in the file (the header is line 1). */
+  line: number;
+  status: "ready" | "skipped" | "error" | "imported";
+  message: string;
+  name: string;
+  category: string;
+  unit: string;
+  openingStock: number;
+  minimumStock: number;
+  price: number;
+  supplier: string;
+  location: string;
+  notes: string;
+}
+export interface ImportReport {
+  rows: ImportRow[];
+  total: number;
+  ready: number;
+  skipped: number;
+  errors: number;
+  /** Items created (confirmed import only). */
+  created: number;
+}
+
+const wholeOrNull = (v: string): number | null => (v.trim() === "" ? 0 : /^\d+$/.test(v.trim()) ? Number(v.trim()) : null);
+
+/** Validates the file and every row against the current data. Saves nothing. */
+export function previewItemImport(c: Ctx, csv: string): Result<ImportReport> {
+  const denied = requireAdmin(c);
+  if (denied) return denied;
+  const bad = (message: string) => fail("VALIDATION_ERROR", message, { csv: message });
+  if (new Blob([csv]).size > IMPORT_MAX_BYTES) return bad(e.importTooBig);
+  const table = parseCsv(csv);
+  if (table.length === 0) return bad(e.importEmpty);
+  const header = table[0].map((h) => h.trim().toLowerCase().replace(/[\s-]+/g, "_"));
+  const missing = IMPORT_REQUIRED.filter((h) => !header.includes(h));
+  if (missing.length) return bad(e.importMissingColumns(missing.join(", ")));
+  const data = table.slice(1);
+  if (data.length === 0) return bad(e.importNoRows);
+  if (data.length > IMPORT_MAX_ROWS) return bad(e.importTooManyRows(IMPORT_MAX_ROWS));
+
+  const col = (cells: string[], name: ImportColumn) => {
+    const i = header.indexOf(name);
+    return i < 0 ? "" : (cells[i] ?? "").trim();
+  };
+  const seen = new Set<string>(c.db.items.map((i) => lc(i.name)));
+  const rows: ImportRow[] = data.map((cells, idx) => {
+    const row: ImportRow = {
+      line: idx + 2, status: "ready", message: "",
+      name: col(cells, "name"), category: col(cells, "category"), unit: col(cells, "unit"),
+      openingStock: 0, minimumStock: 0, price: 0, supplier: col(cells, "supplier"), location: col(cells, "location"), notes: col(cells, "notes"),
+    };
+    const problem = (message: string) => { row.status = "error"; row.message = message; return row; };
+    if (!row.name) return problem(t.validation.required(t.fields.name));
+    const cat = c.db.categories.find((x) => lc(x.name) === lc(row.category));
+    if (!row.category) return problem(t.validation.required(t.fields.category));
+    if (!cat) return problem(e.importUnknownCategory(row.category));
+    if (cat.status !== "Active") return problem(e.categoryInactive(cat.name));
+    if (!row.unit) return problem(t.validation.required(t.fields.unit));
+    const unit = UNITS.find((u) => lc(u) === lc(row.unit));
+    if (!unit) return problem(e.importUnknownUnit(row.unit));
+    row.unit = unit;
+    for (const [key, label, raw] of [
+      ["openingStock", t.fields.openingStock, col(cells, "opening_stock")],
+      ["minimumStock", t.fields.minimumStock, col(cells, "minimum_stock")],
+      ["price", t.fields.lastPrice, col(cells, "price")],
+    ] as const) {
+      const n = wholeOrNull(raw);
+      if (n === null) return problem(t.validation.whole(label));
+      row[key] = n;
+    }
+    if (row.supplier) {
+      const sup = c.db.suppliers.find((x) => lc(x.name) === lc(row.supplier));
+      if (!sup) return problem(e.importUnknownSupplier(row.supplier));
+      if (sup.status !== "Active") return problem(e.supplierInactive(sup.name));
+    }
+    if (seen.has(lc(row.name))) { row.status = "skipped"; row.message = e.importDuplicate; return row; }
+    seen.add(lc(row.name));
+    return row;
+  });
+  const count = (s: ImportRow["status"]) => rows.filter((r) => r.status === s).length;
+  return ok({ rows, total: rows.length, ready: count("ready"), skipped: count("skipped"), errors: count("error"), created: 0 });
+}
+
+/** Confirmed import: validates again, takes a "Before import" backup, creates the ready rows. */
+export function importItems(c: Ctx, csv: string): Result<ImportReport> {
+  const pre = previewItemImport(c, csv);
+  if (!pre.ok) return pre;
+  if (pre.data.ready === 0) return fail("BUSINESS_RULE_VIOLATION", e.importNothing);
+  const backup = createBackup(c, "Before import");
+  if (!backup.ok) return backup;
+  for (const row of pre.data.rows) {
+    if (row.status !== "ready") continue;
+    const made = createItem(c, {
+      name: row.name,
+      categoryId: c.db.categories.find((x) => lc(x.name) === lc(row.category))!.id,
+      unit: row.unit,
+      openingStock: row.openingStock,
+      minimumStock: row.minimumStock,
+      lastPurchasePrice: row.price,
+      supplierId: row.supplier ? c.db.suppliers.find((x) => lc(x.name) === lc(row.supplier))!.id : null,
+      location: row.location,
+      status: "Active",
+      notes: row.notes,
+    });
+    if (!made.ok) return made; // the adapter drops the whole copy of the database: all or nothing
+    row.status = "imported";
+  }
+  log(c, "Items imported", "Items", `${pre.data.ready} created, ${pre.data.skipped} skipped, ${pre.data.errors} rejected`);
+  return ok({ ...pre.data, created: pre.data.ready, ready: 0 });
 }
 
 // ----------------------------------------------------- categories & suppliers
@@ -979,7 +1101,7 @@ function tempPassword(): string {
 
 // -------------------------------------------------------------------- backup
 
-export function createBackup(c: Ctx): Result<BackupFile> {
+export function createBackup(c: Ctx, kind: BackupFile["kind"] = "Manual"): Result<BackupFile> {
   const denied = requireAdmin(c);
   if (denied) return denied;
   const d = new Date(c.now);
@@ -989,7 +1111,7 @@ export function createBackup(c: Ctx): Result<BackupFile> {
     id: nextId(c.db, "backup"),
     fileName: `ezi-backup-${stamp}.sql.gz`,
     createdAt: c.now,
-    kind: "Manual",
+    kind,
     sizeKb: 2000 + c.db.transactions.length * 3,
   };
   c.db.backups.unshift(file);

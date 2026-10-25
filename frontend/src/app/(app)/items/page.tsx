@@ -89,6 +89,7 @@ export default function ItemsPage() {
         description={isAdmin ? t.items.descAdmin : t.items.descStaff}
         actions={isAdmin && (
           <>
+            <Link href="/items/import" className={buttonVariants({ variant: "outline" })}>{t.itemImport.button}</Link>
             <Button variant="outline" onClick={() => toast.info(t.common.exportMocked)}>{t.common.exportExcel}</Button>
             <Link href="/items/new" className={buttonVariants()}>{t.items.add}</Link>
           </>

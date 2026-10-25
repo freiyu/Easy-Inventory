@@ -60,7 +60,7 @@ export const isActivePath = (pathname: string, href: string) =>
   pathname === href || pathname.startsWith(`${href}/`);
 
 /** Item add/edit and the stock forms are Admin-only even though /items is shared. */
-const adminSubpaths = ["/items/new", "/items/edit"];
+const adminSubpaths = ["/items/new", "/items/edit", "/items/import"];
 
 export function canAccess(role: Role, pathname: string): boolean {
   if (role === "Admin") return true;

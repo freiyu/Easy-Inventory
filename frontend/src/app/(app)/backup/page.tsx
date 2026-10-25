@@ -15,7 +15,7 @@ import { formatDateTime, formatSize } from "@/lib/format";
 import { t } from "@/lib/strings";
 import type { BackupFile } from "@/lib/types";
 
-const kindIcon = { Automatic: RefreshCw, Manual: Hand, "Before update": CircleCheck } as const;
+const kindIcon = { Automatic: RefreshCw, Manual: Hand, "Before update": CircleCheck, "Before import": CircleCheck } as const;
 
 export default function BackupPage() {
   const lp = useListParams({ sort: "created:desc" });

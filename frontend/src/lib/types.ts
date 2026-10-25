@@ -175,7 +175,7 @@ export interface BackupFile {
   id: number;
   fileName: string;
   createdAt: string;
-  kind: "Automatic" | "Manual" | "Before update";
+  kind: "Automatic" | "Manual" | "Before update" | "Before import";
   sizeKb: number;
 }
 
