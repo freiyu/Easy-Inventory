@@ -46,24 +46,24 @@ export default function LoansPage() {
   return (
     <>
       <PageHeader title={t.loans.title} description={isAdmin ? t.loans.descAdmin : t.loans.descStaff} actions={newLink} />
+      <FilterChips
+        label={t.loans.colStatus}
+        value={lp.filters.status}
+        onChange={(v) => lp.set({ status: v })}
+        chips={[
+          { value: ALL, label: t.loans.tabAll, count: mine.length },
+          ...TABS.map((s) => ({ value: s, label: t.status.loan[s], count: count(s) })),
+          { value: CLOSED, label: t.loans.tabClosed, count: count(CLOSED) },
+        ]}
+      />
+      <FilterBar dirty={lp.dirty} onClear={lp.clear}>
+        <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.loans.searchPlaceholder} />
+        {isAdmin && (
+          <SelectField className="w-56" aria-label={t.loans.colBorrower} value={lp.filters.borrowerId} onChange={(v) => lp.set({ borrowerId: v })}
+            options={[{ value: ALL, label: t.loans.allBorrowers }, ...borrowers.map(([id, name]) => ({ value: String(id), label: name }))]} />
+        )}
+      </FilterBar>
       <LoadGate load={list}>
-        <FilterChips
-          label={t.loans.colStatus}
-          value={lp.filters.status}
-          onChange={(v) => lp.set({ status: v })}
-          chips={[
-            { value: ALL, label: t.loans.tabAll, count: mine.length },
-            ...TABS.map((s) => ({ value: s, label: t.status.loan[s], count: count(s) })),
-            { value: CLOSED, label: t.loans.tabClosed, count: count(CLOSED) },
-          ]}
-        />
-        <FilterBar dirty={lp.dirty} onClear={lp.clear}>
-          <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.loans.searchPlaceholder} />
-          {isAdmin && (
-            <SelectField className="w-56" aria-label={t.loans.colBorrower} value={lp.filters.borrowerId} onChange={(v) => lp.set({ borrowerId: v })}
-              options={[{ value: ALL, label: t.loans.allBorrowers }, ...borrowers.map(([id, name]) => ({ value: String(id), label: name }))]} />
-          )}
-        </FilterBar>
         <DataTable
           caption={t.loans.caption}
           {...tableProps(list, lp)}

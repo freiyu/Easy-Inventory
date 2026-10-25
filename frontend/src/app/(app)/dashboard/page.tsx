@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, Boxes, HandHelping, Package, TriangleAlert } from "lucide-react";
+import { ClipboardCheck, HandHelping, Package, PackageX, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -53,8 +53,8 @@ function AdminView({ data }: { data: AdminDashboard }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label={t.dashboard.kpiItemTypes} value={formatNumber(data.itemTypes)} caption={t.dashboard.kpiItemTypesCaption} icon={Package} />
-        <KpiCard label={t.dashboard.kpiStock} value={formatNumber(data.totalStock)} caption={t.dashboard.kpiStockCaption} icon={Boxes} />
+        <KpiCard label={t.dashboard.kpiOut} value={formatNumber(stock.Out)} caption={t.dashboard.kpiOutCaption} icon={PackageX} />
+        <KpiCard label={t.dashboard.kpiApprovals} value={formatNumber(data.pendingApprovals)} caption={t.dashboard.kpiApprovalsCaption} icon={ClipboardCheck} />
         <KpiCard label={t.dashboard.kpiLow} value={formatNumber(data.attention)} caption={t.dashboard.kpiLowCaption(stock.Low, stock.Out)} icon={TriangleAlert} />
         <KpiCard label={t.dashboard.kpiLoans} value={formatNumber(loans.active)} caption={t.dashboard.kpiLoansCaption(loans.overdue)} icon={HandHelping} />
       </div>
@@ -148,7 +148,7 @@ function StaffView({ data }: { data: StaffDashboard }) {
     <div className="flex flex-col gap-6">
       {overdueFirst && (
         <div role="alert" className="flex items-start gap-3 rounded-xl bg-danger-soft px-4 py-3 text-base text-foreground">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger-icon" aria-hidden="true" />
+          <TriangleAlert className="mt-0.5 size-5 shrink-0 text-danger-icon" aria-hidden="true" />
           <p>{t.dashboard.overdueAlert(overdueFirst.number, overdueFirst.summary, formatDate(overdueFirst.expectedReturnDate), overdueFirst.daysOverdue)}</p>
         </div>
       )}

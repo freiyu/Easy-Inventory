@@ -13,7 +13,7 @@ import { purchaseRoutes } from "./handlers/purchases";
 import { stockRoutes } from "./handlers/stock";
 import type { H, Out, Route } from "./handlers/types";
 import { fail } from "./ops";
-import { mock, sessionUser } from "./state";
+import { mock, persist, sessionUser } from "./state";
 
 let latencyMs = 250;
 /** Tests turn the simulated network delay off. */
@@ -65,7 +65,7 @@ export async function handle(req: ApiRequest): Promise<Envelope<unknown>> {
     const { route, params } = hit;
 
     const user = sessionUser();
-    if (!user && !route.public) return envelope(fail("UNAUTHENTICATED", t.errors.forbidden));
+    if (!user && !route.public) return envelope(fail("UNAUTHENTICATED", t.errors.signedOut));
     if (route.admin && user?.role !== "Admin") return envelope(fail("FORBIDDEN", t.errors.forbidden));
 
     const write = req.method !== "GET";
@@ -81,7 +81,7 @@ export async function handle(req: ApiRequest): Promise<Envelope<unknown>> {
     const actor = user ? (db.users.find((u) => u.id === user.id) ?? user) : (null as never);
     const h: H = { c: { db, actor, now: new Date().toISOString(), today: today() }, params, query: req.query ?? {}, body };
     const out = route.run(h);
-    if (write && out.ok) mock.db = db;
+    if (write && out.ok) { mock.db = db; persist(); }
     const env = envelope(out);
     if (idemKey && env.success) mock.idem.set(idemKey, env);
     return env;

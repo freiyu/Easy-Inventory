@@ -44,24 +44,24 @@ export default function PurchasesPage() {
   return (
     <>
       <PageHeader title={t.purchases.title} description={isAdmin ? t.purchases.descAdmin : t.purchases.descStaff} actions={newLink} />
+      <FilterChips
+        label={t.purchases.colStatus}
+        value={lp.filters.status}
+        onChange={(v) => lp.set({ status: v })}
+        chips={[
+          { value: ALL, label: t.purchases.tabAll, count: counts[ALL] },
+          ...TABS.map((s) => ({ value: s, label: t.status.purchase[s], count: counts[s] })),
+          { value: CLOSED, label: t.purchases.tabClosed, count: counts[CLOSED] },
+        ]}
+      />
+      <FilterBar dirty={lp.dirty} onClear={lp.clear}>
+        <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.purchases.searchPlaceholder} />
+        {isAdmin && (
+          <SelectField className="w-56" aria-label={t.purchases.colRequester} value={lp.filters.requesterId} onChange={(v) => lp.set({ requesterId: v })}
+            options={[{ value: ALL, label: t.purchases.allRequesters }, ...(requesters.data ?? []).map((u) => ({ value: String(u.id), label: u.name }))]} />
+        )}
+      </FilterBar>
       <LoadGate load={list}>
-        <FilterChips
-          label={t.purchases.colStatus}
-          value={lp.filters.status}
-          onChange={(v) => lp.set({ status: v })}
-          chips={[
-            { value: ALL, label: t.purchases.tabAll, count: counts[ALL] },
-            ...TABS.map((s) => ({ value: s, label: t.status.purchase[s], count: counts[s] })),
-            { value: CLOSED, label: t.purchases.tabClosed, count: counts[CLOSED] },
-          ]}
-        />
-        <FilterBar dirty={lp.dirty} onClear={lp.clear}>
-          <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.purchases.searchPlaceholder} />
-          {isAdmin && (
-            <SelectField className="w-56" aria-label={t.purchases.colRequester} value={lp.filters.requesterId} onChange={(v) => lp.set({ requesterId: v })}
-              options={[{ value: ALL, label: t.purchases.allRequesters }, ...(requesters.data ?? []).map((u) => ({ value: String(u.id), label: u.name }))]} />
-          )}
-        </FilterBar>
         <DataTable
           caption={t.purchases.caption}
           {...tableProps(list, lp)}

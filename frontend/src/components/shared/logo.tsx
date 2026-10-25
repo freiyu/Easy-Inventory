@@ -21,7 +21,7 @@ export function Logo({ className, size = "md" }: { className?: string; size?: "m
       <LogoMark className={size === "lg" ? "size-10" : "size-8"} />
       <span className={cn("leading-none text-foreground", size === "lg" ? "text-2xl" : "text-xl")}>
         <span className="font-extrabold tracking-tight">{t.app.name}</span>{" "}
-        <span className="font-light">{t.app.product}</span>
+        <span className="font-medium">{t.app.product}</span>
       </span>
     </div>
   );

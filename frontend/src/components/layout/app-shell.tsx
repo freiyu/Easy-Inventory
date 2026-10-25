@@ -107,7 +107,7 @@ function Sidebar({ user }: { user: User }) {
           return (
             <div key={gi} className="mt-4 first:mt-0">
               {showGroupLabels && group.label && (
-                <p className="px-3 pb-1 text-sm font-semibold tracking-wide text-muted-foreground uppercase">{group.label}</p>
+                <p className="px-3 pb-1 text-sm font-semibold text-muted-foreground">{group.label}</p>
               )}
               <ul className="flex flex-col gap-0.5">
                 {entries.map((e) => {
@@ -127,7 +127,7 @@ function Sidebar({ user }: { user: User }) {
                         <e.icon className={cn("size-5 shrink-0", active ? "text-sidebar-active-icon" : "text-muted-foreground")} aria-hidden="true" />
                         <span className="flex-1 truncate">{e.label}</span>
                         {badge > 0 && (
-                          <span className="min-w-6 rounded-full bg-danger-soft px-1.5 text-center text-sm font-semibold text-foreground">
+                          <span className={cn("min-w-6 rounded-full px-1.5 text-center text-sm font-semibold text-foreground", e.badge === "purchases" ? "bg-info-soft" : "bg-danger-soft")}>
                             {badge}
                             <span className="sr-only">{t.nav.needsAttention}</span>
                           </span>

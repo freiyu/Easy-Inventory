@@ -214,8 +214,8 @@ export function createSeed(): DB {
   });
   ev(0, () => {
     request(0, 4, [[13, 1], [12, 1]], 1, 3, "Client presentation, Meeting Room 2");
-    request(0, 2, [[12, 1]], 0, 2, "Demo at the partner office"); // an Admin's own request: needs another Admin (BR-13)
-    request(0, 3, [[12, 1]], 1, 2, "Meeting room demo", false);
+    request(0, 2, [[12, 1]], 0, 2, "Presentation at a client office"); // an Admin's own request: needs another Admin (BR-13)
+    request(0, 3, [[12, 1]], 1, 2, "Meeting room presentation", false);
   });
 
   const purchase = (day: number, requesterId: number, lines: PurchaseLine[], neededDay: number, reason: string, submit = true) => {

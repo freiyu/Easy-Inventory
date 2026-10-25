@@ -36,12 +36,13 @@ const loanBrief = (db: DB, l: Loan): LoanBrief => ({
   daysOverdue: daysOverdue(l),
 });
 
-function adminDashboard({ db }: Ctx): AdminDashboard {
+function adminDashboard({ db, actor }: Ctx): AdminDashboard {
   const stock = stockCounts(db);
   const active = db.items.filter((i) => i.status === "Active");
   return {
-    itemTypes: active.length,
-    totalStock: active.reduce((n, i) => n + i.currentStock, 0),
+    pendingApprovals:
+      db.loans.filter((l) => l.status === "Pending Approval").length +
+      db.purchaseRequests.filter((p) => p.status === "Pending Approval" && p.requesterId !== actor.id).length,
     stock: { Safe: stock.Safe, Low: stock.Low, Out: stock.Out },
     attention: stock.attention,
     loans: loanCounts(db),
@@ -103,7 +104,7 @@ const monthsBetween = (from: string, to: string): string[] => {
 function expenseSummary({ c, query }: H): Out {
   const from = filterValue(query, "from");
   const to = filterValue(query, "to");
-  if (!from || !to) return fail("VALIDATION_ERROR", t.errors.fix, { from: t.validation.required(t.expenses.from), to: t.validation.required(t.expenses.to) });
+  if (!from || !to) return fail("VALIDATION_ERROR", t.errors.fix, { from: t.validation.required(t.common.from), to: t.validation.required(t.common.to) });
   if (to < from) return fail("VALIDATION_ERROR", t.expenses.rangeInvalid, { to: t.expenses.rangeInvalid });
   const keys = monthsBetween(monthKey(from), monthKey(to));
   if (keys.length > 12) return fail("VALIDATION_ERROR", t.expenses.rangeTooLong, { to: t.expenses.rangeTooLong });

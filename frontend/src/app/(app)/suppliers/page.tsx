@@ -70,12 +70,12 @@ export default function SuppliersPage() {
   return (
     <>
       <PageHeader title={t.suppliers.title} description={t.suppliers.description} actions={<Button onClick={() => open("new")}>{t.suppliers.add}</Button>} />
+      <FilterBar dirty={lp.dirty} onClear={lp.clear}>
+        <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.suppliers.searchPlaceholder} />
+        <SelectField className="w-44" aria-label={t.common.status} value={lp.filters.status} onChange={(v) => lp.set({ status: v })}
+          options={[{ value: "all", label: t.common.activeFilter.all }, { value: "Active", label: t.common.activeFilter.Active }, { value: "Inactive", label: t.common.activeFilter.Inactive }]} />
+      </FilterBar>
       <LoadGate load={list}>
-        <FilterBar dirty={lp.dirty} onClear={lp.clear}>
-          <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.suppliers.searchPlaceholder} />
-          <SelectField className="w-44" aria-label={t.common.status} value={lp.filters.status} onChange={(v) => lp.set({ status: v })}
-            options={[{ value: "all", label: t.common.activeFilter.all }, { value: "Active", label: t.common.activeFilter.Active }, { value: "Inactive", label: t.common.activeFilter.Inactive }]} />
-        </FilterBar>
         <DataTable
           caption={t.suppliers.caption}
           {...tableProps(list, lp)}

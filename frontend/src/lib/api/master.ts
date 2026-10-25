@@ -53,8 +53,6 @@ export interface ItemDto {
   movements?: Movement[];
 }
 
-const status = (kind: "deactivate" | "activate") => kind;
-
 export const categories = {
   list: (q: Query) => get<CategoryDto[]>("/categories", clean(q)),
   /** Active categories for pickers (Admin and Staff). */
@@ -62,7 +60,7 @@ export const categories = {
   create: (v: CategoryInput) => post<CategoryDto>("/categories", v),
   update: (id: number, v: CategoryInput) => put<CategoryDto>(`/categories/${id}`, v),
   remove: (id: number) => del<null>(`/categories/${id}`),
-  setStatus: (id: number, kind: "deactivate" | "activate") => post<null>(`/categories/${id}/${status(kind)}`),
+  setStatus: (id: number, kind: "deactivate" | "activate") => post<null>(`/categories/${id}/${kind}`),
 };
 
 export const suppliers = {

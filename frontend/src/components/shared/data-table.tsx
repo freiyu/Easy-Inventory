@@ -66,9 +66,8 @@ export function DataTable<T>({
   const [sortField, sortDir] = sort.split(":");
   const { pageSize, total } = meta;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const current = Math.min(meta.page, pageCount);
+  const current = meta.page; // the server clamps a page past the end, so the rows always belong to this page
   const start = (current - 1) * pageSize;
-  const visible = rows;
 
   const toggleSort = (id: string) => onSortChange(`${id}:${sortField === id && sortDir === "asc" ? "desc" : "asc"}`);
 
@@ -106,7 +105,7 @@ export function DataTable<T>({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visible.map((row) => (
+            {rows.map((row) => (
               <TableRow key={rowKey(row)}>
                 {columns.map((c) => (
                   <TableCell key={c.id} className={cn(c.numeric && "tabular text-right", c.className)}>{c.cell(row)}</TableCell>
@@ -121,7 +120,7 @@ export function DataTable<T>({
       </Card>
 
       <ul className="flex flex-col gap-3 md:hidden" aria-label={caption}>
-        {visible.map((row) => {
+        {rows.map((row) => {
           const first = columns.find((c) => c.primary) ?? columns[0];
           const rest = columns.filter((c) => c !== first);
           return (
@@ -148,8 +147,8 @@ export function DataTable<T>({
       <div className="flex flex-col items-center justify-between gap-3 text-sm text-muted-foreground sm:flex-row">
         <p aria-live="polite">{t.common.showing(start + 1, Math.min(start + pageSize, total), total)}</p>
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <label className="flex items-center gap-2">
-            <span>{t.common.rowsPerPage}</span>
+          <div className="flex items-center gap-2">
+            <span aria-hidden="true">{t.common.rowsPerPage}</span>
             <SelectField
               size="sm"
               className="w-20"
@@ -158,7 +157,7 @@ export function DataTable<T>({
               options={PAGE_SIZES.map((n) => ({ value: String(n), label: String(n) }))}
               aria-label={t.common.rowsPerPage}
             />
-          </label>
+          </div>
           <nav className="flex items-center gap-1" aria-label={t.nav.pagination}>
             <Button variant="outline" size="sm" disabled={current === 1} onClick={() => onPageChange(current - 1)}>{t.common.previous}</Button>
             {pages.map((p, i) => (

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { t } from "@/lib/strings";
 
 export function SearchBox({
-  value, onChange, placeholder, label = t.common.search,
+  value, onChange, placeholder, label = placeholder,
 }: { value: string; onChange: (v: string) => void; placeholder: string; label?: string }) {
   return (
     <div className="relative w-full sm:w-80">
@@ -25,7 +25,7 @@ export function FilterBar({
   children, dirty, onClear,
 }: { children: React.ReactNode; dirty: boolean; onClear: () => void }) {
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-3">
+    <div className="mb-4 flex flex-wrap items-end gap-3">
       {children}
       {dirty && (
         <Button variant="ghost" onClick={onClear}>

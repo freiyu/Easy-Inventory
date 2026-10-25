@@ -104,13 +104,13 @@ export default function UsersPage() {
   return (
     <>
       <PageHeader title={t.users.title} description={t.users.description} actions={<Button onClick={() => open("new")}>{t.users.add}</Button>} />
+      <FilterBar dirty={lp.dirty} onClear={lp.clear}>
+        <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.users.searchPlaceholder} />
+        <SelectField className="w-44" aria-label={t.users.colRole} value={lp.filters.role} onChange={(v) => lp.set({ role: v })} options={[{ value: ALL, label: t.users.allRoles }, { value: "Admin", label: "Admin" }, { value: "Staff", label: "Staff" }]} />
+        <SelectField className="w-44" aria-label={t.users.colStatus} value={lp.filters.status} onChange={(v) => lp.set({ status: v })}
+          options={[{ value: ALL, label: t.common.activeFilter.all }, { value: "Active", label: t.common.activeFilter.Active }, { value: "Inactive", label: t.common.activeFilter.Inactive }]} />
+      </FilterBar>
       <LoadGate load={list}>
-        <FilterBar dirty={lp.dirty} onClear={lp.clear}>
-          <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.users.searchPlaceholder} />
-          <SelectField className="w-44" aria-label={t.users.colRole} value={lp.filters.role} onChange={(v) => lp.set({ role: v })} options={[{ value: ALL, label: t.users.allRoles }, { value: "Admin", label: "Admin" }, { value: "Staff", label: "Staff" }]} />
-          <SelectField className="w-44" aria-label={t.users.colStatus} value={lp.filters.status} onChange={(v) => lp.set({ status: v })}
-            options={[{ value: ALL, label: t.common.activeFilter.all }, { value: "Active", label: t.common.activeFilter.Active }, { value: "Inactive", label: t.common.activeFilter.Inactive }]} />
-        </FilterBar>
         <DataTable
           caption={t.users.caption}
           {...tableProps(list, lp)}

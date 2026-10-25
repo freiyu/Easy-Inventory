@@ -7,6 +7,7 @@ import { SelectField } from "@/components/shared/select-field";
 import { EmptyState, LoadGate } from "@/components/shared/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Field } from "@/components/shared/form-field";
 import { tableProps, useGet, useListParams } from "@/lib/api";
 import type { ActivityRow } from "@/lib/api/admin";
 import { formatDateTime } from "@/lib/format";
@@ -34,14 +35,14 @@ export default function ActivityLogPage() {
   return (
     <>
       <PageHeader title={t.activity.title} description={t.activity.description} />
+      <FilterBar dirty={dirty} onClear={clear}>
+        <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.activity.searchPlaceholder} />
+        <SelectField className="w-48" aria-label={t.activity.colModule} value={lp.filters.module} onChange={(v) => lp.set({ module: v })} options={[{ value: ALL, label: t.activity.allModules }, ...(modules.data ?? []).map((m) => ({ value: m, label: m }))]} />
+        <SelectField className="w-52" aria-label={t.activity.colUser} value={lp.filters.userId} onChange={(v) => lp.set({ userId: v })} options={[{ value: ALL, label: t.activity.allUsers }, ...(users.data ?? []).map((u) => ({ value: String(u.id), label: u.name }))]} />
+        <Field label={t.common.from} className="w-40">{(p) => <Input {...p} type="date" value={lp.filters.from} onChange={(e) => lp.set({ from: e.target.value })} />}</Field>
+        <Field label={t.common.to} className="w-40">{(p) => <Input {...p} type="date" value={lp.filters.to} onChange={(e) => lp.set({ to: e.target.value })} />}</Field>
+      </FilterBar>
       <LoadGate load={list}>
-        <FilterBar dirty={dirty} onClear={clear}>
-          <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.activity.searchPlaceholder} />
-          <SelectField className="w-48" aria-label={t.activity.colModule} value={lp.filters.module} onChange={(v) => lp.set({ module: v })} options={[{ value: ALL, label: t.activity.allModules }, ...(modules.data ?? []).map((m) => ({ value: m, label: m }))]} />
-          <SelectField className="w-52" aria-label={t.activity.colUser} value={lp.filters.userId} onChange={(v) => lp.set({ userId: v })} options={[{ value: ALL, label: t.activity.allUsers }, ...(users.data ?? []).map((u) => ({ value: String(u.id), label: u.name }))]} />
-          <Input type="date" className="w-40" aria-label={t.expenses.from} value={lp.filters.from} onChange={(e) => lp.set({ from: e.target.value })} />
-          <Input type="date" className="w-40" aria-label={t.expenses.to} value={lp.filters.to} onChange={(e) => lp.set({ to: e.target.value })} />
-        </FilterBar>
         <DataTable
           caption={t.activity.caption}
           {...tableProps(list, lp)}

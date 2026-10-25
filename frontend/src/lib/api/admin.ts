@@ -34,8 +34,8 @@ export interface LoanBrief {
 }
 
 export interface AdminDashboard {
-  itemTypes: number;
-  totalStock: number;
+  /** Loan requests plus purchase requests waiting for this Admin (never their own). */
+  pendingApprovals: number;
   stock: Record<StockStatus, number>;
   /** Low plus Out. */
   attention: number;

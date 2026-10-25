@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, Power, PowerOff, Trash2 } from "lucide-react";
+import { CircleX, Eye, Pencil, Power, PowerOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DataTable, type Column, type RowAction } from "@/components/shared/data-table";
@@ -17,7 +17,6 @@ import { api, tableProps, useCurrentUser, useGet, useListParams } from "@/lib/ap
 import type { CategoryOption, ItemDto, SupplierDto } from "@/lib/api/master";
 import { formatNumber } from "@/lib/format";
 import { t } from "@/lib/strings";
-import { CircleX } from "lucide-react";
 
 type Pending = { kind: "deactivate" | "activate" | "delete"; item: ItemDto } | null;
 
@@ -95,19 +94,19 @@ export default function ItemsPage() {
           </>
         )}
       />
+      <FilterBar dirty={lp.dirty} onClear={lp.clear}>
+        <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.items.searchPlaceholder} />
+        <SelectField className="w-48" aria-label={t.fields.category} value={filters.categoryId} onChange={(v) => lp.set({ categoryId: v })} options={[{ value: ALL, label: t.items.allCategories }, ...(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
+        <SelectField className="w-52" aria-label={isAdmin ? t.items.stockStatusFilter : t.items.availabilityFilter} value={filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: isAdmin ? t.items.allStockStatus : t.items.allAvailability }, ...stockOptions]} />
+        {isAdmin && (
+          <>
+            <SelectField className="w-56" aria-label={t.fields.preferredSupplier} value={filters.supplierId} onChange={(v) => lp.set({ supplierId: v })} options={[{ value: ALL, label: t.items.allSuppliers }, ...(suppliers.data ?? []).map((s) => ({ value: String(s.id), label: s.name }))]} />
+            <SelectField className="w-48" aria-label={t.fields.location} value={filters.location} onChange={(v) => lp.set({ location: v })} options={[{ value: ALL, label: t.items.allLocations }, ...(locations.data ?? []).map((l) => ({ value: l, label: l }))]} />
+            <SelectField className="w-48" aria-label={t.items.recordStatusFilter} value={filters.status} onChange={(v) => lp.set({ status: v })} options={[{ value: "Active", label: t.items.activeOnly }, { value: "Inactive", label: t.items.inactiveOnly }, { value: ALL, label: t.items.allRecords }]} />
+          </>
+        )}
+      </FilterBar>
       <LoadGate load={list}>
-        <FilterBar dirty={lp.dirty} onClear={lp.clear}>
-          <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.items.searchPlaceholder} />
-          <SelectField className="w-48" aria-label={t.fields.category} value={filters.categoryId} onChange={(v) => lp.set({ categoryId: v })} options={[{ value: ALL, label: t.items.allCategories }, ...(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
-          <SelectField className="w-52" aria-label={t.fields.status} value={filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: isAdmin ? t.items.allStockStatus : t.items.allAvailability }, ...stockOptions]} />
-          {isAdmin && (
-            <>
-              <SelectField className="w-56" aria-label={t.fields.preferredSupplier} value={filters.supplierId} onChange={(v) => lp.set({ supplierId: v })} options={[{ value: ALL, label: t.items.allSuppliers }, ...(suppliers.data ?? []).map((s) => ({ value: String(s.id), label: s.name }))]} />
-              <SelectField className="w-48" aria-label={t.fields.location} value={filters.location} onChange={(v) => lp.set({ location: v })} options={[{ value: ALL, label: t.items.allLocations }, ...(locations.data ?? []).map((l) => ({ value: l, label: l }))]} />
-              <SelectField className="w-48" aria-label={t.common.status} value={filters.status} onChange={(v) => lp.set({ status: v })} options={[{ value: "Active", label: t.items.activeOnly }, { value: "Inactive", label: t.items.inactiveOnly }, { value: ALL, label: t.items.allRecords }]} />
-            </>
-          )}
-        </FilterBar>
         <DataTable
           caption={t.items.caption}
           {...tableProps(list, lp)}

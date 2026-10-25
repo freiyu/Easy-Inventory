@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Field } from "@/components/shared/form-field";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { FilterBar, SearchBox } from "@/components/shared/filter-bar";
@@ -46,8 +47,8 @@ function ReportHeader({ count }: { count: number }) {
 function DateRange({ lp }: { lp: ListState }) {
   return (
     <>
-      <Input type="date" className="w-40" aria-label={t.expenses.from} value={lp.filters.from} onChange={(e) => lp.set({ from: e.target.value })} />
-      <Input type="date" className="w-40" aria-label={t.expenses.to} value={lp.filters.to} onChange={(e) => lp.set({ to: e.target.value })} />
+      <Field label={t.common.from} className="w-40">{(p) => <Input {...p} type="date" value={lp.filters.from} onChange={(e) => lp.set({ from: e.target.value })} />}</Field>
+      <Field label={t.common.to} className="w-40">{(p) => <Input {...p} type="date" value={lp.filters.to} onChange={(e) => lp.set({ to: e.target.value })} />}</Field>
     </>
   );
 }
@@ -71,7 +72,7 @@ function StockReport() {
       <FilterBar dirty={lp.dirty} onClear={clear}>
         <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.reports.searchStock} />
         <SelectField className="w-48" aria-label={t.reports.colCategory} value={lp.filters.categoryId} onChange={(v) => lp.set({ categoryId: v })} options={[{ value: ALL, label: t.items.allCategories }, ...(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
-        <SelectField className="w-52" aria-label={t.reports.colStatus} value={lp.filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: t.items.allStockStatus }, ...(["Safe", "Low", "Out"] as const).map((s) => ({ value: s, label: s }))]} />
+        <SelectField className="w-52" aria-label={t.reports.colStatus} value={lp.filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: t.items.allStockStatus }, ...(["Safe", "Low", "Out"] as const).map((s) => ({ value: s, label: t.status.stockAdmin[s] }))]} />
       </FilterBar>
       <LoadGate load={list}>
         <ReportHeader count={list.meta?.total ?? 0} />

@@ -56,7 +56,7 @@ export default function SetupPage() {
   return (
     <Card className="gap-5">
       <div className="px-5">
-        <p className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">{t.auth.setupEyebrow}</p>
+        <p className="text-sm font-semibold text-muted-foreground">{t.auth.setupEyebrow}</p>
         <h1 className="mt-1 text-xl font-semibold">{t.auth.setupTitle}</h1>
       </div>
       <p className="mx-5 flex items-start gap-2 rounded-lg bg-info-soft px-3 py-2.5 text-sm text-foreground">

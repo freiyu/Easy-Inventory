@@ -60,14 +60,14 @@ export default function StockPage() {
           </>
         }
       />
+      <FilterBar dirty={lp.dirty} onClear={lp.clear}>
+        <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.stock.searchPlaceholder} />
+        <SelectField className="w-48" aria-label={t.stock.colType} value={lp.filters.type} onChange={(v) => lp.set({ type: v })}
+          options={[{ value: ALL, label: t.stock.allTypes }, ...(Object.keys(t.status.txType) as (keyof typeof t.status.txType)[]).map((k) => ({ value: k, label: t.status.txType[k] }))]} />
+        <SelectField className="w-44" aria-label={t.stock.colStatus} value={lp.filters.status} onChange={(v) => lp.set({ status: v })}
+          options={[{ value: ALL, label: t.stock.allStatuses }, { value: "Posted", label: t.status.txStatus.Posted }, { value: "Voided", label: t.status.txStatus.Voided }]} />
+      </FilterBar>
       <LoadGate load={list}>
-        <FilterBar dirty={lp.dirty} onClear={lp.clear}>
-          <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.stock.searchPlaceholder} />
-          <SelectField className="w-48" aria-label={t.stock.colType} value={lp.filters.type} onChange={(v) => lp.set({ type: v })}
-            options={[{ value: ALL, label: t.stock.allTypes }, ...(Object.keys(t.status.txType) as (keyof typeof t.status.txType)[]).map((k) => ({ value: k, label: t.status.txType[k] }))]} />
-          <SelectField className="w-44" aria-label={t.stock.colStatus} value={lp.filters.status} onChange={(v) => lp.set({ status: v })}
-            options={[{ value: ALL, label: t.stock.allStatuses }, { value: "Posted", label: t.status.txStatus.Posted }, { value: "Voided", label: t.status.txStatus.Voided }]} />
-        </FilterBar>
         <DataTable
           caption={t.stock.caption}
           {...tableProps(list, lp)}

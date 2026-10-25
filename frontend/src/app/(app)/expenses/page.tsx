@@ -46,8 +46,8 @@ export default function ExpensesPage() {
       <PageHeader title={t.expenses.title} description={t.expenses.description} />
       <LoadGate load={error ? { status: "ready", retry: load.retry } : load} skeleton={<CardsSkeleton />}>
         <div className="mb-6 flex flex-wrap items-end gap-3">
-          <Field label={t.expenses.from} className="w-44">{(p) => <Input {...p} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />}</Field>
-          <Field label={t.expenses.to} className="w-44">{(p) => <Input {...p} type="date" value={to} onChange={(e) => setTo(e.target.value)} />}</Field>
+          <Field label={t.common.from} className="w-44">{(p) => <Input {...p} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />}</Field>
+          <Field label={t.common.to} className="w-44">{(p) => <Input {...p} type="date" value={to} onChange={(e) => setTo(e.target.value)} />}</Field>
           <Button variant="outline" onClick={() => { setFrom(monthStart()); setTo(today()); }}>{t.expenses.thisMonth}</Button>
           <Button variant="outline" onClick={() => { setFrom(firstDayMonthsBack(11)); setTo(today()); }}>{t.expenses.last12}</Button>
         </div>

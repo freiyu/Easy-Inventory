@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Archive, CalendarClock, HardDrive, Info, TriangleAlert } from "lucide-react";
+import { Archive, CalendarClock, CircleCheck, Hand, Info, RefreshCw, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DataTable, type Column } from "@/components/shared/data-table";
@@ -14,7 +14,6 @@ import { BACKUP_RETENTION } from "@/lib/constants";
 import { formatDateTime, formatSize } from "@/lib/format";
 import { t } from "@/lib/strings";
 import type { BackupFile } from "@/lib/types";
-import { CircleCheck, Hand, RefreshCw } from "lucide-react";
 
 const kindIcon = { Automatic: RefreshCw, Manual: Hand, "Before update": CircleCheck } as const;
 
@@ -51,10 +50,9 @@ export default function BackupPage() {
         {t.backup.warning}
       </p>
       <LoadGate load={list}>
-        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <div className="mb-6 grid gap-4 sm:grid-cols-2">
           <KpiCard label={t.backup.lastBackup} value={latest ? formatDateTime(latest.createdAt) : "-"} caption={t.backup.lastCaption} icon={CalendarClock} />
-          <KpiCard label={t.backup.kept} value={`${total} of ${BACKUP_RETENTION}`} caption={t.backup.keptCaption(BACKUP_RETENTION)} icon={Archive} />
-          <KpiCard label={t.backup.latestSize} value={latest ? formatSize(latest.sizeKb) : "-"} icon={HardDrive} />
+          <KpiCard label={t.backup.kept} value={t.backup.keptValue(total, BACKUP_RETENTION)} caption={t.backup.keptCaption(BACKUP_RETENTION)} icon={Archive} />
         </div>
         <h2 className="mb-3 text-lg font-semibold">{t.backup.available}</h2>
         <DataTable
