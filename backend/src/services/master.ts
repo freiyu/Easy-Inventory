@@ -1,7 +1,7 @@
 // Categories, suppliers and items (PRD 4.2 to 4.4, 4.10, BR-01, BR-14, BR-24, BR-32, BR-33).
 import { prisma, Prisma, type Tx } from "../db";
 import { parseCsv, UNCLOSED_QUOTE } from "../domain/csv";
-import { itemCode, stockStatus } from "../domain/rules";
+import { availableForLoan, itemCode, stockStatus } from "../domain/rules";
 import { fail, notFound, type Paged } from "../http";
 import { filterId, filterValue, paged, searchRows, type Query } from "../list";
 import type { ItemInput } from "../schemas";
@@ -136,7 +136,7 @@ export function itemDto(admin: boolean, i: ItemRow, reserved: number) {
   const base = {
     id: i.id, name: i.name, categoryId: i.categoryId, categoryName: i.category.name, unit: i.unit, status: i.status,
     stockStatus: stockStatus(i.currentStock, i.minimumStock) as StockStatus,
-    availableForLoan: Math.max(0, i.currentStock - reserved),
+    availableForLoan: availableForLoan(i.currentStock, reserved),
   };
   if (!admin) return base;
   return {

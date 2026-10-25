@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseCsv, UNCLOSED_QUOTE } from "./csv";
 import {
-  daysOverdue, formatSequence, itemCode, loanActions, loanDisplayStatus, monthsBetween, purchaseActions, returnFloor,
+  availableForLoan, daysOverdue, formatSequence, itemCode, loanActions, loanDisplayStatus, monthsBetween, purchaseActions, returnFloor,
   safeCell, sequenceKey, stockStatus, totalsByItem,
 } from "./rules";
 
@@ -17,6 +17,14 @@ describe("stock status (BR-25)", () => {
     expect(stockStatus(1, 5)).toBe("Low");
     expect(stockStatus(6, 5)).toBe("Safe");
     expect(stockStatus(1, 0)).toBe("Safe");
+  });
+});
+
+describe("available for loan (BR-07)", () => {
+  it("is stock minus reserved, never below zero", () => {
+    expect(availableForLoan(10, 4)).toBe(6);
+    expect(availableForLoan(10, 0)).toBe(10);
+    expect(availableForLoan(3, 5)).toBe(0);
   });
 });
 

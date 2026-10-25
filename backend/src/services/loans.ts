@@ -1,7 +1,7 @@
 // Loans (PRD 4.6, 6.2, BR-07 to BR-13, BR-19, BR-20, BR-24). Full return only.
 // Who may do what is decided once, by loanActions (domain/rules.ts); every write checks it.
 import type { Prisma } from "../db";
-import { daysOverdue, loanActions, loanDisplayStatus, returnFloor, totalsByItem, type LoanAction } from "../domain/rules";
+import { availableForLoan, daysOverdue, loanActions, loanDisplayStatus, returnFloor, totalsByItem, type LoanAction } from "../domain/rules";
 import { fail, forbidden, notFound } from "../http";
 import { filterId, filterValue, paged, searchRows, type Query } from "../list";
 import type { LoanInput } from "../schemas";
@@ -25,7 +25,7 @@ function loanDto(c: Ctx, l: LoanRow, reserved: Map<number, number>) {
   const lines = l.lines.map((x) => ({
     itemId: x.itemId, itemName: x.item.name, unit: x.item.unit, quantity: x.quantity,
     // Admin only: stock on hand and what can still be lent (BR-07). Staff never get stock numbers.
-    ...(isAdmin(c) ? { currentStock: x.item.currentStock, availableForLoan: Math.max(0, x.item.currentStock - (reserved.get(x.itemId) ?? 0)) } : {}),
+    ...(isAdmin(c) ? { currentStock: x.item.currentStock, availableForLoan: availableForLoan(x.item.currentStock, reserved.get(x.itemId) ?? 0) } : {}),
   }));
   return {
     id: l.id, number: l.number, borrowerId: l.borrowerId, status, loanDate: ymd(l.loanDate), expectedReturnDate: expected,
@@ -89,7 +89,7 @@ async function checkAvailable(c: Ctx, lines: { itemId: number; quantity: number 
   assertActive(items.values());
   const reserved = await reservedByItem(c.tx, [...items.keys()], excludeLoanId);
   for (const [itemId, qty] of totalsByItem(lines)) {
-    const avail = Math.max(0, items.get(itemId)!.currentStock - (reserved.get(itemId) ?? 0));
+    const avail = availableForLoan(items.get(itemId)!.currentStock, reserved.get(itemId) ?? 0);
     if (qty > avail) {
       const msg = e.insufficient(avail);
       throw fail("INSUFFICIENT_STOCK", msg, { [`lines.${lines.findIndex((l) => l.itemId === itemId)}.quantity`]: msg });

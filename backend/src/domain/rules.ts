@@ -15,6 +15,9 @@ export function stockStatus(stock: number, minimum: number): StockStatus {
   return "Safe";
 }
 
+/** BR-07: available for loan = current stock - quantity reserved by Approved loans, never below 0. */
+export const availableForLoan = (stock: number, reserved: number) => Math.max(0, stock - reserved);
+
 /** BR-12: Overdue is derived from Borrowed plus an expected return date before today. */
 export function loanDisplayStatus(status: LoanStatus, expectedReturnDate: string, today: string): LoanDisplayStatus {
   return status === "Borrowed" && expectedReturnDate < today ? "Overdue" : status;
