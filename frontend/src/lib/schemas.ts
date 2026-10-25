@@ -48,7 +48,6 @@ export const changePasswordSchema = z
   .refine((d) => d.password === d.confirm, { path: ["confirm"], message: v.passwordMatch });
 
 export const itemSchema = z.object({
-  code: text(f.code),
   name: text(f.name),
   categoryId: idField(v.selectCategory),
   unit: text(f.unit),
@@ -63,7 +62,7 @@ export const itemSchema = z.object({
 
 export const categorySchema = z.object({
   name: text(f.name),
-  code: optText,
+  code: text(f.code).regex(/^[A-Za-z]{3}$/, v.categoryCode),
   description: optText,
   status: z.enum(["Active", "Inactive"]),
 });
@@ -165,20 +164,18 @@ export const purchaseSchema = z.object({
 });
 
 // Quantities come from the request (full receipt only). Lines line up with the request's lines.
-// Admin enters the real price per line, plus a code and minimum stock for each new item (BR-31).
+// Admin enters the real price per line, plus a minimum stock for each new item (BR-31). The item code is generated (BR-32).
 const receiveLine = z
   .object({
     isNew: z.boolean(),
     unitPrice: wholeNumber(f.unitPrice, 0),
-    code: optText,
     minimumStock: z.string().trim(),
   })
   .superRefine((l, ctx) => {
     if (!l.isNew) return;
-    if (!l.code) ctx.addIssue({ code: "custom", path: ["code"], message: v.required(f.code) });
     if (!/^\d+$/.test(l.minimumStock)) ctx.addIssue({ code: "custom", path: ["minimumStock"], message: l.minimumStock ? v.whole(f.minimumStock) : v.required(f.minimumStock) });
   })
-  .transform((l) => ({ unitPrice: l.unitPrice, code: l.code, minimumStock: l.isNew ? Number(l.minimumStock) : 0 }));
+  .transform((l) => ({ unitPrice: l.unitPrice, minimumStock: l.isNew ? Number(l.minimumStock) : 0 }));
 export const receiveSchema = z.object({
   date: dateField(f.receivedDate),
   supplierId: idField(v.selectSupplier),

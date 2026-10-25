@@ -10,7 +10,7 @@ import { formatIDR } from "@/lib/format";
 import type { FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 import { cn } from "@/lib/utils";
-import type { Category, Item } from "@/lib/types";
+import type { CategoryOption, ItemDto } from "@/lib/api/master";
 
 export interface LineDraft {
   key: number;
@@ -35,17 +35,16 @@ export const parseInt0 = (v: string) => (/^\d+$/.test(v.trim()) ? Number(v) : 0)
  * "purchase" lets each line be an existing item or a new one (name, category, unit).
  */
 export function LinesEditor({
-  mode, lines, onChange, errors, items, available, categories = [], addLabel = t.stock.addLine,
+  mode, lines, onChange, errors, items, categories = [], addLabel = t.stock.addLine,
 }: {
   mode: "in" | "out" | "loan" | "purchase";
   lines: LineDraft[];
   onChange: (lines: LineDraft[]) => void;
   errors: FieldErrors;
-  items: Item[];
-  /** Units that can still be taken for an item (stock minus reservations). */
-  available?: (item: Item) => number;
+  /** Items to pick from (from the API). "out" and "loan" lines show the item's `availableForLoan`. */
+  items: ItemDto[];
   /** Active categories to choose from for a new item (purchase mode). */
-  categories?: Category[];
+  categories?: CategoryOption[];
   addLabel?: string;
 }) {
   const update = (key: number, patch: Partial<LineDraft>) =>
@@ -58,7 +57,7 @@ export function LinesEditor({
       {lines.map((line, i) => {
         const item = items.find((x) => String(x.id) === line.itemId);
         const total = parseInt0(line.quantity) * parseInt0(line.unitPrice);
-        const options = items.filter((x) => !taken(line.key).has(String(x.id))).map((x) => ({ value: String(x.id), label: mode === "in" || mode === "out" ? `${x.name} (${x.code})` : x.name }));
+        const options = items.filter((x) => !taken(line.key).has(String(x.id))).map((x) => ({ value: String(x.id), label: x.code && (mode === "in" || mode === "out") ? `${x.name} (${x.code})` : x.name }));
         const remove = (
           <div className="flex sm:col-span-1 sm:mt-[1.625rem] sm:justify-end">
             <Button type="button" variant="outline" size="icon" aria-label={`${t.stock.removeLine} ${i + 1}`} disabled={lines.length === 1}
@@ -130,14 +129,14 @@ export function LinesEditor({
                 <SelectField {...p} value={line.itemId} placeholder={t.stock.selectItem} options={options}
                   onChange={(v) => {
                     const picked = items.find((x) => String(x.id) === v);
-                    update(line.key, { itemId: v, ...(mode === "in" && picked && !line.unitPrice ? { unitPrice: String(picked.lastPurchasePrice) } : {}) });
+                    update(line.key, { itemId: v, ...(mode === "in" && picked && !line.unitPrice ? { unitPrice: String(picked.lastPurchasePrice ?? 0) } : {}) });
                   }} />
               )}
             </Field>
             <Field
               label={t.fields.quantity} required className={mode === "in" ? "sm:col-span-2" : "sm:col-span-4"}
               error={errors[`lines.${i}.quantity`]}
-              hint={mode !== "in" && item && available ? t.stock.availableHint(available(item), item.unit) : undefined}
+              hint={(mode === "out" || mode === "loan") && item ? t.stock.availableHint(item.availableForLoan, item.unit) : undefined}
             >
               {(p) => <Input {...p} inputMode="numeric" value={line.quantity} onChange={(e) => update(line.key, { quantity: e.target.value })} />}
             </Field>

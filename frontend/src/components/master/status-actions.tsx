@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/dialogs";
-import type { Result } from "@/lib/types";
+import type { Envelope } from "@/lib/api";
 
 export type MasterAction = { kind: "deactivate" | "activate" | "delete"; id: number; name: string } | null;
 
@@ -20,7 +20,7 @@ export function MasterConfirm({
   onClose: () => void;
   copy: Copy;
   labels: Labels;
-  run: (kind: "deactivate" | "activate" | "delete", id: number) => Promise<Result<unknown>>;
+  run: (kind: "deactivate" | "activate" | "delete", id: number) => Promise<Envelope<unknown>>;
 }) {
   if (!action) return null;
   const { kind, id, name } = action;
@@ -37,7 +37,7 @@ export function MasterConfirm({
       destructive={kind === "delete"}
       onConfirm={async () => {
         const r = await run(kind, id);
-        if (r.ok) toast.success(done);
+        if (r.success) toast.success(done);
         return r;
       }}
     />

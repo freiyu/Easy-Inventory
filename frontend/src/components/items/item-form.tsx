@@ -10,27 +10,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/shared/form-field";
 import { SelectField } from "@/components/shared/select-field";
 import { UNITS } from "@/lib/constants";
-import { api, useStore } from "@/lib/mock/store";
+import { api, useGet } from "@/lib/api";
+import type { CategoryDto, ItemDto, SupplierDto } from "@/lib/api/master";
 import { itemSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
-import type { Item } from "@/lib/types";
 
-type Values = Record<"code" | "name" | "categoryId" | "unit" | "openingStock" | "minimumStock" | "lastPurchasePrice" | "supplierId" | "location" | "status" | "notes", string>;
+type Values = Record<"name" | "categoryId" | "unit" | "openingStock" | "minimumStock" | "lastPurchasePrice" | "supplierId" | "location" | "status" | "notes", string>;
 
 const blank: Values = {
-  code: "", name: "", categoryId: "", unit: "", openingStock: "0", minimumStock: "0",
+  name: "", categoryId: "", unit: "", openingStock: "0", minimumStock: "0",
   lastPurchasePrice: "0", supplierId: "", location: "", status: "Active", notes: "",
 };
 
-const fromItem = (i: Item): Values => ({
-  code: i.code, name: i.name, categoryId: String(i.categoryId), unit: i.unit, openingStock: "0",
-  minimumStock: String(i.minimumStock), lastPurchasePrice: String(i.lastPurchasePrice),
-  supplierId: i.supplierId ? String(i.supplierId) : "", location: i.location, status: i.status, notes: i.notes,
+const fromItem = (i: ItemDto): Values => ({
+  name: i.name, categoryId: String(i.categoryId), unit: i.unit, openingStock: "0",
+  minimumStock: String(i.minimumStock ?? 0), lastPurchasePrice: String(i.lastPurchasePrice ?? 0),
+  supplierId: i.supplierId ? String(i.supplierId) : "", location: i.location ?? "", status: i.status, notes: i.notes ?? "",
 });
 
-export function ItemForm({ item }: { item?: Item }) {
+export function ItemForm({ item }: { item?: ItemDto }) {
   const router = useRouter();
-  const { db } = useStore();
+  const categoryList = useGet<CategoryDto[]>("/categories", { pageSize: 500, sort: "name:asc" });
+  const supplierList = useGet<SupplierDto[]>("/suppliers", { pageSize: 500, sort: "name:asc" });
   const [values, setValues] = useState<Values>(item ? fromItem(item) : blank);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState(false);
@@ -45,7 +46,7 @@ export function ItemForm({ item }: { item?: Item }) {
     setPending(true);
     const r = item ? await api.items.update(item.id, v.data) : await api.items.create(v.data);
     setPending(false);
-    if (!r.ok) {
+    if (!r.success) {
       setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
       return;
     }
@@ -53,8 +54,9 @@ export function ItemForm({ item }: { item?: Item }) {
     router.push(`/items/view?id=${r.data.id}`);
   };
 
-  const categories = db.categories.filter((c) => c.status === "Active" || String(c.id) === values.categoryId);
-  const suppliers = db.suppliers.filter((s) => s.status === "Active" || String(s.id) === values.supplierId);
+  // Inactive categories and suppliers are offered only when this item already uses them.
+  const categories = (categoryList.data ?? []).filter((c) => c.status === "Active" || String(c.id) === values.categoryId);
+  const suppliers = (supplierList.data ?? []).filter((s) => s.status === "Active" || String(s.id) === values.supplierId);
 
   return (
     <form onSubmit={submit} noValidate>
@@ -62,8 +64,8 @@ export function ItemForm({ item }: { item?: Item }) {
         <section className="flex flex-col gap-4 px-5">
           <h2 className="text-lg font-semibold">{t.items.sectionBasic}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t.items.fieldCode} required error={errors.code} hint={t.items.codeHint}>
-              {(p) => <Input {...p} {...input("code")} />}
+            <Field label={t.items.fieldCode} hint={t.items.codeHint}>
+              {(p) => <Input {...p} value={item?.code ?? t.items.codeAuto} readOnly disabled />}
             </Field>
             <Field label={t.items.fieldName} required error={errors.name}>
               {(p) => <Input {...p} {...input("name")} />}
@@ -82,7 +84,7 @@ export function ItemForm({ item }: { item?: Item }) {
           <div className="grid gap-4 sm:grid-cols-2">
             {item ? (
               <Field label={t.items.currentStock} hint={t.items.openingReadOnly}>
-                {(p) => <Input {...p} value={item.currentStock} readOnly disabled />}
+                {(p) => <Input {...p} value={item.currentStock ?? 0} readOnly disabled />}
               </Field>
             ) : (
               <Field label={t.fields.openingStock} error={errors.openingStock} hint={t.items.openingHint}>

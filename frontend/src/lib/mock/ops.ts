@@ -297,18 +297,22 @@ export function voidTransaction(c: Ctx, id: number, reason: string): Result<Stoc
 
 // --------------------------------------------------------------------- items
 
+/** BR-32: `<category code>-<number>`, 4 digits (more after 9999), counter per category, never reused. */
+function nextItemCode(db: DB, categoryCode: string): string {
+  const key = `item:${categoryCode}`;
+  db.seq[key] = (db.seq[key] ?? 0) + 1;
+  return `${categoryCode}-${String(db.seq[key]).padStart(4, "0")}`;
+}
+
 export function createItem(c: Ctx, input: ItemInput): Result<Item> {
   const denied = requireAdmin(c);
   if (denied) return denied;
   const { db } = c;
-  if (db.items.some((i) => lc(i.code) === lc(input.code))) {
-    return fail("CONFLICT", e.itemCodeTaken, { code: e.itemCodeTaken });
-  }
   const cat = db.categories.find((x) => x.id === input.categoryId);
   if (!cat) return fail("VALIDATION_ERROR", e.fix, { categoryId: t.validation.selectCategory });
   const item: Item = {
     id: nextId(db, "item"),
-    code: input.code,
+    code: nextItemCode(db, cat.code),
     name: input.name,
     categoryId: input.categoryId,
     unit: input.unit,
@@ -341,11 +345,8 @@ export function updateItem(c: Ctx, id: number, input: ItemInput): Result<Item> {
   if (denied) return denied;
   const item = findItem(c.db, id);
   if (!item) return fail("NOT_FOUND", e.notFound);
-  if (c.db.items.some((i) => i.id !== id && lc(i.code) === lc(input.code))) {
-    return fail("CONFLICT", e.itemCodeTaken, { code: e.itemCodeTaken });
-  }
+  // BR-32: the code is generated once and never changes, even if the category changes.
   Object.assign(item, {
-    code: input.code,
     name: input.name,
     categoryId: input.categoryId,
     unit: input.unit,
@@ -399,6 +400,17 @@ export function saveCategory(c: Ctx, id: number | null, input: CategoryInput): R
   if (c.db.categories.some((x) => x.id !== id && lc(x.name) === lc(input.name))) {
     return fail("CONFLICT", e.nameTaken, { name: e.nameTaken });
   }
+  // Category codes feed the item codes (BR-32): unique, and fixed once an item has used the code.
+  const code = input.code.toUpperCase();
+  const used = (k: string) => (c.db.seq[`item:${k}`] ?? 0) > 0;
+  if (c.db.categories.some((x) => x.id !== id && x.code === code) || (used(code) && c.db.categories.find((x) => x.id === id)?.code !== code)) {
+    return fail("CONFLICT", e.categoryCodeTaken, { code: e.categoryCodeTaken });
+  }
+  const current = c.db.categories.find((x) => x.id === id);
+  if (current && current.code !== code && used(current.code)) {
+    return fail("BUSINESS_RULE_VIOLATION", e.categoryCodeLocked, { code: e.categoryCodeLocked });
+  }
+  input = { ...input, code };
   if (id === null) {
     const cat: Category = { id: nextId(c.db, "category"), ...input, createdAt: c.now };
     c.db.categories.push(cat);
@@ -847,22 +859,15 @@ export function receivePurchase(c: Ctx, id: number, input: ReceiveInput): Result
   if (!supplier) return fail("VALIDATION_ERROR", e.fix, { supplierId: t.validation.selectSupplier });
   if (supplier.status !== "Active") return fail("BUSINESS_RULE_VIOLATION", e.supplierInactive(supplier.name));
 
-  const codes = new Set<string>();
   for (const [i, l] of p.lines.entries()) {
     const line = input.lines[i];
     if (!Number.isInteger(line.unitPrice) || line.unitPrice < 0) {
       return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.unitPrice`]: t.validation.min(t.fields.unitPrice, 0) });
     }
     if (l.itemId !== null) continue;
-    const code = line.code.trim();
-    if (!code) return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.code`]: t.validation.required(t.fields.code) });
     if (!Number.isInteger(line.minimumStock) || line.minimumStock < 0) {
       return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.minimumStock`]: t.validation.min(t.fields.minimumStock, 0) });
     }
-    if (codes.has(lc(code)) || c.db.items.some((it) => lc(it.code) === lc(code))) {
-      return fail("CONFLICT", e.itemCodeTaken, { [`lines.${i}.code`]: e.itemCodeTaken });
-    }
-    codes.add(lc(code));
   }
   const bad = checkPurchaseLines(c, p.lines);
   if (bad) return bad;
@@ -876,7 +881,7 @@ export function receivePurchase(c: Ctx, id: number, input: ReceiveInput): Result
     }
     const ni = l.newItem!;
     const made = createItem(c, {
-      code: line.code.trim(), name: ni.name, categoryId: ni.categoryId, unit: ni.unit, openingStock: 0,
+      name: ni.name, categoryId: ni.categoryId, unit: ni.unit, openingStock: 0,
       minimumStock: line.minimumStock, lastPurchasePrice: line.unitPrice, supplierId: supplier.id,
       location: "", status: "Active", notes: "",
     });

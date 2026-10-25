@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/shared/form-field";
 import { t } from "@/lib/strings";
 import { validate, reasonSchema } from "@/lib/schemas";
-import type { Result } from "@/lib/types";
+import type { Envelope } from "@/lib/api";
 
 /** Modal form: submit disables and shows progress, input is never cleared on failure (PRD 5.4). */
 export function FormDialog({
@@ -58,7 +58,7 @@ export function ConfirmDialog({
   description: string;
   confirmLabel: string;
   destructive?: boolean;
-  onConfirm: () => Promise<Result<unknown>>;
+  onConfirm: () => Promise<Envelope<unknown>>;
   children?: React.ReactNode;
 }) {
   const [pending, setPending] = useState(false);
@@ -68,7 +68,7 @@ export function ConfirmDialog({
     setError("");
     const r = await onConfirm();
     setPending(false);
-    if (r.ok) onOpenChange(false);
+    if (r.success) onOpenChange(false);
     else setError(r.error.message);
   };
   return (
@@ -101,7 +101,7 @@ export function ReasonDialog({
   description: string;
   confirmLabel: string;
   reasonLabel?: string;
-  onConfirm: (reason: string) => Promise<Result<unknown>>;
+  onConfirm: (reason: string) => Promise<Envelope<unknown>>;
 }) {
   const [reason, setReason] = useState("");
   const [fieldError, setFieldError] = useState("");
@@ -114,7 +114,7 @@ export function ReasonDialog({
     setPending(true);
     const r = await onConfirm(v.data.reason);
     setPending(false);
-    if (r.ok) { onOpenChange(false); setReason(""); setError(""); }
+    if (r.success) { onOpenChange(false); setReason(""); setError(""); }
     else setError(r.error.message);
   };
   return (

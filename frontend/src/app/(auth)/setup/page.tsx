@@ -10,14 +10,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/shared/form-field";
 import { useMounted } from "@/hooks/use-mounted";
-import { firstRunSetup, useStore } from "@/lib/mock/store";
+import { api, useGet } from "@/lib/api";
 import { firstAdminSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
 export default function SetupPage() {
   const router = useRouter();
   const mounted = useMounted();
-  const { db } = useStore();
+  const setup = useGet<{ needsSetup: boolean }>("/setup/status");
   const [values, setValues] = useState({ name: "", email: "", password: "", confirm: "" });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState(false);
@@ -29,7 +29,7 @@ export default function SetupPage() {
   }, [created, router]);
 
   // The first-run endpoint is closed once a user exists (PRD 3.3).
-  if (mounted && db.users.length > 0 && !created) {
+  if (mounted && setup.data && !setup.data.needsSetup && !created) {
     return (
       <Card className="items-center gap-3 px-6 py-8 text-center">
         <h1 className="text-xl font-semibold">{t.auth.setupClosedTitle}</h1>
@@ -45,9 +45,9 @@ export default function SetupPage() {
     setErrors(v.ok ? {} : v.errors);
     if (!v.ok) return;
     setPending(true);
-    const r = await firstRunSetup(v.data);
+    const r = await api.auth.firstAdmin(v.data);
     setPending(false);
-    if (r.ok) {
+    if (r.success) {
       toast.success(t.auth.setupDone);
       setCreated(true);
     } else setErrors({ _form: r.error.message });

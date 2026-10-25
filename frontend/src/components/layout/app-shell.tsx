@@ -17,8 +17,8 @@ import { NoAccess } from "@/components/shared/states";
 import { useMounted } from "@/hooks/use-mounted";
 import { initials } from "@/lib/format";
 import { canAccess, isActivePath, navGroups } from "@/lib/nav";
-import { logout, useCurrentUser, useStore } from "@/lib/mock/store";
-import { loanCounts, purchasePending, stockCounts } from "@/lib/queries";
+import { api, useGet, useSession } from "@/lib/api";
+import type { Badges } from "@/lib/api/admin";
 import { t } from "@/lib/strings";
 import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -27,14 +27,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const mounted = useMounted();
-  const user = useCurrentUser();
+  const { user, loaded } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !loaded) return;
     if (!user) router.replace("/login");
     else if (user.mustChangePassword) router.replace("/change-password");
-  }, [mounted, user, router]);
+  }, [mounted, loaded, user, router]);
 
   // Close the mobile drawer after navigating.
   useEffect(() => {
@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(id);
   }, [pathname]);
 
-  if (!mounted || !user || user.mustChangePassword) return <ShellSkeleton />;
+  if (!mounted || !loaded || !user || user.mustChangePassword) return <ShellSkeleton />;
 
   return (
     <div className="flex min-h-screen">
@@ -90,8 +90,9 @@ function ShellSkeleton() {
 
 function Sidebar({ user }: { user: User }) {
   const pathname = usePathname();
-  const { db } = useStore();
-  const counts = { items: stockCounts(db).attention, loans: loanCounts(db).overdue, purchases: purchasePending(db, user) };
+  // Sidebar badges come from the dashboard summary (Admin only). Without it the badges are simply hidden.
+  const summary = useGet<{ badges: Badges }>(user.role === "Admin" ? "/dashboard/summary" : null);
+  const counts: Badges = summary.data?.badges ?? { items: 0, loans: 0, purchases: 0 };
   const showGroupLabels = user.role === "Admin";
 
   return (
@@ -171,7 +172,7 @@ function UserMenu({ user }: { user: User }) {
             </DropdownMenuRadioGroup>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => { logout(); router.replace("/login"); }}>
+          <DropdownMenuItem onClick={() => { void api.auth.logout().then(() => router.replace("/login")); }}>
             <LogOut className="size-4" aria-hidden="true" />
             {t.user.signOut}
           </DropdownMenuItem>

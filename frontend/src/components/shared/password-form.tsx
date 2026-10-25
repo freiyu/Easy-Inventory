@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/shared/form-field";
-import { changeOwnPassword } from "@/lib/mock/store";
+import { api } from "@/lib/api";
 import { changePasswordSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
@@ -24,12 +24,12 @@ export function PasswordForm({ forced, onDone }: { forced?: boolean; onDone: () 
     setErrors(next);
     if (Object.keys(next).length) return;
     setPending(true);
-    const r = await changeOwnPassword();
+    const r = await api.auth.changePassword(values.current || undefined, v.ok ? v.data.password : values.password);
     setPending(false);
-    if (r.ok) {
+    if (r.success) {
       toast.success(t.auth.changeDone);
       onDone();
-    } else setErrors({ _form: r.error.message });
+    } else setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
   };
 
   return (

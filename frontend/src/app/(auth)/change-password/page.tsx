@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { PasswordForm } from "@/components/shared/password-form";
 import { useMounted } from "@/hooks/use-mounted";
-import { useCurrentUser } from "@/lib/mock/store";
+import { useCurrentUser } from "@/lib/api";
 import { t } from "@/lib/strings";
 
 // Shown after sign-in when must_change_password is set (PRD 3.4).

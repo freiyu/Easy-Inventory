@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "@fontsource-variable/inter";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/theme-provider";
-import { DemoTools } from "@/components/layout/demo-tools";
 import { Toaster } from "@/components/ui/sonner";
 import { t } from "@/lib/strings";
 
@@ -18,7 +17,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           {children}
           <Toaster position="bottom-center" />
-          <DemoTools />
         </ThemeProvider>
       </body>
     </html>

@@ -44,7 +44,7 @@ const categories: Category[] = [
   { id: 4, name: "Electronics", code: "ELC", description: "Chargers, cables and presentation equipment", status: "Active", createdAt: stamp(-200) },
   { id: 5, name: "Cleaning", code: "CLN", description: "Soap and floor cleaning supplies", status: "Active", createdAt: stamp(-200) },
   { id: 6, name: "Pantry", code: "PNT", description: "Drinking water, coffee and tea", status: "Active", createdAt: stamp(-200) },
-  { id: 7, name: "Promotional items", code: "", description: "Old event merchandise (no longer stocked)", status: "Inactive", createdAt: stamp(-200) },
+  { id: 7, name: "Promotional items", code: "PRM", description: "Old event merchandise (no longer stocked)", status: "Inactive", createdAt: stamp(-200) },
 ];
 
 const suppliers: Supplier[] = [
@@ -66,27 +66,27 @@ function backups(): BackupFile[] {
   return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 14);
 }
 
-type ItemRow = [code: string, name: string, cat: number, unit: string, min: number, price: number, supplier: number | null, location: string];
+type ItemRow = [name: string, cat: number, unit: string, min: number, price: number, supplier: number | null, location: string];
 const itemRows: ItemRow[] = [
-  ["ATK-001", "A4 Paper 80 gsm", 1, "ream", 20, 52500, 1, "Cabinet A1"],
-  ["ATK-002", "F4 Paper 70 gsm", 1, "ream", 10, 58000, 1, "Cabinet A1"],
-  ["ATK-003", "Ballpoint Pen, Blue", 2, "box", 5, 38000, 2, "Cabinet B2"],
-  ["ATK-004", "Whiteboard Marker, Black", 2, "pcs", 12, 9500, 2, "Cabinet B2"],
-  ["ATK-005", "Stapler No. 10", 2, "pcs", 4, 22000, 2, "Cabinet B1"],
-  ["ATK-006", "Staples No. 10", 2, "box", 10, 4500, 2, "Cabinet B1"],
-  ["ATK-007", "Sticky Notes 76x76", 2, "pack", 15, 17500, 2, "Cabinet B2"],
-  ["ATK-008", "Correction Tape", 2, "pcs", 10, 8000, 2, "Cabinet B2"],
-  ["PRN-001", "Black Toner HP 85A", 3, "unit", 3, 780000, 3, "Storage C1"],
-  ["PRN-002", "Cyan Ink Cartridge", 3, "pcs", 4, 185000, 3, "Storage C1"],
-  ["ELC-001", "Laptop Charger 65W", 4, "unit", 2, 320000, 4, "Storage C2"],
-  ["ELC-002", "HDMI Cable 2 m", 4, "pcs", 3, 65000, 4, "Storage C2"],
-  ["ELC-003", "Portable Projector", 4, "unit", 1, 4200000, 4, "Storage C2"],
-  ["ELC-004", "Extension Cord 5 m", 4, "pcs", 4, 85000, 4, "Storage C2"],
-  ["CLN-001", "Hand Soap Refill 500 ml", 5, "bottle", 8, 18500, null, "Pantry shelf"],
-  ["CLN-002", "Floor Cleaner 1 L", 5, "bottle", 6, 24000, null, "Pantry shelf"],
-  ["PNT-001", "Mineral Water Gallon 19 L", 6, "pcs", 4, 21000, null, "Pantry floor"],
-  ["PNT-002", "Instant Coffee, box of 30", 6, "box", 5, 62000, null, "Pantry shelf"],
-  ["ATK-009", "Document Folder, Blue", 2, "pcs", 30, 3500, 2, "Cabinet B3"],
+  ["A4 Paper 80 gsm", 1, "ream", 20, 52500, 1, "Cabinet A1"],
+  ["F4 Paper 70 gsm", 1, "ream", 10, 58000, 1, "Cabinet A1"],
+  ["Ballpoint Pen, Blue", 2, "box", 5, 38000, 2, "Cabinet B2"],
+  ["Whiteboard Marker, Black", 2, "pcs", 12, 9500, 2, "Cabinet B2"],
+  ["Stapler No. 10", 2, "pcs", 4, 22000, 2, "Cabinet B1"],
+  ["Staples No. 10", 2, "box", 10, 4500, 2, "Cabinet B1"],
+  ["Sticky Notes 76x76", 2, "pack", 15, 17500, 2, "Cabinet B2"],
+  ["Correction Tape", 2, "pcs", 10, 8000, 2, "Cabinet B2"],
+  ["Black Toner HP 85A", 3, "unit", 3, 780000, 3, "Storage C1"],
+  ["Cyan Ink Cartridge", 3, "pcs", 4, 185000, 3, "Storage C1"],
+  ["Laptop Charger 65W", 4, "unit", 2, 320000, 4, "Storage C2"],
+  ["HDMI Cable 2 m", 4, "pcs", 3, 65000, 4, "Storage C2"],
+  ["Portable Projector", 4, "unit", 1, 4200000, 4, "Storage C2"],
+  ["Extension Cord 5 m", 4, "pcs", 4, 85000, 4, "Storage C2"],
+  ["Hand Soap Refill 500 ml", 5, "bottle", 8, 18500, null, "Pantry shelf"],
+  ["Floor Cleaner 1 L", 5, "bottle", 6, 24000, null, "Pantry shelf"],
+  ["Mineral Water Gallon 19 L", 6, "pcs", 4, 21000, null, "Pantry floor"],
+  ["Instant Coffee, box of 30", 6, "box", 5, 62000, null, "Pantry shelf"],
+  ["Document Folder, Blue", 2, "pcs", 30, 3500, 2, "Cabinet B3"],
 ];
 
 type Line = [itemId: number, quantity: number];
@@ -114,8 +114,8 @@ export function createSeed(): DB {
   const ev = (day: number, run: () => void) => events.push([day, run]);
 
   ev(-140, () => {
-    for (const [code, name, categoryId, unit, minimumStock, lastPurchasePrice, supplierId, location] of itemRows) {
-      createItem(as(-140), { code, name, categoryId, unit, openingStock: 0, minimumStock, lastPurchasePrice, supplierId, location, status: "Active", notes: "" });
+    for (const [name, categoryId, unit, minimumStock, lastPurchasePrice, supplierId, location] of itemRows) {
+      createItem(as(-140), { name, categoryId, unit, openingStock: 0, minimumStock, lastPurchasePrice, supplierId, location, status: "Active", notes: "" });
     }
   });
   ev(-135, () => {
@@ -128,7 +128,7 @@ export function createSeed(): DB {
     ev(day, () => {
       const r = stockIn(as(day), {
         date: daysFromToday(day), supplierId, notes,
-        lines: pairs.map(([itemId, quantity, price]) => ({ itemId, quantity, unitPrice: price ?? itemRows[itemId - 1][5] })),
+        lines: pairs.map(([itemId, quantity, price]) => ({ itemId, quantity, unitPrice: price ?? itemRows[itemId - 1][4] })),
       });
       if (!r.ok) throw new Error(`seed purchase failed: ${r.error.message}`);
     });
@@ -226,7 +226,7 @@ export function createSeed(): DB {
   };
   const existing = (...pairs: Line[]): PurchaseLine[] => toLines(pairs);
   const newItem = (name: string, categoryId: number, unit: string, quantity: number): PurchaseLine => ({ itemId: null, quantity, newItem: { name, categoryId, unit } });
-  const price = (unitPrice: number) => ({ unitPrice, code: "", minimumStock: 0 });
+  const price = (unitPrice: number) => ({ unitPrice, minimumStock: 0 });
   ev(-16, () => {
     const id = purchase(-16, 3, existing([9, 2]), -8, "Black toner is almost out");
     approvePurchase(as(-15), id);
@@ -246,7 +246,7 @@ export function createSeed(): DB {
     ev(-4, () => {
       const r = receivePurchase(as(-4), id, {
         date: daysFromToday(-4), supplierId: 2, notes: "",
-        lines: [{ unitPrice: 12000, code: "ATK-010", minimumStock: 4 }, price(9500)],
+        lines: [{ unitPrice: 12000, minimumStock: 4 }, price(9500)],
       });
       if (!r.ok) throw new Error(`seed receipt failed: ${r.error.message}`);
     });

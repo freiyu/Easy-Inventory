@@ -9,44 +9,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Field } from "@/components/shared/form-field";
 import { useMounted } from "@/hooks/use-mounted";
-import { login, useCurrentUser, useStore } from "@/lib/mock/store";
+import { api, useCurrentUser, useGet } from "@/lib/api";
 import { loginSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
-
-const DEMO_ACCOUNTS = [
-  { label: t.auth.demoAdmin, email: "rina.wulandari@kantor.example" },
-  { label: t.auth.demoStaff, email: "budi.santoso@kantor.example" },
-  { label: t.auth.demoMustChange, email: "agus.prabowo@kantor.example" },
-];
 
 export default function LoginPage() {
   const router = useRouter();
   const mounted = useMounted();
   const user = useCurrentUser();
-  const { db } = useStore();
+  const setup = useGet<{ needsSetup: boolean }>("/setup/status");
   const [values, setValues] = useState({ email: "", password: "", keepSignedIn: false });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
     if (!mounted) return;
-    if (db.users.length === 0) router.replace("/setup");
+    if (setup.data?.needsSetup) router.replace("/setup");
     else if (user) router.replace(user.mustChangePassword ? "/change-password" : "/dashboard");
-  }, [mounted, user, db.users.length, router]);
+  }, [mounted, user, setup.data?.needsSetup, router]);
 
-  const signIn = async (email: string) => {
+  const signIn = async (email: string, password: string, keepSignedIn: boolean) => {
     setPending(true);
-    const r = await login(email);
+    const r = await api.auth.login(email, password, keepSignedIn);
     setPending(false);
-    if (!r.ok) setErrors({ _form: r.error.message });
-    // On success the effect above redirects once the session is in the store.
+    if (!r.success) setErrors({ _form: r.error.message });
+    // On success the effect above redirects once the session is known.
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const v = validate(loginSchema, values);
     setErrors(v.ok ? {} : v.errors);
-    if (v.ok) void signIn(v.data.email);
+    if (v.ok) void signIn(v.data.email, v.data.password, v.data.keepSignedIn);
   };
 
   return (
@@ -80,22 +74,6 @@ export default function LoginPage() {
             {pending ? t.auth.signingIn : t.auth.signIn}
           </Button>
         </form>
-      </Card>
-
-      <Card className="gap-3 border-dashed">
-        <div className="px-5">
-          <h2 className="text-base font-semibold">{t.auth.demoTitle}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t.auth.demoBody}</p>
-        </div>
-        <ul className="flex flex-col gap-2 px-5">
-          {DEMO_ACCOUNTS.map((a) => (
-            <li key={a.email}>
-              <Button variant="outline" className="w-full justify-start" disabled={pending} onClick={() => void signIn(a.email)}>
-                {a.label}
-              </Button>
-            </li>
-          ))}
-        </ul>
       </Card>
     </div>
   );
