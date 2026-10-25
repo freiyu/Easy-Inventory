@@ -114,6 +114,140 @@ describe("loans", () => {
   });
 });
 
+describe("purchase requests", () => {
+  const staff = () => db.users.find((u) => u.id === 3)!;
+  const input = (requesterId: number, ...p: [number, number][]) => ({ requesterId, lines: lines(...p), neededBy: daysFromToday(3), reason: "Running low", notes: "" });
+  const receive = (itemId: number, unitPrice: number) => ({ date: daysFromToday(0), supplierId: 2, notes: "", lines: [{ itemId, unitPrice }] });
+  const approved = (itemId: number, qty: number) => {
+    const r = ops.createPurchase(ctx(staff()), input(3, [itemId, qty]), true);
+    if (!r.ok) throw new Error(r.error.message);
+    ops.approvePurchase(ctx(), r.data.id);
+    return r.data;
+  };
+
+  it("does not touch stock until received, then posts an IN for the full quantity (BR-27, BR-28)", () => {
+    const folder = item("ATK-008");
+    const before = folder.currentStock;
+    const pr = approved(folder.id, 20);
+    expect(folder.currentStock).toBe(before);
+    const r = ops.receivePurchase(ctx(), pr.id, receive(folder.id, 3800));
+    expect(r.ok).toBe(true);
+    expect(pr.status).toBe("Received");
+    expect(folder.currentStock).toBe(before + 20);
+    expect(folder.lastPurchasePrice).toBe(3800);
+    const tx = db.transactions.find((x) => x.id === pr.transactionId)!;
+    expect(tx.type).toBe("IN");
+    expect(tx.lines[0].quantityChange).toBe(20);
+  });
+
+  it("receives only once (BR-28)", () => {
+    const folder = item("ATK-008");
+    const pr = approved(folder.id, 5);
+    expect(ops.receivePurchase(ctx(), pr.id, receive(folder.id, 3500)).ok).toBe(true);
+    const stock = folder.currentStock;
+    expect(ops.receivePurchase(ctx(), pr.id, receive(folder.id, 3500)).ok).toBe(false);
+    expect(folder.currentStock).toBe(stock);
+  });
+
+  it("does not let a user approve or reject their own purchase request (BR-29)", () => {
+    const own = ops.createPurchase(ctx(), input(1, [item("ATK-008").id, 5]), true);
+    if (!own.ok) throw new Error("setup");
+    expect(ops.approvePurchase(ctx(), own.data.id).ok).toBe(false);
+    expect(ops.rejectPurchase(ctx(), own.data.id, "no").ok).toBe(false);
+    expect(own.data.status).toBe("Pending Approval");
+  });
+
+  it("requires a reason to reject (BR-06) and allows only Admin to decide or receive (BR-16)", () => {
+    const r = ops.createPurchase(ctx(staff()), input(3, [item("ATK-008").id, 5]), true);
+    if (!r.ok) throw new Error("setup");
+    expect(ops.rejectPurchase(ctx(), r.data.id, " ").ok).toBe(false);
+    expect(ops.approvePurchase(ctx(staff()), r.data.id).ok).toBe(false);
+    ops.approvePurchase(ctx(), r.data.id);
+    expect(ops.receivePurchase(ctx(staff()), r.data.id, receive(item("ATK-008").id, 3500)).ok).toBe(false);
+    expect(r.data.status).toBe("Approved");
+  });
+
+  it("lets Staff act only on their own requests", () => {
+    const other = db.users.find((u) => u.id === 4)!;
+    const r = ops.createPurchase(ctx(other), input(4, [item("ATK-008").id, 5]), false);
+    if (!r.ok) throw new Error("setup");
+    expect(ops.submitPurchase(ctx(staff()), r.data.id).ok).toBe(false);
+    expect(ops.cancelPurchase(ctx(staff()), r.data.id).ok).toBe(false);
+    expect(ops.createPurchase(ctx(staff()), input(4, [item("ATK-008").id, 5]), false).ok).toBe(false);
+  });
+
+  it("blocks inactive items, past needed-by dates and zero quantities", () => {
+    const inactive = db.items.find((i) => i.status === "Inactive")!;
+    expect(ops.createPurchase(ctx(), input(3, [inactive.id, 1]), false).ok).toBe(false);
+    expect(ops.createPurchase(ctx(), { ...input(3, [item("ATK-008").id, 1]), neededBy: daysFromToday(-1) }, false).ok).toBe(false);
+    expect(ops.createPurchase(ctx(), input(3, [item("ATK-008").id, 0]), false).ok).toBe(false);
+  });
+
+  it("numbers requests PR-YYYYMM-NNNN and lets a requester edit and cancel their own draft (BR-30)", () => {
+    const r = ops.createPurchase(ctx(staff()), input(3, [item("ATK-008").id, 5]), false);
+    if (!r.ok) throw new Error("setup");
+    expect(r.data.number).toMatch(/^PR-\d{6}-\d{4}$/);
+    const edited = ops.updatePurchaseDraft(ctx(staff()), r.data.id, input(3, [item("ATK-008").id, 9]), true);
+    expect(edited.ok).toBe(true);
+    expect(r.data.status).toBe("Pending Approval");
+    expect(r.data.lines[0].quantity).toBe(9);
+    expect(ops.cancelPurchase(ctx(staff()), r.data.id).ok).toBe(true);
+  });
+
+  it("accepts a needed-by date of today and lets a second Admin approve an Admin's request (BR-29)", () => {
+    const secondAdmin = db.users.find((u) => u.id === 2)!;
+    const r = ops.createPurchase(ctx(), { ...input(1, [item("ATK-008").id, 5]), neededBy: daysFromToday(0) }, true);
+    if (!r.ok) throw new Error("setup");
+    expect(ops.approvePurchase(ctx(secondAdmin), r.data.id).ok).toBe(true);
+  });
+
+  it("checks supplier, price per line and the received date before posting (BR-28)", () => {
+    const folder = item("ATK-008");
+    const pr = approved(folder.id, 5);
+    const stock = folder.currentStock;
+    expect(ops.receivePurchase(ctx(), pr.id, { ...receive(folder.id, 3500), supplierId: 999 }).ok).toBe(false);
+    expect(ops.receivePurchase(ctx(), pr.id, { ...receive(folder.id, 3500), lines: [] }).ok).toBe(false);
+    expect(ops.receivePurchase(ctx(), pr.id, { ...receive(folder.id, 3500), date: daysFromToday(1) }).ok).toBe(false);
+    expect(pr.status).toBe("Approved");
+    expect(folder.currentStock).toBe(stock);
+  });
+
+  it("keeps a received request Received when its IN is voided, and the purchase leaves the ledger", () => {
+    const folder = item("ATK-008");
+    const before = folder.currentStock;
+    const pr = approved(folder.id, 5);
+    ops.receivePurchase(ctx(), pr.id, receive(folder.id, 3500));
+    expect(ops.voidTransaction(ctx(), pr.transactionId!, "Wrong delivery").ok).toBe(true);
+    expect(pr.status).toBe("Received");
+    expect(db.transactions.find((x) => x.id === pr.transactionId)!.status).toBe("Voided");
+    expect(folder.currentStock).toBe(before);
+  });
+
+  it("blocks duplicate item lines, a negative price, an item with requests from being deleted, and a stale draft from being submitted", () => {
+    const folder = item("ATK-008");
+    expect(ops.createPurchase(ctx(), input(3, [folder.id, 1], [folder.id, 2]), false).ok).toBe(false);
+    const pr = approved(folder.id, 5);
+    expect(ops.receivePurchase(ctx(), pr.id, receive(folder.id, -1)).ok).toBe(false);
+    expect(pr.status).toBe("Approved");
+    expect(ops.deleteItem(ctx(), folder.id).ok).toBe(false);
+    const draft = ops.createPurchase(ctx(staff()), input(3, [folder.id, 1]), false);
+    if (!draft.ok) throw new Error("setup");
+    draft.data.neededBy = daysFromToday(-1);
+    expect(ops.submitPurchase(ctx(staff()), draft.data.id).ok).toBe(false);
+  });
+
+  it("cancels: Staff before approval, Admin also after; never once received", () => {
+    const r = ops.createPurchase(ctx(staff()), input(3, [item("ATK-008").id, 5]), true);
+    if (!r.ok) throw new Error("setup");
+    ops.approvePurchase(ctx(), r.data.id);
+    expect(ops.cancelPurchase(ctx(staff()), r.data.id).ok).toBe(false);
+    expect(ops.cancelPurchase(ctx(), r.data.id).ok).toBe(true);
+    const done = approved(item("ATK-008").id, 5);
+    ops.receivePurchase(ctx(), done.id, receive(item("ATK-008").id, 3500));
+    expect(ops.cancelPurchase(ctx(), done.id).ok).toBe(false);
+  });
+});
+
 describe("input checks the backend must repeat", () => {
   it("requires a reason to void, adjust or reject (BR-06)", () => {
     const tx = db.transactions.find((t) => t.type === "ADJUSTMENT" && t.status === "Posted")!;

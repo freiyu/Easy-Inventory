@@ -15,7 +15,7 @@ import { usePageLoad } from "@/hooks/use-page-load";
 import { formatDate, formatNumber } from "@/lib/format";
 import { useStore } from "@/lib/mock/store";
 import type { DB } from "@/lib/mock/ops";
-import { categoryName, itemName, loanSummary, matches, userName } from "@/lib/queries";
+import { categoryName, itemName, lineSummary, matches, userName } from "@/lib/queries";
 import { loanDisplayStatus, stockStatus } from "@/lib/rules";
 import { t } from "@/lib/strings";
 import type { Item, Loan, StockLine, StockTransaction } from "@/lib/types";
@@ -101,11 +101,11 @@ function LoansReport({ db }: { db: DB }) {
   const [status, setStatus] = useState(ALL);
   const clear = () => { setQuery(""); setStatus(ALL); };
   const rows = useMemo(() => db.loans.filter((l) => (status === ALL || loanDisplayStatus(l) === status) &&
-    matches(query, l.number, userName(db, l.borrowerId), loanSummary(db, l))), [db, query, status]);
+    matches(query, l.number, userName(db, l.borrowerId), lineSummary(db, l))), [db, query, status]);
   const columns: Column<Loan>[] = [
     { id: "number", header: t.reports.colLoan, cell: (l) => <Link href={`/loans/view?id=${l.id}`} className="font-medium text-link hover:underline">{l.number}</Link>, sortValue: (l) => l.number },
     { id: "borrower", header: t.reports.colBorrower, cell: (l) => userName(db, l.borrowerId), sortValue: (l) => userName(db, l.borrowerId) },
-    { id: "items", header: t.loans.colItems, cell: (l) => <span className="line-clamp-1 max-w-64 whitespace-normal">{loanSummary(db, l)}</span>, hideOnMobile: true },
+    { id: "items", header: t.loans.colItems, cell: (l) => <span className="line-clamp-1 max-w-64 whitespace-normal">{lineSummary(db, l)}</span>, hideOnMobile: true },
     { id: "loanDate", header: t.reports.colLoanDate, cell: (l) => <span className="tabular">{formatDate(l.loanDate)}</span>, sortValue: (l) => l.loanDate, hideOnMobile: true },
     { id: "expected", header: t.reports.colExpected, cell: (l) => <span className="tabular">{formatDate(l.expectedReturnDate)}</span>, sortValue: (l) => l.expectedReturnDate },
     { id: "returned", header: t.reports.colReturned, cell: (l) => <span className="tabular">{formatDate(l.returnedAt)}</span>, sortValue: (l) => l.returnedAt ?? "", hideOnMobile: true },

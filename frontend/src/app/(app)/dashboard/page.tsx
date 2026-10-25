@@ -13,7 +13,7 @@ import { CardsSkeleton, EmptyState, LoadGate } from "@/components/shared/states"
 import { usePageLoad } from "@/hooks/use-page-load";
 import { formatDate, formatNumber } from "@/lib/format";
 import { useCurrentUser, useStore } from "@/lib/mock/store";
-import { categoryName, loanCounts, loanSummary, stockCounts, visibleLoans } from "@/lib/queries";
+import { categoryName, loanCounts, lineSummary, stockCounts, visibleLoans } from "@/lib/queries";
 import { availableForLoan, daysOverdue, loanDisplayStatus, stockStatus } from "@/lib/rules";
 import { t } from "@/lib/strings";
 
@@ -135,7 +135,7 @@ function AdminDashboard() {
                 <li key={l.id} className="flex items-start justify-between gap-3 text-sm">
                   <span className="min-w-0">
                     <Link href={`/loans/view?id=${l.id}`} className="font-medium text-link hover:underline">{l.number}</Link>
-                    <span className="block truncate text-muted-foreground">{loanSummary(db, l)}</span>
+                    <span className="block truncate text-muted-foreground">{lineSummary(db, l)}</span>
                   </span>
                   <span className="shrink-0 font-medium text-danger-icon">{t.dashboard.daysOverdue(daysOverdue(l))}</span>
                 </li>
@@ -162,7 +162,7 @@ function StaffDashboard({ userId }: { userId: number }) {
       {overdue.length > 0 && (
         <div role="alert" className="flex items-start gap-3 rounded-xl bg-danger-soft px-4 py-3 text-base text-foreground">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger-icon" aria-hidden="true" />
-          <p>{t.dashboard.overdueAlert(overdue[0].number, loanSummary(db, overdue[0]), formatDate(overdue[0].expectedReturnDate), daysOverdue(overdue[0]))}</p>
+          <p>{t.dashboard.overdueAlert(overdue[0].number, lineSummary(db, overdue[0]), formatDate(overdue[0].expectedReturnDate), daysOverdue(overdue[0]))}</p>
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -190,7 +190,7 @@ function StaffDashboard({ userId }: { userId: number }) {
               {activeLoans.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell><Link href={`/loans/view?id=${l.id}`} className="font-medium text-link hover:underline">{l.number}</Link></TableCell>
-                  <TableCell className="max-w-64 truncate">{loanSummary(db, l)}</TableCell>
+                  <TableCell className="max-w-64 truncate">{lineSummary(db, l)}</TableCell>
                   <TableCell className="tabular hidden sm:table-cell">{formatDate(l.expectedReturnDate)}</TableCell>
                   <TableCell><LoanBadge status={loanDisplayStatus(l)} /></TableCell>
                 </TableRow>

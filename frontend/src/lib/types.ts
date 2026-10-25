@@ -126,6 +126,34 @@ export interface Loan {
   updatedAt: string;
 }
 
+export type PurchaseStatus =
+  | "Draft"
+  | "Pending Approval"
+  | "Approved"
+  | "Rejected"
+  | "Received"
+  | "Cancelled";
+
+export interface PurchaseRequest {
+  id: number;
+  number: string;
+  requesterId: number;
+  status: PurchaseStatus;
+  neededBy: string;
+  reason: string;
+  notes: string;
+  rejectReason: string;
+  approvedBy: number | null;
+  approvedAt: string | null;
+  receivedBy: number | null;
+  receivedAt: string | null;
+  /** The IN transaction created when the request was received (BR-28). */
+  transactionId: number | null;
+  lines: LoanLine[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ActivityEntry {
   id: number;
   userId: number | null;

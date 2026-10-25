@@ -8,6 +8,11 @@ import {
   cancelLoan,
   createItem,
   createLoan,
+  createPurchase,
+  approvePurchase,
+  cancelPurchase,
+  receivePurchase,
+  rejectPurchase,
   issueLoan,
   log,
   rejectLoan,
@@ -95,6 +100,7 @@ export function createSeed(): DB {
     items: [],
     transactions: [],
     loans: [],
+    purchaseRequests: [],
     activity: [],
     backups: backups(),
     seq: {},
@@ -210,6 +216,37 @@ export function createSeed(): DB {
     request(0, 4, [[13, 1], [12, 1]], 1, 3, "Client presentation, Meeting Room 2");
     request(0, 2, [[12, 1]], 0, 2, "Demo at the partner office"); // an Admin's own request: needs another Admin (BR-13)
     request(0, 3, [[12, 1]], 1, 2, "Meeting room demo", false);
+  });
+
+  const purchase = (day: number, requesterId: number, pairs: Line[], neededDay: number, reason: string, submit = true) => {
+    const actor = db.users.find((u) => u.id === requesterId)!;
+    const r = createPurchase(as(day, actor), { requesterId, lines: toLines(pairs), neededBy: daysFromToday(neededDay), reason, notes: "" }, submit);
+    if (!r.ok) throw new Error(`seed purchase request failed: ${r.error.message}`);
+    return r.data.id;
+  };
+  ev(-16, () => {
+    const id = purchase(-16, 3, [[9, 2]], -8, "Black toner is almost out");
+    approvePurchase(as(-15), id);
+    ev(-10, () => {
+      receivePurchase(as(-10), id, { date: daysFromToday(-10), supplierId: 3, notes: "", lines: [{ itemId: 9, unitPrice: 790000 }] });
+    });
+  });
+  ev(-8, () => {
+    const id = purchase(-8, 4, [[15, 12], [16, 6]], -3, "Pantry cleaning supplies are low");
+    rejectPurchase(as(-7), id, "Already included in the monthly order.");
+  });
+  ev(-3, () => {
+    const id = purchase(-3, 5, [[12, 4]], 4, "Not enough HDMI cables for the meeting rooms");
+    approvePurchase(as(-2), id);
+  });
+  ev(-1, () => {
+    const id = purchase(-1, 4, [[8, 20]], 7, "Correction tape for the audit files");
+    cancelPurchase(as(-1, db.users[3]), id);
+  });
+  ev(0, () => {
+    purchase(0, 3, [[18, 3], [17, 4]], 5, "Pantry restock before the visitor event");
+    purchase(0, 2, [[1, 30]], 6, "Paper for the quarter-end printing"); // an Admin's own request: needs another Admin (BR-13)
+    purchase(0, 4, [[5, 3]], 6, "Staplers for the new desks", false);
   });
 
   // Sign-in entries so the activity log looks lived in.

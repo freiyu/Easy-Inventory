@@ -28,7 +28,7 @@ export function FormDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !pending && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl">
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="contents" noValidate>
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold">{title}</DialogTitle>

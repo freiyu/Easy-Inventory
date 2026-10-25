@@ -10,6 +10,8 @@ import type {
   ItemInput,
   LoanInput,
   OutgoingInput,
+  PurchaseInput,
+  ReceiveInput,
   ReturnInput,
   SupplierInput,
   UserInput,
@@ -22,6 +24,7 @@ import type {
   Category,
   Item,
   Loan,
+  PurchaseRequest,
   Result,
   StockLine,
   StockTransaction,
@@ -37,6 +40,7 @@ export interface DB {
   items: Item[];
   transactions: StockTransaction[];
   loans: Loan[];
+  purchaseRequests: PurchaseRequest[];
   activity: ActivityEntry[];
   backups: BackupFile[];
   seq: Record<string, number>;
@@ -370,7 +374,8 @@ export function setItemStatus(c: Ctx, id: number, status: "Active" | "Inactive")
 export function itemHasReferences(db: DB, id: number): boolean {
   return (
     db.transactions.some((x) => x.lines.some((l) => l.itemId === id)) ||
-    db.loans.some((l) => l.lines.some((x) => x.itemId === id))
+    db.loans.some((l) => l.lines.some((x) => x.itemId === id)) ||
+    db.purchaseRequests.some((p) => p.lines.some((x) => x.itemId === id))
   );
 }
 
@@ -667,6 +672,159 @@ export function returnLoan(c: Ctx, id: number, input: ReturnInput): Result<Loan>
   loan.updatedAt = c.now;
   log(c, "Loan returned", "Loans", loan.number);
   return ok(loan);
+}
+
+// ----------------------------------------------------------- purchase requests
+// Same shape as loans, but approval reserves nothing: stock changes only when the
+// items are received, through the existing incoming stock operation (BR-27, BR-28).
+
+const ownsPurchase = (c: Ctx, p: PurchaseRequest) => c.actor.role === "Admin" || p.requesterId === c.actor.id;
+
+function validatePurchase(c: Ctx, input: PurchaseInput): Result<never> | null {
+  const requester = c.db.users.find((u) => u.id === input.requesterId);
+  if (!requester || requester.status !== "Active") return fail("VALIDATION_ERROR", e.fix, { requesterId: t.validation.selectRequester });
+  if (c.actor.role === "Staff" && requester.id !== c.actor.id) return fail("FORBIDDEN", e.forbidden);
+  if (input.neededBy < c.today) return fail("VALIDATION_ERROR", e.fix, { neededBy: t.validation.neededPast });
+  if (new Set(input.lines.map((l) => l.itemId)).size !== input.lines.length) return fail("VALIDATION_ERROR", e.fix, { lines: e.duplicateItem });
+  const noQty = badQuantity(input.lines);
+  if (noQty) return noQty;
+  return checkActiveItems(c.db, input.lines.map((l) => l.itemId));
+}
+
+export function createPurchase(c: Ctx, input: PurchaseInput, submit: boolean): Result<PurchaseRequest> {
+  const bad = validatePurchase(c, input);
+  if (bad) return bad;
+  const p: PurchaseRequest = {
+    id: nextId(c.db, "purchase"),
+    number: nextNumber(c.db, "PR", c.today),
+    requesterId: input.requesterId,
+    status: submit ? "Pending Approval" : "Draft",
+    neededBy: input.neededBy,
+    reason: input.reason,
+    notes: input.notes,
+    rejectReason: "",
+    approvedBy: null,
+    approvedAt: null,
+    receivedBy: null,
+    receivedAt: null,
+    transactionId: null,
+    lines: input.lines.map((l) => ({ itemId: l.itemId, quantity: l.quantity })),
+    createdAt: c.now,
+    updatedAt: c.now,
+  };
+  c.db.purchaseRequests.unshift(p);
+  log(c, submit ? "Purchase request submitted" : "Purchase request draft saved", "Purchases", p.number);
+  return ok(p);
+}
+
+export function updatePurchaseDraft(c: Ctx, id: number, input: PurchaseInput, submit: boolean): Result<PurchaseRequest> {
+  const p = c.db.purchaseRequests.find((x) => x.id === id);
+  if (!p || !ownsPurchase(c, p)) return fail("NOT_FOUND", e.notFound);
+  if (p.status !== "Draft") return fail("BUSINESS_RULE_VIOLATION", e.purchaseState("edited", "Draft"));
+  const bad = validatePurchase(c, input);
+  if (bad) return bad;
+  Object.assign(p, {
+    requesterId: input.requesterId,
+    neededBy: input.neededBy,
+    reason: input.reason,
+    notes: input.notes,
+    lines: input.lines.map((l) => ({ itemId: l.itemId, quantity: l.quantity })),
+    status: submit ? "Pending Approval" : "Draft",
+    updatedAt: c.now,
+  });
+  log(c, submit ? "Purchase request submitted" : "Purchase request draft saved", "Purchases", p.number);
+  return ok(p);
+}
+
+export function submitPurchase(c: Ctx, id: number): Result<PurchaseRequest> {
+  const p = c.db.purchaseRequests.find((x) => x.id === id);
+  if (!p || !ownsPurchase(c, p)) return fail("NOT_FOUND", e.notFound);
+  if (p.status !== "Draft") return fail("BUSINESS_RULE_VIOLATION", e.purchaseState("submitted", "Draft"));
+  if (p.neededBy < c.today) return fail("VALIDATION_ERROR", e.fix, { neededBy: t.validation.neededPast });
+  const inactive = checkActiveItems(c.db, p.lines.map((l) => l.itemId));
+  if (inactive) return inactive;
+  p.status = "Pending Approval";
+  p.updatedAt = c.now;
+  log(c, "Purchase request submitted", "Purchases", p.number);
+  return ok(p);
+}
+
+export function cancelPurchase(c: Ctx, id: number): Result<PurchaseRequest> {
+  const p = c.db.purchaseRequests.find((x) => x.id === id);
+  if (!p || !ownsPurchase(c, p)) return fail("NOT_FOUND", e.notFound);
+  const staffCan = p.status === "Draft" || p.status === "Pending Approval";
+  if (!(c.actor.role === "Admin" ? staffCan || p.status === "Approved" : staffCan)) {
+    return fail("BUSINESS_RULE_VIOLATION", p.status === "Received" ? e.cancelReceived : e.purchaseState("cancelled", "Pending Approval"));
+  }
+  p.status = "Cancelled";
+  p.updatedAt = c.now;
+  log(c, "Purchase request cancelled", "Purchases", p.number);
+  return ok(p);
+}
+
+/** BR-29: nobody approves or rejects their own request (BR-13 for loans). */
+export function approvePurchase(c: Ctx, id: number): Result<PurchaseRequest> {
+  const denied = requireAdmin(c);
+  if (denied) return denied;
+  const p = c.db.purchaseRequests.find((x) => x.id === id);
+  if (!p) return fail("NOT_FOUND", e.notFound);
+  if (p.requesterId === c.actor.id) return fail("BUSINESS_RULE_VIOLATION", e.selfApprovePurchase);
+  if (p.status !== "Pending Approval") return fail("BUSINESS_RULE_VIOLATION", e.purchaseState("approved", "Pending Approval"));
+  p.status = "Approved";
+  p.approvedBy = c.actor.id;
+  p.approvedAt = c.now;
+  p.updatedAt = c.now;
+  log(c, "Purchase request approved", "Purchases", p.number);
+  return ok(p);
+}
+
+export function rejectPurchase(c: Ctx, id: number, reason: string): Result<PurchaseRequest> {
+  const denied = requireAdmin(c);
+  if (denied) return denied;
+  const noReason = needReason(reason);
+  if (noReason) return noReason;
+  const p = c.db.purchaseRequests.find((x) => x.id === id);
+  if (!p) return fail("NOT_FOUND", e.notFound);
+  if (p.requesterId === c.actor.id) return fail("BUSINESS_RULE_VIOLATION", e.selfApprovePurchase);
+  if (p.status !== "Pending Approval") return fail("BUSINESS_RULE_VIOLATION", e.purchaseState("rejected", "Pending Approval"));
+  p.status = "Rejected";
+  p.rejectReason = reason;
+  p.approvedBy = c.actor.id;
+  p.approvedAt = c.now;
+  p.updatedAt = c.now;
+  log(c, "Purchase request rejected", "Purchases", p.number, reason);
+  return ok(p);
+}
+
+/** BR-28: full receipt only. Posts an IN transaction with the requested quantities. */
+export function receivePurchase(c: Ctx, id: number, input: ReceiveInput): Result<PurchaseRequest> {
+  const denied = requireAdmin(c);
+  if (denied) return denied;
+  const p = c.db.purchaseRequests.find((x) => x.id === id);
+  if (!p) return fail("NOT_FOUND", e.notFound);
+  if (p.status !== "Approved") return fail("BUSINESS_RULE_VIOLATION", e.purchaseState("received", "Approved"));
+  if (dayDiff(c.today, input.date) > 0) return fail("VALIDATION_ERROR", e.fix, { date: e.receiveFuture });
+  const lines = [];
+  for (const [i, l] of p.lines.entries()) {
+    const priced = input.lines.find((x) => x.itemId === l.itemId);
+    if (!priced) return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.unitPrice`]: t.validation.required(t.fields.unitPrice) });
+    if (!Number.isInteger(priced.unitPrice) || priced.unitPrice < 0) return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.unitPrice`]: t.validation.min(t.fields.unitPrice, 0) });
+    lines.push({ itemId: l.itemId, quantity: l.quantity, unitPrice: priced.unitPrice });
+  }
+  const r = stockIn(c, {
+    date: input.date,
+    supplierId: input.supplierId,
+    notes: input.notes ? `${p.number}. ${input.notes}` : p.number,
+    lines,
+  });
+  if (!r.ok) return r;
+  p.status = "Received";
+  p.receivedBy = c.actor.id;
+  p.receivedAt = input.date;
+  p.transactionId = r.data.id;
+  p.updatedAt = c.now;
+  log(c, "Purchase request received", "Purchases", p.number);
+  return ok(p);
 }
 
 // --------------------------------------------------------------------- users

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/strings";
-import type { ActiveStatus, LoanDisplayStatus, Role, StockStatus, StockTxType } from "@/lib/types";
+import type { ActiveStatus, LoanDisplayStatus, PurchaseStatus, Role, StockStatus, StockTxType } from "@/lib/types";
 
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
@@ -79,6 +79,20 @@ const loanTone: Record<LoanDisplayStatus, [Tone, LucideIcon]> = {
 export function LoanBadge({ status }: { status: LoanDisplayStatus }) {
   const [tone, icon] = loanTone[status];
   return <StatusBadge tone={tone} icon={icon}>{t.status.loan[status]}</StatusBadge>;
+}
+
+const purchaseTone: Record<PurchaseStatus, [Tone, LucideIcon]> = {
+  Draft: ["neutral", FilePen],
+  "Pending Approval": ["info", Clock],
+  Approved: ["info", CircleCheck],
+  Rejected: ["neutral", Ban],
+  Received: ["success", CheckCheck],
+  Cancelled: ["neutral", X],
+};
+
+export function PurchaseBadge({ status }: { status: PurchaseStatus }) {
+  const [tone, icon] = purchaseTone[status];
+  return <StatusBadge tone={tone} icon={icon}>{t.status.purchase[status]}</StatusBadge>;
 }
 
 export function ActiveBadge({ status }: { status: ActiveStatus }) {

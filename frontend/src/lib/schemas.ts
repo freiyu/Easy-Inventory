@@ -130,6 +130,22 @@ export const loanSchema = z
     message: v.expectedAfterLoan,
   });
 
+export const purchaseSchema = z.object({
+  requesterId: idField(v.selectRequester),
+  lines: z.array(outgoingLine).min(1, v.atLeastOneLine),
+  neededBy: dateField(f.neededBy),
+  reason: text(f.reason),
+  notes: optText,
+});
+
+// Quantities come from the request (full receipt only); Admin enters the real price per line.
+export const receiveSchema = z.object({
+  date: dateField(f.receivedDate),
+  supplierId: idField(v.selectSupplier),
+  lines: z.array(z.object({ itemId: idField(v.selectItem), unitPrice: wholeNumber(f.unitPrice, 0) })).min(1),
+  notes: optText,
+});
+
 export const returnSchema = z.object({
   returnDate: dateField(f.returnDate),
   notes: optText,
@@ -145,6 +161,8 @@ export type IncomingInput = z.output<typeof incomingSchema>;
 export type OutgoingInput = z.output<typeof outgoingSchema>;
 export type AdjustmentInput = z.output<typeof adjustmentSchema>;
 export type LoanInput = z.output<typeof loanSchema>;
+export type PurchaseInput = z.output<typeof purchaseSchema>;
+export type ReceiveInput = z.output<typeof receiveSchema>;
 export type ReturnInput = z.output<typeof returnSchema>;
 
 export type FieldErrors = Record<string, string>;

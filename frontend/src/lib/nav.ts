@@ -1,6 +1,6 @@
 import {
   DatabaseBackup, FileBarChart, HandHelping, LayoutDashboard, Package, ScrollText,
-  Tags, Truck, UserRound, Users, ArrowLeftRight, Wallet, type LucideIcon,
+  ShoppingCart, Tags, Truck, UserRound, Users, ArrowLeftRight, Wallet, type LucideIcon,
 } from "lucide-react";
 import { t } from "./strings";
 import type { Role } from "./types";
@@ -10,8 +10,8 @@ export interface NavEntry {
   label: string;
   icon: LucideIcon;
   roles: Role[];
-  /** Admin sidebar badges: Items = Low + Out count, Loans = overdue count. */
-  badge?: "items" | "loans";
+  /** Admin sidebar badges: Items = Low + Out count, Loans = overdue count, Purchases = pending count. */
+  badge?: "items" | "loans" | "purchases";
 }
 
 export interface NavGroup {
@@ -38,6 +38,7 @@ export const navGroups: NavGroup[] = [
     label: t.nav.groupOperations,
     entries: [
       { href: "/loans", label: t.nav.loans, icon: HandHelping, roles: both, badge: "loans" },
+      { href: "/purchases", label: t.nav.purchases, icon: ShoppingCart, roles: both, badge: "purchases" },
       { href: "/expenses", label: t.nav.expenses, icon: Wallet, roles: admin },
       { href: "/reports", label: t.nav.reports, icon: FileBarChart, roles: admin },
     ],

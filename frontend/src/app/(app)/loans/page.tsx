@@ -13,7 +13,7 @@ import { EmptyState, LoadGate } from "@/components/shared/states";
 import { usePageLoad } from "@/hooks/use-page-load";
 import { formatDate } from "@/lib/format";
 import { useCurrentUser, useStore } from "@/lib/mock/store";
-import { loanSummary, matches, userName, visibleLoans } from "@/lib/queries";
+import { lineSummary, matches, userName, visibleLoans } from "@/lib/queries";
 import { loanDisplayStatus } from "@/lib/rules";
 import { t } from "@/lib/strings";
 import type { Loan, LoanDisplayStatus } from "@/lib/types";
@@ -42,7 +42,7 @@ export default function LoansPage() {
   };
   const rows = useMemo(() => mine.filter((l) =>
     inTab(l, tab) && (borrower === ALL || String(l.borrowerId) === borrower) &&
-    matches(query, l.number, userName(db, l.borrowerId), loanSummary(db, l), l.purpose),
+    matches(query, l.number, userName(db, l.borrowerId), lineSummary(db, l), l.purpose),
   ), [mine, tab, borrower, query, db]);
 
   if (!user) return null;
@@ -53,7 +53,7 @@ export default function LoansPage() {
   const columns: Column<Loan>[] = [
     { id: "number", header: t.loans.colNumber, cell: (l) => <Link href={`/loans/view?id=${l.id}`} className="font-medium text-link hover:underline">{l.number}</Link>, sortValue: (l) => l.number },
     ...(isAdmin ? [{ id: "borrower", header: t.loans.colBorrower, cell: (l: Loan) => userName(db, l.borrowerId), sortValue: (l: Loan) => userName(db, l.borrowerId) }] : []),
-    { id: "items", header: t.loans.colItems, cell: (l) => <span className="line-clamp-1 max-w-72 whitespace-normal">{loanSummary(db, l)}</span>, hideOnMobile: true },
+    { id: "items", header: t.loans.colItems, cell: (l) => <span className="line-clamp-1 max-w-72 whitespace-normal">{lineSummary(db, l)}</span>, hideOnMobile: true },
     { id: "loanDate", header: t.loans.colLoanDate, cell: (l) => <span className="tabular">{formatDate(l.loanDate)}</span>, sortValue: (l) => l.loanDate, hideOnMobile: true },
     { id: "expected", header: t.loans.colExpected, cell: (l) => <span className="tabular">{formatDate(l.expectedReturnDate)}</span>, sortValue: (l) => l.expectedReturnDate },
     { id: "status", header: t.loans.colStatus, cell: (l) => <LoanBadge status={loanDisplayStatus(l)} />, sortValue: (l) => loanDisplayStatus(l) },

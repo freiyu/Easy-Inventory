@@ -18,7 +18,7 @@ import { useMounted } from "@/hooks/use-mounted";
 import { initials } from "@/lib/format";
 import { canAccess, isActivePath, navGroups } from "@/lib/nav";
 import { logout, useCurrentUser, useStore } from "@/lib/mock/store";
-import { loanCounts, stockCounts } from "@/lib/queries";
+import { loanCounts, purchasePending, stockCounts } from "@/lib/queries";
 import { t } from "@/lib/strings";
 import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -91,7 +91,7 @@ function ShellSkeleton() {
 function Sidebar({ user }: { user: User }) {
   const pathname = usePathname();
   const { db } = useStore();
-  const counts = { items: stockCounts(db).attention, loans: loanCounts(db).overdue };
+  const counts = { items: stockCounts(db).attention, loans: loanCounts(db).overdue, purchases: purchasePending(db, user) };
   const showGroupLabels = user.role === "Admin";
 
   return (

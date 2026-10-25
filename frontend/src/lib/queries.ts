@@ -1,7 +1,7 @@
 // Small read helpers over the prototype DB. Pages call these instead of repeating lookups.
 import { loanDisplayStatus, stockStatus } from "./rules";
 import type { DB } from "./mock/ops";
-import type { Category, Item, Loan, StockTransaction, Supplier, User } from "./types";
+import type { Category, Item, Loan, LoanLine, PurchaseRequest, StockTransaction, Supplier, User } from "./types";
 
 export const byId = <T extends { id: number }>(list: T[], id: number | null | undefined): T | undefined =>
   id == null ? undefined : list.find((x) => x.id === id);
@@ -33,7 +33,16 @@ export function loanCounts(db: DB) {
 export const visibleLoans = (db: DB, user: User): Loan[] =>
   user.role === "Admin" ? db.loans : db.loans.filter((l) => l.borrowerId === user.id);
 
-export const loanSummary = (db: DB, loan: Loan) =>
+/** Staff only see their own purchase requests (PRD 3.2); Admin sees all. */
+export const visiblePurchases = (db: DB, user: User): PurchaseRequest[] =>
+  user.role === "Admin" ? db.purchaseRequests : db.purchaseRequests.filter((p) => p.requesterId === user.id);
+
+/** Requests this user can act on: pending, and not their own (BR-29). */
+export const purchasePending = (db: DB, user: User) =>
+  db.purchaseRequests.filter((p) => p.status === "Pending Approval" && p.requesterId !== user.id).length;
+
+/** "Item xQty, Item xQty" for loans and purchase requests. */
+export const lineSummary = (db: DB, loan: { lines: LoanLine[] }) =>
   loan.lines.map((l) => `${itemName(db, l.itemId)} x${l.quantity}`).join(", ");
 
 /** Text match used by every list search box. */
