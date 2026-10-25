@@ -1,6 +1,6 @@
 // Mock business operations on an in-memory DB. They mirror the API contract (PRD 6.6)
 // and business rules (PRD 6.4). The real backend re-implements them (Stage 3).
-import { BACKUP_RETENTION } from "../constants";
+import { BACKUP_RETENTION, UNITS } from "../constants";
 import { dayDiff } from "../format";
 import { availableForLoan, reservedQuantity, returnFloor, totalsByItem } from "../rules";
 import type {
@@ -24,6 +24,7 @@ import type {
   Category,
   Item,
   Loan,
+  PurchaseLine,
   PurchaseRequest,
   Result,
   StockLine,
@@ -426,7 +427,9 @@ export function deleteCategory(c: Ctx, id: number): Result {
   if (denied) return denied;
   const cat = c.db.categories.find((x) => x.id === id);
   if (!cat) return fail("NOT_FOUND", e.notFound);
-  if (c.db.items.some((i) => i.categoryId === id)) return fail("CONFLICT", e.categoryInUse);
+  if (c.db.items.some((i) => i.categoryId === id) || c.db.purchaseRequests.some((p) => p.lines.some((l) => l.newItem?.categoryId === id))) {
+    return fail("CONFLICT", e.categoryInUse);
+  }
   c.db.categories = c.db.categories.filter((x) => x.id !== id);
   log(c, "Category deleted", "Categories", cat.name);
   return ok(undefined);
@@ -680,15 +683,47 @@ export function returnLoan(c: Ctx, id: number, input: ReturnInput): Result<Loan>
 
 const ownsPurchase = (c: Ctx, p: PurchaseRequest) => c.actor.role === "Admin" || p.requesterId === c.actor.id;
 
+const toPurchaseLines = (lines: PurchaseLine[]): PurchaseLine[] =>
+  lines.map((l) => (l.newItem ? { itemId: null, quantity: l.quantity, newItem: { ...l.newItem, name: l.newItem.name.trim() } } : { itemId: l.itemId, quantity: l.quantity }));
+
+/** BR-24, BR-31: existing lines need an active item; new lines need a unique name, an active category and a known unit. */
+function checkPurchaseLines(c: Ctx, lines: PurchaseLine[]): Result<never> | null {
+  const seen = new Set<string>();
+  for (const [i, l] of lines.entries()) {
+    // A line is an existing item or a new item, never both (BR-31).
+    if (l.itemId !== null && l.newItem) return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.itemId`]: t.validation.selectItem });
+    const ni = l.newItem;
+    if (l.itemId === null && (!ni || !ni.name.trim())) {
+      return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.name`]: t.validation.required(t.fields.itemName) });
+    }
+    const key = l.itemId !== null ? `item:${l.itemId}` : `new:${lc(ni!.name)}`;
+    if (seen.has(key)) return fail("VALIDATION_ERROR", e.fix, { lines: e.duplicateItem });
+    seen.add(key);
+    if (l.itemId !== null) {
+      const bad = checkActiveItems(c.db, [l.itemId]);
+      if (bad) return bad;
+      continue;
+    }
+    if (!ni) continue;
+    const cat = c.db.categories.find((x) => x.id === ni.categoryId);
+    if (!cat) return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.categoryId`]: t.validation.selectCategory });
+    if (cat.status !== "Active") return fail("BUSINESS_RULE_VIOLATION", e.fix, { [`lines.${i}.categoryId`]: e.categoryInactive(cat.name) });
+    if (!UNITS.includes(ni.unit)) return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.unit`]: t.validation.selectUnit });
+    if (c.db.items.some((it) => lc(it.name) === lc(ni.name))) {
+      return fail("CONFLICT", e.fix, { [`lines.${i}.name`]: e.itemNameTaken });
+    }
+  }
+  return null;
+}
+
 function validatePurchase(c: Ctx, input: PurchaseInput): Result<never> | null {
   const requester = c.db.users.find((u) => u.id === input.requesterId);
   if (!requester || requester.status !== "Active") return fail("VALIDATION_ERROR", e.fix, { requesterId: t.validation.selectRequester });
   if (c.actor.role === "Staff" && requester.id !== c.actor.id) return fail("FORBIDDEN", e.forbidden);
   if (input.neededBy < c.today) return fail("VALIDATION_ERROR", e.fix, { neededBy: t.validation.neededPast });
-  if (new Set(input.lines.map((l) => l.itemId)).size !== input.lines.length) return fail("VALIDATION_ERROR", e.fix, { lines: e.duplicateItem });
   const noQty = badQuantity(input.lines);
   if (noQty) return noQty;
-  return checkActiveItems(c.db, input.lines.map((l) => l.itemId));
+  return checkPurchaseLines(c, input.lines);
 }
 
 export function createPurchase(c: Ctx, input: PurchaseInput, submit: boolean): Result<PurchaseRequest> {
@@ -708,7 +743,7 @@ export function createPurchase(c: Ctx, input: PurchaseInput, submit: boolean): R
     receivedBy: null,
     receivedAt: null,
     transactionId: null,
-    lines: input.lines.map((l) => ({ itemId: l.itemId, quantity: l.quantity })),
+    lines: toPurchaseLines(input.lines),
     createdAt: c.now,
     updatedAt: c.now,
   };
@@ -728,7 +763,7 @@ export function updatePurchaseDraft(c: Ctx, id: number, input: PurchaseInput, su
     neededBy: input.neededBy,
     reason: input.reason,
     notes: input.notes,
-    lines: input.lines.map((l) => ({ itemId: l.itemId, quantity: l.quantity })),
+    lines: toPurchaseLines(input.lines),
     status: submit ? "Pending Approval" : "Draft",
     updatedAt: c.now,
   });
@@ -741,7 +776,7 @@ export function submitPurchase(c: Ctx, id: number): Result<PurchaseRequest> {
   if (!p || !ownsPurchase(c, p)) return fail("NOT_FOUND", e.notFound);
   if (p.status !== "Draft") return fail("BUSINESS_RULE_VIOLATION", e.purchaseState("submitted", "Draft"));
   if (p.neededBy < c.today) return fail("VALIDATION_ERROR", e.fix, { neededBy: t.validation.neededPast });
-  const inactive = checkActiveItems(c.db, p.lines.map((l) => l.itemId));
+  const inactive = checkPurchaseLines(c, p.lines);
   if (inactive) return inactive;
   p.status = "Pending Approval";
   p.updatedAt = c.now;
@@ -796,7 +831,10 @@ export function rejectPurchase(c: Ctx, id: number, reason: string): Result<Purch
   return ok(p);
 }
 
-/** BR-28: full receipt only. Posts an IN transaction with the requested quantities. */
+/**
+ * BR-28, BR-31: full receipt only. New-item lines first become real items (stock 0), then one IN
+ * posts the requested quantities. Every check runs before anything is created, so a failure leaves no item behind.
+ */
 export function receivePurchase(c: Ctx, id: number, input: ReceiveInput): Result<PurchaseRequest> {
   const denied = requireAdmin(c);
   if (denied) return denied;
@@ -804,20 +842,55 @@ export function receivePurchase(c: Ctx, id: number, input: ReceiveInput): Result
   if (!p) return fail("NOT_FOUND", e.notFound);
   if (p.status !== "Approved") return fail("BUSINESS_RULE_VIOLATION", e.purchaseState("received", "Approved"));
   if (dayDiff(c.today, input.date) > 0) return fail("VALIDATION_ERROR", e.fix, { date: e.receiveFuture });
-  const lines = [];
+  if (input.lines.length !== p.lines.length) return fail("VALIDATION_ERROR", e.fix, { lines: t.validation.atLeastOneLine });
+  const supplier = c.db.suppliers.find((s) => s.id === input.supplierId);
+  if (!supplier) return fail("VALIDATION_ERROR", e.fix, { supplierId: t.validation.selectSupplier });
+  if (supplier.status !== "Active") return fail("BUSINESS_RULE_VIOLATION", e.supplierInactive(supplier.name));
+
+  const codes = new Set<string>();
   for (const [i, l] of p.lines.entries()) {
-    const priced = input.lines.find((x) => x.itemId === l.itemId);
-    if (!priced) return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.unitPrice`]: t.validation.required(t.fields.unitPrice) });
-    if (!Number.isInteger(priced.unitPrice) || priced.unitPrice < 0) return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.unitPrice`]: t.validation.min(t.fields.unitPrice, 0) });
-    lines.push({ itemId: l.itemId, quantity: l.quantity, unitPrice: priced.unitPrice });
+    const line = input.lines[i];
+    if (!Number.isInteger(line.unitPrice) || line.unitPrice < 0) {
+      return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.unitPrice`]: t.validation.min(t.fields.unitPrice, 0) });
+    }
+    if (l.itemId !== null) continue;
+    const code = line.code.trim();
+    if (!code) return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.code`]: t.validation.required(t.fields.code) });
+    if (!Number.isInteger(line.minimumStock) || line.minimumStock < 0) {
+      return fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.minimumStock`]: t.validation.min(t.fields.minimumStock, 0) });
+    }
+    if (codes.has(lc(code)) || c.db.items.some((it) => lc(it.code) === lc(code))) {
+      return fail("CONFLICT", e.itemCodeTaken, { [`lines.${i}.code`]: e.itemCodeTaken });
+    }
+    codes.add(lc(code));
+  }
+  const bad = checkPurchaseLines(c, p.lines);
+  if (bad) return bad;
+
+  const itemIds: number[] = [];
+  for (const [i, l] of p.lines.entries()) {
+    const line = input.lines[i];
+    if (l.itemId !== null) {
+      itemIds.push(l.itemId);
+      continue;
+    }
+    const ni = l.newItem!;
+    const made = createItem(c, {
+      code: line.code.trim(), name: ni.name, categoryId: ni.categoryId, unit: ni.unit, openingStock: 0,
+      minimumStock: line.minimumStock, lastPurchasePrice: line.unitPrice, supplierId: supplier.id,
+      location: "", status: "Active", notes: "",
+    });
+    if (!made.ok) return made;
+    itemIds.push(made.data.id);
   }
   const r = stockIn(c, {
     date: input.date,
     supplierId: input.supplierId,
     notes: input.notes ? `${p.number}. ${input.notes}` : p.number,
-    lines,
+    lines: p.lines.map((l, i) => ({ itemId: itemIds[i], quantity: l.quantity, unitPrice: input.lines[i].unitPrice })),
   });
   if (!r.ok) return r;
+  p.lines.forEach((l, i) => { l.itemId = itemIds[i]; });
   p.status = "Received";
   p.receivedBy = c.actor.id;
   p.receivedAt = input.date;

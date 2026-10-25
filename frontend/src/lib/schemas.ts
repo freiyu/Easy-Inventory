@@ -2,6 +2,7 @@
 // business rules, the same split the real frontend and backend will have.
 import { z } from "zod";
 import { t } from "./strings";
+import type { PurchaseLine } from "./types";
 
 const v = t.validation;
 const f = t.fields;
@@ -130,19 +131,58 @@ export const loanSchema = z
     message: v.expectedAfterLoan,
   });
 
+// A line is an existing item or a new one (BR-31). The form sends strings; the output is typed.
+const purchaseLine = z
+  .object({
+    isNew: z.boolean(),
+    itemId: z.string(),
+    quantity: wholeNumber(f.quantity, 1),
+    name: z.string().trim(),
+    categoryId: z.string(),
+    unit: z.string(),
+  })
+  .superRefine((l, ctx) => {
+    const need = (path: string, ok: boolean, message: string) => {
+      if (!ok) ctx.addIssue({ code: "custom", path: [path], message });
+    };
+    if (!l.isNew) return need("itemId", !!l.itemId, v.selectItem);
+    need("name", !!l.name, v.required(f.itemName));
+    need("categoryId", !!l.categoryId, v.selectCategory);
+    need("unit", !!l.unit, v.selectUnit);
+  })
+  .transform((l): PurchaseLine =>
+    l.isNew
+      ? { itemId: null, quantity: l.quantity, newItem: { name: l.name, categoryId: Number(l.categoryId), unit: l.unit } }
+      : { itemId: Number(l.itemId), quantity: l.quantity },
+  );
+
 export const purchaseSchema = z.object({
   requesterId: idField(v.selectRequester),
-  lines: z.array(outgoingLine).min(1, v.atLeastOneLine),
+  lines: z.array(purchaseLine).min(1, v.atLeastOneLine),
   neededBy: dateField(f.neededBy),
   reason: text(f.reason),
   notes: optText,
 });
 
-// Quantities come from the request (full receipt only); Admin enters the real price per line.
+// Quantities come from the request (full receipt only). Lines line up with the request's lines.
+// Admin enters the real price per line, plus a code and minimum stock for each new item (BR-31).
+const receiveLine = z
+  .object({
+    isNew: z.boolean(),
+    unitPrice: wholeNumber(f.unitPrice, 0),
+    code: optText,
+    minimumStock: z.string().trim(),
+  })
+  .superRefine((l, ctx) => {
+    if (!l.isNew) return;
+    if (!l.code) ctx.addIssue({ code: "custom", path: ["code"], message: v.required(f.code) });
+    if (!/^\d+$/.test(l.minimumStock)) ctx.addIssue({ code: "custom", path: ["minimumStock"], message: l.minimumStock ? v.whole(f.minimumStock) : v.required(f.minimumStock) });
+  })
+  .transform((l) => ({ unitPrice: l.unitPrice, code: l.code, minimumStock: l.isNew ? Number(l.minimumStock) : 0 }));
 export const receiveSchema = z.object({
   date: dateField(f.receivedDate),
   supplierId: idField(v.selectSupplier),
-  lines: z.array(z.object({ itemId: idField(v.selectItem), unitPrice: wholeNumber(f.unitPrice, 0) })).min(1),
+  lines: z.array(receiveLine).min(1),
   notes: optText,
 });
 

@@ -2,7 +2,7 @@
 // The seed is built by calling the same mock operations the UI uses, so the stock
 // ledger is consistent by construction (current_stock = sum of ledger changes).
 import { daysFromToday } from "../format";
-import type { BackupFile, Category, Supplier, User } from "../types";
+import type { BackupFile, Category, PurchaseLine, Supplier, User } from "../types";
 import {
   approveLoan,
   cancelLoan,
@@ -218,35 +218,52 @@ export function createSeed(): DB {
     request(0, 3, [[12, 1]], 1, 2, "Meeting room demo", false);
   });
 
-  const purchase = (day: number, requesterId: number, pairs: Line[], neededDay: number, reason: string, submit = true) => {
+  const purchase = (day: number, requesterId: number, lines: PurchaseLine[], neededDay: number, reason: string, submit = true) => {
     const actor = db.users.find((u) => u.id === requesterId)!;
-    const r = createPurchase(as(day, actor), { requesterId, lines: toLines(pairs), neededBy: daysFromToday(neededDay), reason, notes: "" }, submit);
+    const r = createPurchase(as(day, actor), { requesterId, lines, neededBy: daysFromToday(neededDay), reason, notes: "" }, submit);
     if (!r.ok) throw new Error(`seed purchase request failed: ${r.error.message}`);
     return r.data.id;
   };
+  const existing = (...pairs: Line[]): PurchaseLine[] => toLines(pairs);
+  const newItem = (name: string, categoryId: number, unit: string, quantity: number): PurchaseLine => ({ itemId: null, quantity, newItem: { name, categoryId, unit } });
+  const price = (unitPrice: number) => ({ unitPrice, code: "", minimumStock: 0 });
   ev(-16, () => {
-    const id = purchase(-16, 3, [[9, 2]], -8, "Black toner is almost out");
+    const id = purchase(-16, 3, existing([9, 2]), -8, "Black toner is almost out");
     approvePurchase(as(-15), id);
     ev(-10, () => {
-      receivePurchase(as(-10), id, { date: daysFromToday(-10), supplierId: 3, notes: "", lines: [{ itemId: 9, unitPrice: 790000 }] });
+      const r = receivePurchase(as(-10), id, { date: daysFromToday(-10), supplierId: 3, notes: "", lines: [price(790000)] });
+      if (!r.ok) throw new Error(`seed receipt failed: ${r.error.message}`);
     });
   });
   ev(-8, () => {
-    const id = purchase(-8, 4, [[15, 12], [16, 6]], -3, "Pantry cleaning supplies are low");
+    const id = purchase(-8, 4, existing([15, 12], [16, 6]), -3, "Pantry cleaning supplies are low");
     rejectPurchase(as(-7), id, "Already included in the monthly order.");
   });
+  ev(-7, () => {
+    // A request for an item that was not in the list yet: the item is created when it is received.
+    const id = purchase(-7, 4, [newItem("Whiteboard Eraser", 2, "pcs", 6), ...existing([4, 12])], -2, "Meeting room whiteboards have no erasers");
+    approvePurchase(as(-6), id);
+    ev(-4, () => {
+      const r = receivePurchase(as(-4), id, {
+        date: daysFromToday(-4), supplierId: 2, notes: "",
+        lines: [{ unitPrice: 12000, code: "ATK-010", minimumStock: 4 }, price(9500)],
+      });
+      if (!r.ok) throw new Error(`seed receipt failed: ${r.error.message}`);
+    });
+  });
   ev(-3, () => {
-    const id = purchase(-3, 5, [[12, 4]], 4, "Not enough HDMI cables for the meeting rooms");
+    const id = purchase(-3, 5, existing([12, 4]), 4, "Not enough HDMI cables for the meeting rooms");
     approvePurchase(as(-2), id);
   });
   ev(-1, () => {
-    const id = purchase(-1, 4, [[8, 20]], 7, "Correction tape for the audit files");
+    const id = purchase(-1, 4, existing([8, 20]), 7, "Correction tape for the audit files");
     cancelPurchase(as(-1, db.users[3]), id);
   });
   ev(0, () => {
-    purchase(0, 3, [[18, 3], [17, 4]], 5, "Pantry restock before the visitor event");
-    purchase(0, 2, [[1, 30]], 6, "Paper for the quarter-end printing"); // an Admin's own request: needs another Admin (BR-13)
-    purchase(0, 4, [[5, 3]], 6, "Staplers for the new desks", false);
+    purchase(0, 3, existing([18, 3], [17, 4]), 5, "Pantry restock before the visitor event");
+    purchase(0, 2, existing([1, 30]), 6, "Paper for the quarter-end printing"); // an Admin's own request: needs another Admin (BR-13)
+    purchase(0, 4, existing([5, 3]), 6, "Staplers for the new desks", false);
+    purchase(0, 5, [newItem("Wireless Presentation Remote", 4, "unit", 2)], 10, "Presenters have no remote for slides in the meeting rooms");
   });
 
   // Sign-in entries so the activity log looks lived in.

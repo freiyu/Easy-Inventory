@@ -26,7 +26,12 @@ export function PurchaseForm({ request }: { request?: PurchaseRequest }) {
   const [reason, setReason] = useState(request?.reason ?? "");
   const [notes, setNotes] = useState(request?.notes ?? "");
   const [lines, setLines] = useState<LineDraft[]>(() =>
-    request ? request.lines.map((l) => ({ ...newLine(), itemId: String(l.itemId), quantity: String(l.quantity) })) : [newLine()]);
+    request
+      ? request.lines.map((l) => ({
+          ...newLine(), itemId: l.itemId === null ? "" : String(l.itemId), quantity: String(l.quantity),
+          isNew: l.itemId === null, name: l.newItem?.name ?? "", categoryId: String(l.newItem?.categoryId ?? ""), unit: l.newItem?.unit ?? "",
+        }))
+      : [newLine()]);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState<"draft" | "submit" | null>(null);
 
@@ -57,8 +62,9 @@ export function PurchaseForm({ request }: { request?: PurchaseRequest }) {
           )}
           <section className="flex flex-col gap-3 px-5">
             <h2 className="text-lg font-semibold">{t.purchases.sectionItems}</h2>
-            <LinesEditor mode="loan" lines={lines} onChange={setLines} errors={errors}
-              items={db.items.filter((i) => i.status === "Active")} addLabel={t.purchases.addLine} />
+            <p className="text-sm text-muted-foreground">{t.purchases.howNew}</p>
+            <LinesEditor mode="purchase" lines={lines} onChange={setLines} errors={errors}
+              items={db.items.filter((i) => i.status === "Active")} categories={db.categories.filter((c) => c.status === "Active")} addLabel={t.purchases.addLine} />
           </section>
           <section className="flex flex-col gap-3 border-t px-5 pt-5">
             <h2 className="text-lg font-semibold">{t.purchases.sectionWhen}</h2>

@@ -18,7 +18,7 @@ import { PurchaseBadge } from "@/components/shared/status-badge";
 import { useQueryId } from "@/hooks/use-query-id";
 import { formatDate, formatDateTime, formatIDR, formatNumber, today } from "@/lib/format";
 import { api, useCurrentUser, useStore } from "@/lib/mock/store";
-import { byId, itemName, userName } from "@/lib/queries";
+import { byId, lineName, userName } from "@/lib/queries";
 import { purchaseStep } from "@/lib/rules";
 import { receiveSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
@@ -136,12 +136,15 @@ function PurchaseView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {request.lines.map((l) => {
+                {request.lines.map((l, i) => {
                   const item = byId(db.items, l.itemId);
                   return (
-                    <TableRow key={l.itemId}>
-                      <TableCell className="font-medium">{itemName(db, l.itemId)}</TableCell>
-                      <TableCell className="tabular text-right">{formatNumber(l.quantity)} {item?.unit}</TableCell>
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">
+                        {lineName(db, l)}
+                        {l.itemId === null && <span className="ml-2 text-sm font-normal text-muted-foreground">{t.purchases.newItemTag}</span>}
+                      </TableCell>
+                      <TableCell className="tabular text-right">{formatNumber(l.quantity)} {item?.unit ?? l.newItem?.unit}</TableCell>
                       {isAdmin && <TableCell className="tabular text-right">{item ? formatNumber(item.currentStock) : "-"}</TableCell>}
                       {isAdmin && <TableCell className="tabular text-right">{item ? formatNumber(item.minimumStock) : "-"}</TableCell>}
                       {isAdmin && <TableCell className="tabular text-right">{item ? formatIDR(item.lastPurchasePrice) : "-"}</TableCell>}
@@ -200,21 +203,26 @@ function PurchaseView() {
 
 function ReceiveDialog({ request, onClose }: { request: PurchaseRequest; onClose: () => void }) {
   const { db } = useStore();
-  const preferred = byId(db.items, request.lines[0]?.itemId)?.supplierId;
+  const preferred = request.lines.map((l) => byId(db.items, l.itemId)?.supplierId).find(Boolean);
+  const hasNew = request.lines.some((l) => l.newItem);
   const [date, setDate] = useState(today());
   const [supplierId, setSupplierId] = useState(preferred ? String(preferred) : "");
-  const [prices, setPrices] = useState<Record<number, string>>(() =>
-    Object.fromEntries(request.lines.map((l) => [l.itemId, String(byId(db.items, l.itemId)?.lastPurchasePrice ?? 0)])));
+  // One entry per request line, in the same order. New items start without a price.
+  const [prices, setPrices] = useState<string[]>(() =>
+    request.lines.map((l) => (l.newItem ? "" : String(byId(db.items, l.itemId)?.lastPurchasePrice ?? 0))));
+  const [codes, setCodes] = useState<string[]>(() => request.lines.map(() => ""));
+  const [minimums, setMinimums] = useState<string[]>(() => request.lines.map(() => ""));
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState(false);
 
-  const total = request.lines.reduce((n, l) => n + l.quantity * (/^\d+$/.test(prices[l.itemId]) ? Number(prices[l.itemId]) : 0), 0);
+  const total = request.lines.reduce((n, l, i) => n + l.quantity * (/^\d+$/.test(prices[i]) ? Number(prices[i]) : 0), 0);
+  const setAt = (list: string[], set: (v: string[]) => void, i: number, v: string) => set(list.map((x, j) => (j === i ? v : x)));
 
   const submit = async () => {
     const v = validate(receiveSchema, {
       date, supplierId, notes,
-      lines: request.lines.map((l) => ({ itemId: String(l.itemId), unitPrice: prices[l.itemId] })),
+      lines: request.lines.map((l, i) => ({ isNew: !!l.newItem, unitPrice: prices[i], code: codes[i], minimumStock: minimums[i] })),
     });
     setErrors(v.ok ? {} : v.errors);
     if (!v.ok) return;
@@ -246,10 +254,33 @@ function ReceiveDialog({ request, onClose }: { request: PurchaseRequest; onClose
             options={db.suppliers.filter((s) => s.status === "Active").map((s) => ({ value: String(s.id), label: s.name }))} />}
         </Field>
       </div>
+      {hasNew && (
+        <p className="flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-base text-foreground">
+          <Info className="mt-0.5 size-5 shrink-0 text-info-icon" aria-hidden="true" />
+          {t.purchases.receiveNewItemsNote}
+        </p>
+      )}
       {request.lines.map((l, i) => (
-        <Field key={l.itemId} label={t.fields.unitPrice} hint={t.purchases.receivePriceFor(itemName(db, l.itemId), l.quantity)} required error={errors[`lines.${i}.unitPrice`]}>
-          {(p) => <Input {...p} inputMode="numeric" value={prices[l.itemId]} onChange={(e) => setPrices({ ...prices, [l.itemId]: e.target.value })} />}
-        </Field>
+        <fieldset key={i} className="flex flex-col gap-3 rounded-lg border p-3">
+          <legend className="px-1 text-base font-medium">
+            {t.purchases.receiveLineName(lineName(db, l), l.quantity, byId(db.items, l.itemId)?.unit ?? l.newItem?.unit ?? "")}
+          </legend>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {l.newItem && (
+              <>
+                <Field label={t.items.fieldCode} hint={t.items.codeHint} required error={errors[`lines.${i}.code`]}>
+                  {(p) => <Input {...p} value={codes[i]} onChange={(e) => setAt(codes, setCodes, i, e.target.value)} />}
+                </Field>
+                <Field label={t.fields.minimumStock} hint={t.items.minimumHint} required error={errors[`lines.${i}.minimumStock`]}>
+                  {(p) => <Input {...p} inputMode="numeric" value={minimums[i]} onChange={(e) => setAt(minimums, setMinimums, i, e.target.value)} />}
+                </Field>
+              </>
+            )}
+            <Field label={t.fields.unitPrice} required error={errors[`lines.${i}.unitPrice`]} className="col-span-2 sm:col-span-1">
+              {(p) => <Input {...p} inputMode="numeric" value={prices[i]} onChange={(e) => setAt(prices, setPrices, i, e.target.value)} />}
+            </Field>
+          </div>
+        </fieldset>
       ))}
       <p className="flex justify-between rounded-lg bg-muted px-4 py-3 text-base">
         <span className="text-muted-foreground">{t.purchases.receiveTotal}</span>

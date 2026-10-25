@@ -1,7 +1,7 @@
 // Small read helpers over the prototype DB. Pages call these instead of repeating lookups.
 import { loanDisplayStatus, stockStatus } from "./rules";
 import type { DB } from "./mock/ops";
-import type { Category, Item, Loan, LoanLine, PurchaseRequest, StockTransaction, Supplier, User } from "./types";
+import type { Category, Item, Loan, PurchaseLine, PurchaseRequest, StockTransaction, Supplier, User } from "./types";
 
 export const byId = <T extends { id: number }>(list: T[], id: number | null | undefined): T | undefined =>
   id == null ? undefined : list.find((x) => x.id === id);
@@ -41,9 +41,12 @@ export const visiblePurchases = (db: DB, user: User): PurchaseRequest[] =>
 export const purchasePending = (db: DB, user: User) =>
   db.purchaseRequests.filter((p) => p.status === "Pending Approval" && p.requesterId !== user.id).length;
 
+/** Item name of a request line: the real item, or the proposed name while it is still a new item. */
+export const lineName = (db: DB, l: PurchaseLine) => (l.itemId === null ? (l.newItem?.name ?? "-") : itemName(db, l.itemId));
+
 /** "Item xQty, Item xQty" for loans and purchase requests. */
-export const lineSummary = (db: DB, loan: { lines: LoanLine[] }) =>
-  loan.lines.map((l) => `${itemName(db, l.itemId)} x${l.quantity}`).join(", ");
+export const lineSummary = (db: DB, loan: { lines: PurchaseLine[] }) =>
+  loan.lines.map((l) => `${lineName(db, l)} x${l.quantity}`).join(", ");
 
 /** Text match used by every list search box. */
 export const matches = (query: string, ...fields: (string | number | null | undefined)[]) => {

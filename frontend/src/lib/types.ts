@@ -134,6 +134,13 @@ export type PurchaseStatus =
   | "Received"
   | "Cancelled";
 
+export interface PurchaseLine {
+  /** Null while the line is a new item; set to the created item when the request is received (BR-31). */
+  itemId: number | null;
+  quantity: number;
+  newItem?: { name: string; categoryId: number; unit: string };
+}
+
 export interface PurchaseRequest {
   id: number;
   number: string;
@@ -149,7 +156,7 @@ export interface PurchaseRequest {
   receivedAt: string | null;
   /** The IN transaction created when the request was received (BR-28). */
   transactionId: number | null;
-  lines: LoanLine[];
+  lines: PurchaseLine[];
   createdAt: string;
   updatedAt: string;
 }
