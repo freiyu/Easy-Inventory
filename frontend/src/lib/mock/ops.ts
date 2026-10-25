@@ -1,7 +1,7 @@
 // Mock business operations on an in-memory DB. They mirror the API contract (PRD 6.6)
 // and business rules (PRD 6.4). The real backend re-implements them (Stage 3).
 import { BACKUP_RETENTION, UNITS } from "../constants";
-import { parseCsv } from "./csv";
+import { parseCsv, UNCLOSED_QUOTE } from "./csv";
 import { dayDiff } from "../format";
 import { availableForLoan, reservedQuantity, returnFloor, totalsByItem } from "./rules";
 import type {
@@ -434,7 +434,13 @@ export function previewItemImport(c: Ctx, csv: string): Result<ImportReport> {
   if (denied) return denied;
   const bad = (message: string) => fail("VALIDATION_ERROR", message, { csv: message });
   if (new Blob([csv]).size > IMPORT_MAX_BYTES) return bad(e.importTooBig);
-  const table = parseCsv(csv);
+  let table: string[][];
+  try {
+    table = parseCsv(csv);
+  } catch (err) {
+    if (err instanceof Error && err.message === UNCLOSED_QUOTE) return bad(e.importUnclosedQuote);
+    throw err;
+  }
   if (table.length === 0) return bad(e.importEmpty);
   const header = table[0].map((h) => h.trim().toLowerCase().replace(/[\s-]+/g, "_"));
   const missing = IMPORT_REQUIRED.filter((h) => !header.includes(h));

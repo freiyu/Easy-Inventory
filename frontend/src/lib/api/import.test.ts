@@ -69,6 +69,15 @@ describe("item CSV import", () => {
     expect(await items.importPreview(many)).toMatchObject({ success: false, error: { message: expect.stringMatching(/500/) } });
   });
 
+  it("keeps a quote mark inside a name and refuses a file that ends inside quotes", async () => {
+    const inch = [HEADER, 'Ruler 12" steel,Stationery,pcs,,,,,,', "Pen,Stationery,box,,,,,,", "Tape,Stationery,roll,,,,,,"].join("\r\n");
+    const r = must<ImportReportDto>(await items.importPreview(inch));
+    expect(r).toMatchObject({ total: 3, ready: 3, errors: 0 });
+    expect(r.rows[0].name).toBe('Ruler 12" steel');
+    const open = `${HEADER}\r\n"Pen,Stationery,box,,,,,,\r\nTape,Stationery,roll,,,,,,`;
+    expect(await items.importPreview(open)).toMatchObject({ success: false, error: { code: "VALIDATION_ERROR", message: expect.stringMatching(/quote/) } });
+  });
+
   it("is Admin only", async () => {
     await auth.logout();
     must(await auth.login("budi.santoso@kantor.example", DEMO_PASSWORD, false));

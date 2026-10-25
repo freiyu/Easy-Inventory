@@ -19,9 +19,9 @@ import { t } from "@/lib/strings";
 const c = t.itemImport;
 const COLUMNS = "name,category,unit,opening_stock,minimum_stock,price,supplier,location,notes";
 
-/** The one official template: header plus one example row (PRD 4.10). */
+/** The one official template: the header row only, so an unchanged file can never create an item (PRD 4.10). */
 function downloadTemplate() {
-  const csv = `${COLUMNS}\r\n${c.templateExample},Stationery,box,10,5,38000,,Cabinet B2,\r\n`;
+  const csv = `${COLUMNS}\r\n`;
   const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
   const a = document.createElement("a");
   a.href = url;
