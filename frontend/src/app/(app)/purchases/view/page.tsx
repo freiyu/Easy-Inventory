@@ -13,16 +13,16 @@ import { ConfirmDialog, FormDialog, ReasonDialog } from "@/components/shared/dia
 import { Field } from "@/components/shared/form-field";
 import { PageHeader } from "@/components/shared/page-header";
 import { SelectField } from "@/components/shared/select-field";
-import { RecordNotFound, TableSkeleton } from "@/components/shared/states";
+import { LoadGate, RecordNotFound, TableSkeleton } from "@/components/shared/states";
 import { PurchaseBadge } from "@/components/shared/status-badge";
 import { useQueryId } from "@/hooks/use-query-id";
+import { api, useCurrentUser, useGet, type Envelope } from "@/lib/api";
+import type { SupplierDto } from "@/lib/api/master";
+import type { PurchaseDto } from "@/lib/api/purchases";
 import { formatDate, formatDateTime, formatIDR, formatNumber, today } from "@/lib/format";
-import { api, useCurrentUser, useStore } from "@/lib/mock/store";
-import { byId, lineName, userName } from "@/lib/queries";
-import { purchaseStep } from "@/lib/rules";
+import { purchaseStep } from "@/lib/steps";
 import { receiveSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
-import type { PurchaseRequest, Result } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -39,28 +39,26 @@ type Dialog = "reject" | "receive" | "cancel" | null;
 function PurchaseView() {
   const id = useQueryId();
   const user = useCurrentUser();
-  const { db } = useStore();
+  const load = useGet<PurchaseDto>(id ? `/purchase-requests/${id}` : null);
+  if (!user) return null;
+  // Staff asking for someone else's request get a 404 from the server, same as a missing one.
+  if (load.errorStatus === 404) return <RecordNotFound backHref="/purchases" backLabel={t.purchases.notFoundBack} />;
+  return <LoadGate load={load} skeleton={<TableSkeleton />}>{load.data && <PurchaseDetail request={load.data} userId={user.id} isAdmin={user.role === "Admin"} />}</LoadGate>;
+}
+
+function PurchaseDetail({ request, userId, isAdmin }: { request: PurchaseDto; userId: number; isAdmin: boolean }) {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [busy, setBusy] = useState("");
-  const request = byId(db.purchaseRequests, id);
-  if (!user) return null;
-  const isAdmin = user.role === "Admin";
-  if (!request || (!isAdmin && request.requesterId !== user.id)) return <RecordNotFound backHref="/purchases" backLabel={t.purchases.notFoundBack} />;
+  const own = request.requesterId === userId;
+  const can = (a: PurchaseDto["allowedActions"][number]) => request.allowedActions.includes(a);
 
-  const own = request.requesterId === user.id;
-  const tx = byId(db.transactions, request.transactionId);
-
-  const act = async (key: string, fn: () => Promise<Result<unknown>>, message: string) => {
+  const act = async (key: string, fn: () => Promise<Envelope<unknown>>, message: string) => {
     setBusy(key);
     const r = await fn();
     setBusy("");
-    if (r.ok) toast.success(message);
+    if (r.success) toast.success(message);
     else toast.error(r.error.message);
   };
-
-  const canCancel = isAdmin
-    ? ["Draft", "Pending Approval", "Approved"].includes(request.status)
-    : own && ["Draft", "Pending Approval"].includes(request.status);
 
   return (
     <>
@@ -70,20 +68,12 @@ function PurchaseView() {
         badge={<PurchaseBadge status={request.status} />}
         actions={
           <>
-            {request.status === "Draft" && (own || isAdmin) && (
-              <>
-                <Link href={`/purchases/edit?id=${request.id}`} className={buttonVariants({ variant: "outline" })}>{t.purchases.editDraft}</Link>
-                <Button disabled={!!busy} onClick={() => act("submit", () => api.purchases.submit(request.id), t.purchases.submitted)}>{busy === "submit" ? t.common.saving : t.purchases.submit}</Button>
-              </>
-            )}
-            {canCancel && <Button variant="outline" disabled={!!busy} onClick={() => setDialog("cancel")}>{t.purchases.cancel}</Button>}
-            {isAdmin && request.status === "Pending Approval" && !own && (
-              <>
-                <Button variant="outline" disabled={!!busy} onClick={() => setDialog("reject")}>{t.purchases.reject}</Button>
-                <Button disabled={!!busy} onClick={() => act("approve", () => api.purchases.approve(request.id), t.purchases.approved)}>{busy === "approve" ? t.common.saving : t.purchases.approve}</Button>
-              </>
-            )}
-            {isAdmin && request.status === "Approved" && <Button disabled={!!busy} onClick={() => setDialog("receive")}>{t.purchases.receive}</Button>}
+            {can("edit") && <Link href={`/purchases/edit?id=${request.id}`} className={buttonVariants({ variant: "outline" })}>{t.purchases.editDraft}</Link>}
+            {can("submit") && <Button disabled={!!busy} onClick={() => act("submit", () => api.purchases.submit(request.id), t.purchases.submitted)}>{busy === "submit" ? t.common.saving : t.purchases.submit}</Button>}
+            {can("cancel") && <Button variant="outline" disabled={!!busy} onClick={() => setDialog("cancel")}>{t.purchases.cancel}</Button>}
+            {can("reject") && <Button variant="outline" disabled={!!busy} onClick={() => setDialog("reject")}>{t.purchases.reject}</Button>}
+            {can("approve") && <Button disabled={!!busy} onClick={() => act("approve", () => api.purchases.approve(request.id), t.purchases.approved)}>{busy === "approve" ? t.common.saving : t.purchases.approve}</Button>}
+            {can("receive") && <Button disabled={!!busy} onClick={() => setDialog("receive")}>{t.purchases.receive}</Button>}
           </>
         }
       />
@@ -94,7 +84,7 @@ function PurchaseView() {
           {t.purchases.ownRequest}
         </p>
       )}
-      {isAdmin && tx?.status === "Voided" && (
+      {isAdmin && request.receiptVoided && (
         <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-warning-soft px-4 py-3 text-base text-foreground">
           <CircleAlert className="mt-0.5 size-5 shrink-0 text-warning-icon" aria-hidden="true" />
           {t.purchases.receiptVoided}
@@ -106,18 +96,18 @@ function PurchaseView() {
           <Card className="gap-4">
             <h2 className="px-5 text-lg font-semibold">{t.purchases.detailTitle}</h2>
             <dl className="grid gap-x-6 gap-y-4 px-5 sm:grid-cols-2">
-              <Detail label={t.fields.requester}>{userName(db, request.requesterId)}</Detail>
+              <Detail label={t.fields.requester}>{request.requesterName}</Detail>
               <Detail label={t.purchases.createdOn}>{formatDateTime(request.createdAt)}</Detail>
               <Detail label={t.purchases.neededBy}>{formatDate(request.neededBy)}</Detail>
               <div className="sm:col-span-2"><Detail label={t.purchases.reason}>{request.reason}</Detail></div>
               {request.notes && <div className="sm:col-span-2"><Detail label={t.purchases.note}>{request.notes}</Detail></div>}
-              {request.approvedBy && <Detail label={request.status === "Rejected" ? t.purchases.rejectedBy : t.purchases.approvedBy}>{userName(db, request.approvedBy)} · {formatDate(request.approvedAt)}</Detail>}
+              {request.approvedBy && <Detail label={request.status === "Rejected" ? t.purchases.rejectedBy : t.purchases.approvedBy}>{request.approvedByName} · {formatDate(request.approvedAt)}</Detail>}
               {request.rejectReason && <div className="sm:col-span-2"><Detail label={t.purchases.rejectReason}>{request.rejectReason}</Detail></div>}
               {request.receivedAt && <Detail label={t.purchases.receivedOn}>{formatDate(request.receivedAt)}</Detail>}
-              {request.receivedBy && <Detail label={t.purchases.receivedBy}>{userName(db, request.receivedBy)}</Detail>}
-              {isAdmin && tx && (
+              {request.receivedBy && <Detail label={t.purchases.receivedBy}>{request.receivedByName}</Detail>}
+              {isAdmin && request.transactionId && (
                 <Detail label={t.purchases.transaction}>
-                  <Link href={`/stock/view?id=${tx.id}`} className="text-link hover:underline">{tx.number}</Link>
+                  <Link href={`/stock/view?id=${request.transactionId}`} className="text-link hover:underline">{request.transactionNumber}</Link>
                 </Detail>
               )}
             </dl>
@@ -136,29 +126,26 @@ function PurchaseView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {request.lines.map((l, i) => {
-                  const item = byId(db.items, l.itemId);
-                  return (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">
-                        {lineName(db, l)}
-                        {l.itemId === null && <span className="ml-2 text-sm font-normal text-muted-foreground">{t.purchases.newItemTag}</span>}
-                      </TableCell>
-                      <TableCell className="tabular text-right">{formatNumber(l.quantity)} {item?.unit ?? l.newItem?.unit}</TableCell>
-                      {isAdmin && <TableCell className="tabular text-right">{item ? formatNumber(item.currentStock) : "-"}</TableCell>}
-                      {isAdmin && <TableCell className="tabular text-right">{item ? formatNumber(item.minimumStock) : "-"}</TableCell>}
-                      {isAdmin && <TableCell className="tabular text-right">{item ? formatIDR(item.lastPurchasePrice) : "-"}</TableCell>}
-                    </TableRow>
-                  );
-                })}
+                {request.lines.map((l, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-medium">
+                      {l.itemName}
+                      {l.itemId === null && <span className="ml-2 text-sm font-normal text-muted-foreground">{t.purchases.newItemTag}</span>}
+                    </TableCell>
+                    <TableCell className="tabular text-right">{formatNumber(l.quantity)} {l.unit}</TableCell>
+                    {isAdmin && <TableCell className="tabular text-right">{l.currentStock !== undefined ? formatNumber(l.currentStock) : "-"}</TableCell>}
+                    {isAdmin && <TableCell className="tabular text-right">{l.minimumStock !== undefined ? formatNumber(l.minimumStock) : "-"}</TableCell>}
+                    {isAdmin && <TableCell className="tabular text-right">{l.lastPurchasePrice !== undefined ? formatIDR(l.lastPurchasePrice) : "-"}</TableCell>}
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </Card>
         </div>
 
         <div className="flex flex-col gap-6">
-          <Progress request={request} who={userName(db, request.requesterId)} />
-          {isAdmin && request.status === "Pending Approval" && !own && (
+          <Progress request={request} who={request.requesterName} />
+          {can("approve") && (
             <p className="flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-base text-foreground">
               <Info className="mt-0.5 size-5 shrink-0 text-info-icon" aria-hidden="true" />
               {t.purchases.approveInfo}
@@ -176,7 +163,7 @@ function PurchaseView() {
           confirmLabel={t.purchases.rejectConfirm}
           onConfirm={async (reason) => {
             const r = await api.purchases.reject(request.id, reason);
-            if (r.ok) toast.success(t.purchases.rejected);
+            if (r.success) toast.success(t.purchases.rejected);
             return r;
           }}
         />
@@ -191,7 +178,7 @@ function PurchaseView() {
           destructive
           onConfirm={async () => {
             const r = await api.purchases.cancel(request.id);
-            if (r.ok) toast.success(t.purchases.cancelled);
+            if (r.success) toast.success(t.purchases.cancelled);
             return r;
           }}
         />
@@ -201,16 +188,14 @@ function PurchaseView() {
   );
 }
 
-function ReceiveDialog({ request, onClose }: { request: PurchaseRequest; onClose: () => void }) {
-  const { db } = useStore();
-  const preferred = request.lines.map((l) => byId(db.items, l.itemId)?.supplierId).find(Boolean);
+function ReceiveDialog({ request, onClose }: { request: PurchaseDto; onClose: () => void }) {
+  const suppliers = useGet<SupplierDto[]>("/suppliers", { status: "Active", pageSize: 500, sort: "name:asc" });
+  const preferred = request.lines.map((l) => l.preferredSupplierId).find(Boolean);
   const hasNew = request.lines.some((l) => l.newItem);
   const [date, setDate] = useState(today());
   const [supplierId, setSupplierId] = useState(preferred ? String(preferred) : "");
   // One entry per request line, in the same order. New items start without a price.
-  const [prices, setPrices] = useState<string[]>(() =>
-    request.lines.map((l) => (l.newItem ? "" : String(byId(db.items, l.itemId)?.lastPurchasePrice ?? 0))));
-  const [codes, setCodes] = useState<string[]>(() => request.lines.map(() => ""));
+  const [prices, setPrices] = useState<string[]>(() => request.lines.map((l) => (l.newItem ? "" : String(l.lastPurchasePrice ?? 0))));
   const [minimums, setMinimums] = useState<string[]>(() => request.lines.map(() => ""));
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -222,14 +207,14 @@ function ReceiveDialog({ request, onClose }: { request: PurchaseRequest; onClose
   const submit = async () => {
     const v = validate(receiveSchema, {
       date, supplierId, notes,
-      lines: request.lines.map((l, i) => ({ isNew: !!l.newItem, unitPrice: prices[i], code: codes[i], minimumStock: minimums[i] })),
+      lines: request.lines.map((l, i) => ({ isNew: !!l.newItem, unitPrice: prices[i], minimumStock: minimums[i] })),
     });
     setErrors(v.ok ? {} : v.errors);
     if (!v.ok) return;
     setPending(true);
     const r = await api.purchases.receive(request.id, v.data);
     setPending(false);
-    if (!r.ok) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
     toast.success(t.purchases.received);
     onClose();
   };
@@ -251,7 +236,7 @@ function ReceiveDialog({ request, onClose }: { request: PurchaseRequest; onClose
         </Field>
         <Field label={t.fields.supplier} required error={errors.supplierId}>
           {(p) => <SelectField {...p} value={supplierId} onChange={setSupplierId} placeholder={t.validation.selectSupplier}
-            options={db.suppliers.filter((s) => s.status === "Active").map((s) => ({ value: String(s.id), label: s.name }))} />}
+            options={(suppliers.data ?? []).map((s) => ({ value: String(s.id), label: s.name }))} />}
         </Field>
       </div>
       {hasNew && (
@@ -262,19 +247,12 @@ function ReceiveDialog({ request, onClose }: { request: PurchaseRequest; onClose
       )}
       {request.lines.map((l, i) => (
         <fieldset key={i} className="flex flex-col gap-3 rounded-lg border p-3">
-          <legend className="px-1 text-base font-medium">
-            {t.purchases.receiveLineName(lineName(db, l), l.quantity, byId(db.items, l.itemId)?.unit ?? l.newItem?.unit ?? "")}
-          </legend>
+          <legend className="px-1 text-base font-medium">{t.purchases.receiveLineName(l.itemName, l.quantity, l.unit)}</legend>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {l.newItem && (
-              <>
-                <Field label={t.items.fieldCode} hint={t.items.codeHint} required error={errors[`lines.${i}.code`]}>
-                  {(p) => <Input {...p} value={codes[i]} onChange={(e) => setAt(codes, setCodes, i, e.target.value)} />}
-                </Field>
-                <Field label={t.fields.minimumStock} hint={t.items.minimumHint} required error={errors[`lines.${i}.minimumStock`]}>
-                  {(p) => <Input {...p} inputMode="numeric" value={minimums[i]} onChange={(e) => setAt(minimums, setMinimums, i, e.target.value)} />}
-                </Field>
-              </>
+              <Field label={t.fields.minimumStock} hint={t.items.minimumHint} required error={errors[`lines.${i}.minimumStock`]}>
+                {(p) => <Input {...p} inputMode="numeric" value={minimums[i]} onChange={(e) => setAt(minimums, setMinimums, i, e.target.value)} />}
+              </Field>
             )}
             <Field label={t.fields.unitPrice} required error={errors[`lines.${i}.unitPrice`]} className="col-span-2 sm:col-span-1">
               {(p) => <Input {...p} inputMode="numeric" value={prices[i]} onChange={(e) => setAt(prices, setPrices, i, e.target.value)} />}
@@ -293,7 +271,7 @@ function ReceiveDialog({ request, onClose }: { request: PurchaseRequest; onClose
   );
 }
 
-function Progress({ request, who }: { request: PurchaseRequest; who: string }) {
+function Progress({ request, who }: { request: PurchaseDto; who: string }) {
   const step = purchaseStep(request.status);
   const steps = [
     { title: t.purchases.stepSubmitted, body: t.purchases.stepSubmittedBody(who, formatDate(request.createdAt)) },

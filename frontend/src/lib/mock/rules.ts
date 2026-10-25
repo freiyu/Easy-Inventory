@@ -1,14 +1,13 @@
-// Pure domain rules (PRD 4.5, 4.6, 6.4). The backend owns these in the real app;
-// the prototype mock store calls them so the demo behaves like the contract.
-import { dayDiff, today } from "./format";
+// Domain rules (PRD 4.5, 4.6, 6.4) used by the MOCK server only. The real backend owns them (Stage 3);
+// the frontend never imports this file, it receives the results as API fields.
+import { dayDiff, today } from "../format";
 import type {
   Item,
   Loan,
   LoanDisplayStatus,
   LoanLine,
-  PurchaseRequest,
   StockStatus,
-} from "./types";
+} from "../types";
 
 /** BR-25: Safe > minimum, Low <= minimum and > 0, Out = 0. */
 export function stockStatus(stock: number, minimum: number): StockStatus {
@@ -55,36 +54,4 @@ export function totalsByItem(lines: LoanLine[]): Map<number, number> {
 export function returnFloor(loan: Loan): string {
   const issued = loan.issuedAt?.slice(0, 10);
   return issued && issued < loan.loanDate ? issued : loan.loanDate;
-}
-
-/** Loan step shown on the detail progress card (0-based), or -1 when terminal. */
-export function loanStep(status: Loan["status"]): number {
-  switch (status) {
-    case "Draft":
-    case "Pending Approval":
-      return 0;
-    case "Approved":
-      return 1;
-    case "Borrowed":
-      return 2;
-    case "Completed":
-      return 3;
-    default:
-      return -1;
-  }
-}
-
-/** Purchase request step on the detail progress card (0-based), or -1 when terminal. */
-export function purchaseStep(status: PurchaseRequest["status"]): number {
-  switch (status) {
-    case "Draft":
-    case "Pending Approval":
-      return 0;
-    case "Approved":
-      return 1;
-    case "Received":
-      return 2;
-    default:
-      return -1;
-  }
 }

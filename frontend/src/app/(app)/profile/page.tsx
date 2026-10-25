@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PasswordForm } from "@/components/shared/password-form";
 import { RoleBadge } from "@/components/shared/status-badge";
 import { formatDateTime } from "@/lib/format";
-import { useCurrentUser } from "@/lib/mock/store";
+import { useCurrentUser } from "@/lib/api";
 import { t } from "@/lib/strings";
 
 export default function ProfilePage() {

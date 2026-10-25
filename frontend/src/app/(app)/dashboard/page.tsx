@@ -10,16 +10,14 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoanBadge, StockBadge } from "@/components/shared/status-badge";
 import { CardsSkeleton, EmptyState, LoadGate } from "@/components/shared/states";
-import { usePageLoad } from "@/hooks/use-page-load";
+import { useCurrentUser, useGet } from "@/lib/api";
+import type { AdminDashboard, DashboardSummary, StaffDashboard } from "@/lib/api/admin";
 import { formatDate, formatNumber } from "@/lib/format";
-import { useCurrentUser, useStore } from "@/lib/mock/store";
-import { categoryName, loanCounts, lineSummary, stockCounts, visibleLoans } from "@/lib/queries";
-import { availableForLoan, daysOverdue, loanDisplayStatus, stockStatus } from "@/lib/rules";
 import { t } from "@/lib/strings";
 
 export default function DashboardPage() {
   const user = useCurrentUser();
-  const load = usePageLoad("dashboard");
+  const load = useGet<DashboardSummary>("/dashboard/summary");
   if (!user) return null;
   return (
     <>
@@ -40,29 +38,24 @@ export default function DashboardPage() {
         }
       />
       <LoadGate load={load} skeleton={<CardsSkeleton />}>
-        {user.role === "Admin" ? <AdminDashboard /> : <StaffDashboard userId={user.id} />}
+        {load.data?.admin && <AdminView data={load.data.admin} />}
+        {load.data?.staff && <StaffView data={load.data.staff} />}
       </LoadGate>
     </>
   );
 }
 
-function AdminDashboard() {
-  const { db } = useStore();
-  const stock = stockCounts(db);
-  const loans = loanCounts(db);
-  const active = db.items.filter((i) => i.status === "Active");
-  const attention = active
-    .filter((i) => stockStatus(i.currentStock, i.minimumStock) !== "Safe")
-    .sort((a, b) => a.currentStock - b.currentStock)
-    .slice(0, 6);
-  const overdue = db.loans.filter((l) => loanDisplayStatus(l) === "Overdue");
+function AdminView({ data }: { data: AdminDashboard }) {
+  const { stock, loans } = data;
+  const attention = data.needsAttention;
+  const overdue = data.overdueLoans;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label={t.dashboard.kpiItemTypes} value={formatNumber(active.length)} caption={t.dashboard.kpiItemTypesCaption} icon={Package} />
-        <KpiCard label={t.dashboard.kpiStock} value={formatNumber(active.reduce((n, i) => n + i.currentStock, 0))} caption={t.dashboard.kpiStockCaption} icon={Boxes} />
-        <KpiCard label={t.dashboard.kpiLow} value={formatNumber(stock.attention)} caption={t.dashboard.kpiLowCaption(stock.Low, stock.Out)} icon={TriangleAlert} />
+        <KpiCard label={t.dashboard.kpiItemTypes} value={formatNumber(data.itemTypes)} caption={t.dashboard.kpiItemTypesCaption} icon={Package} />
+        <KpiCard label={t.dashboard.kpiStock} value={formatNumber(data.totalStock)} caption={t.dashboard.kpiStockCaption} icon={Boxes} />
+        <KpiCard label={t.dashboard.kpiLow} value={formatNumber(data.attention)} caption={t.dashboard.kpiLowCaption(stock.Low, stock.Out)} icon={TriangleAlert} />
         <KpiCard label={t.dashboard.kpiLoans} value={formatNumber(loans.active)} caption={t.dashboard.kpiLoansCaption(loans.overdue)} icon={HandHelping} />
       </div>
 
@@ -91,10 +84,10 @@ function AdminDashboard() {
                     <TableCell className="font-medium">
                       <Link href={`/items/view?id=${i.id}`} className="hover:text-link hover:underline">{i.name}</Link>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">{categoryName(db, i.categoryId)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{i.categoryName}</TableCell>
                     <TableCell className="tabular text-right">{formatNumber(i.currentStock)}</TableCell>
                     <TableCell className="tabular hidden text-right sm:table-cell">{formatNumber(i.minimumStock)}</TableCell>
-                    <TableCell><StockBadge status={stockStatus(i.currentStock, i.minimumStock)} /></TableCell>
+                    <TableCell><StockBadge status={i.stockStatus} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -135,9 +128,9 @@ function AdminDashboard() {
                 <li key={l.id} className="flex items-start justify-between gap-3 text-sm">
                   <span className="min-w-0">
                     <Link href={`/loans/view?id=${l.id}`} className="font-medium text-link hover:underline">{l.number}</Link>
-                    <span className="block truncate text-muted-foreground">{lineSummary(db, l)}</span>
+                    <span className="block truncate text-muted-foreground">{l.summary}</span>
                   </span>
-                  <span className="shrink-0 font-medium text-danger-icon">{t.dashboard.daysOverdue(daysOverdue(l))}</span>
+                  <span className="shrink-0 font-medium text-danger-icon">{t.dashboard.daysOverdue(l.daysOverdue)}</span>
                 </li>
               ))}
             </ul>
@@ -148,26 +141,20 @@ function AdminDashboard() {
   );
 }
 
-function StaffDashboard({ userId }: { userId: number }) {
-  const { db } = useStore();
-  const user = db.users.find((u) => u.id === userId)!;
-  const mine = visibleLoans(db, user);
-  const activeLoans = mine.filter((l) => ["Pending Approval", "Approved", "Borrowed"].includes(l.status));
-  const overdue = mine.filter((l) => loanDisplayStatus(l) === "Overdue");
-  const activeItems = db.items.filter((i) => i.status === "Active");
-  const requestable = activeItems.filter((i) => availableForLoan(i, db.loans) > 0).length;
+function StaffView({ data }: { data: StaffDashboard }) {
+  const { activeLoans, overdueFirst } = data;
 
   return (
     <div className="flex flex-col gap-6">
-      {overdue.length > 0 && (
+      {overdueFirst && (
         <div role="alert" className="flex items-start gap-3 rounded-xl bg-danger-soft px-4 py-3 text-base text-foreground">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger-icon" aria-hidden="true" />
-          <p>{t.dashboard.overdueAlert(overdue[0].number, lineSummary(db, overdue[0]), formatDate(overdue[0].expectedReturnDate), daysOverdue(overdue[0]))}</p>
+          <p>{t.dashboard.overdueAlert(overdueFirst.number, overdueFirst.summary, formatDate(overdueFirst.expectedReturnDate), overdueFirst.daysOverdue)}</p>
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
-        <KpiCard label={t.dashboard.myLoansKpi} value={activeLoans.length} caption={t.dashboard.myLoansCaption(overdue.length)} icon={HandHelping} />
-        <KpiCard label={t.dashboard.availableKpi} value={requestable} caption={t.dashboard.availableCaption(activeItems.length)} icon={Package} />
+        <KpiCard label={t.dashboard.myLoansKpi} value={activeLoans.length} caption={t.dashboard.myLoansCaption(data.overdueCount)} icon={HandHelping} />
+        <KpiCard label={t.dashboard.availableKpi} value={data.requestable} caption={t.dashboard.availableCaption(data.activeItems)} icon={Package} />
       </div>
       {activeLoans.length === 0 ? (
         <EmptyState title={t.dashboard.noActiveLoans} body={t.dashboard.noActiveLoansBody} action={<Link href="/loans/new" className={buttonVariants()}>{t.dashboard.newRequest}</Link>} />
@@ -190,9 +177,9 @@ function StaffDashboard({ userId }: { userId: number }) {
               {activeLoans.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell><Link href={`/loans/view?id=${l.id}`} className="font-medium text-link hover:underline">{l.number}</Link></TableCell>
-                  <TableCell className="max-w-64 truncate">{lineSummary(db, l)}</TableCell>
+                  <TableCell className="max-w-64 truncate">{l.summary}</TableCell>
                   <TableCell className="tabular hidden sm:table-cell">{formatDate(l.expectedReturnDate)}</TableCell>
-                  <TableCell><LoanBadge status={loanDisplayStatus(l)} /></TableCell>
+                  <TableCell><LoanBadge status={l.status} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>

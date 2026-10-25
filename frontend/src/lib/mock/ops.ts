@@ -2,7 +2,7 @@
 // and business rules (PRD 6.4). The real backend re-implements them (Stage 3).
 import { BACKUP_RETENTION, UNITS } from "../constants";
 import { dayDiff } from "../format";
-import { availableForLoan, reservedQuantity, returnFloor, totalsByItem } from "../rules";
+import { availableForLoan, reservedQuantity, returnFloor, totalsByItem } from "./rules";
 import type {
   AdjustmentInput,
   CategoryInput,

@@ -4,7 +4,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { t } from "@/lib/strings";
-import type { LoadStatus } from "@/hooks/use-page-load";
+import type { LoadStatus } from "@/lib/api";
 
 export function StatePanel({
   icon: Icon, title, body, action,

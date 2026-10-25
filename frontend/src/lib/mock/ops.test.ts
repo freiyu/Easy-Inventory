@@ -1,13 +1,19 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { daysFromToday } from "../format";
-import { availableForLoan, loanDisplayStatus, stockStatus } from "../rules";
+import { availableForLoan, loanDisplayStatus, stockStatus } from "./rules";
 import { createSeed } from "./seed";
 import * as ops from "./ops";
 
 let db: ops.DB;
 const admin = () => db.users.find((u) => u.id === 1)!;
 const ctx = (actor = admin()): ops.Ctx => ({ db, actor, now: new Date().toISOString(), today: daysFromToday(0) });
-const item = (code: string) => db.items.find((i) => i.code === code)!;
+// Item codes are generated now (BR-32), so tests look items up by name. The old hand-typed codes map to names here.
+const LEGACY: Record<string, string> = {
+  "ATK-001": "A4 Paper 80 gsm", "ATK-008": "Correction Tape", "PRN-001": "Black Toner HP 85A",
+  "ELC-001": "Laptop Charger 65W", "ELC-002": "HDMI Cable 2 m", "ELC-003": "Portable Projector",
+};
+const byName = (name: string) => db.items.find((i) => i.name === name)!;
+const item = (legacyCode: string) => byName(LEGACY[legacyCode]);
 const lines = (...p: [number, number][]) => p.map(([itemId, quantity]) => ({ itemId, quantity }));
 
 beforeEach(() => {
@@ -239,7 +245,7 @@ describe("purchase requests", () => {
   describe("new items on a request (BR-31)", () => {
     const fresh = (name: string, qty = 6) => ({ itemId: null, quantity: qty, newItem: { name, categoryId: 2, unit: "pcs" } });
     const withLines = (requesterId: number, ...l: ReturnType<typeof fresh>[]) => ({ ...input(requesterId), lines: l });
-    const recv = (...l: { unitPrice: number; code: string; minimumStock: number }[]) => ({ date: daysFromToday(0), supplierId: 2, notes: "", lines: l });
+    const recv = (...l: { unitPrice: number; minimumStock: number }[]) => ({ date: daysFromToday(0), supplierId: 2, notes: "", lines: l });
 
     it("creates the item only when received, with the receipt as its first stock", () => {
       const count = db.items.length;
@@ -247,9 +253,10 @@ describe("purchase requests", () => {
       if (!r.ok) throw new Error("setup");
       expect(ops.approvePurchase(ctx(), r.data.id).ok).toBe(true);
       expect(db.items.length).toBe(count);
-      const done = ops.receivePurchase(ctx(), r.data.id, recv({ unitPrice: 12000, code: "ATK-099", minimumStock: 3 }));
+      const done = ops.receivePurchase(ctx(), r.data.id, recv({ unitPrice: 12000, minimumStock: 3 }));
       expect(done.ok).toBe(true);
-      const made = item("ATK-099");
+      const made = byName("Whiteboard Duster");
+      expect(made.code).toMatch(/^STN-\d{4}$/); // category 2 is Stationery (BR-32)
       expect(made).toMatchObject({ name: "Whiteboard Duster", categoryId: 2, unit: "pcs", currentStock: 6, minimumStock: 3, lastPurchasePrice: 12000, supplierId: 2, status: "Active" });
       expect(r.data.lines[0].itemId).toBe(made.id);
       expect(db.transactions.find((x) => x.id === r.data.transactionId)!.lines[0]).toMatchObject({ itemId: made.id, quantityChange: 6, balanceAfter: 6 });
@@ -271,9 +278,9 @@ describe("purchase requests", () => {
       const r = ops.createPurchase(ctx(staff()), { ...input(3), lines: [{ itemId: folder.id, quantity: 4 }, fresh("Desk Organizer", 2)] }, true);
       if (!r.ok) throw new Error("setup");
       ops.approvePurchase(ctx(), r.data.id);
-      expect(ops.receivePurchase(ctx(), r.data.id, recv({ unitPrice: 3600, code: "", minimumStock: 0 }, { unitPrice: 25000, code: "ATK-098", minimumStock: 1 })).ok).toBe(true);
+      expect(ops.receivePurchase(ctx(), r.data.id, recv({ unitPrice: 3600, minimumStock: 0 }, { unitPrice: 25000, minimumStock: 1 })).ok).toBe(true);
       expect(folder.currentStock).toBe(before + 4);
-      expect(item("ATK-098").currentStock).toBe(2);
+      expect(byName("Desk Organizer").currentStock).toBe(2);
     });
 
     it("rejects a name that already exists (any case), a repeated new name, an inactive category and an unknown unit", () => {
@@ -293,15 +300,14 @@ describe("purchase requests", () => {
       expect(code(ops.createPurchase(ctx(staff()), { ...input(3), lines: [{ itemId: item("ATK-008").id, quantity: 1, newItem: { name: "Both", categoryId: 2, unit: "pcs" } }] }, false))).toBe("VALIDATION_ERROR");
     });
 
-    it("creates nothing when the code is missing or taken or the minimum is invalid", () => {
+    it("creates nothing when the minimum stock is invalid", () => {
       const count = db.items.length;
       const r = ops.createPurchase(ctx(staff()), withLines(3, fresh("Label Roll")), true);
       if (!r.ok) throw new Error("setup");
       ops.approvePurchase(ctx(), r.data.id);
       for (const bad of [
-        { unitPrice: 5000, code: "", minimumStock: 1 },
-        { unitPrice: 5000, code: item("ATK-008").code.toLowerCase(), minimumStock: 1 },
-        { unitPrice: 5000, code: "ATK-097", minimumStock: -1 },
+        { unitPrice: 5000, minimumStock: -1 },
+        { unitPrice: 5000, minimumStock: 1.5 },
       ]) expect(ops.receivePurchase(ctx(), r.data.id, recv(bad)).ok).toBe(false);
       expect(db.items.length).toBe(count);
       expect(r.data.status).toBe("Approved");
@@ -313,13 +319,12 @@ describe("purchase requests", () => {
       const r = ops.createPurchase(ctx(staff()), withLines(3, fresh("First New"), fresh("Second New")), true);
       if (!r.ok) throw new Error("setup");
       ops.approvePurchase(ctx(), r.data.id);
-      const ok1 = { unitPrice: 1000, code: "ATK-096", minimumStock: 1 };
-      expect(ops.receivePurchase(ctx(staff()), r.data.id, recv(ok1, { unitPrice: 1000, code: "ATK-095", minimumStock: 1 })).ok).toBe(false);
-      expect(ops.receivePurchase(ctx(), r.data.id, recv(ok1, { ...ok1 })).ok).toBe(false); // same code twice inside the request
-      expect(ops.receivePurchase(ctx(), r.data.id, recv(ok1, { unitPrice: 1000, code: item("ATK-008").code, minimumStock: 1 })).ok).toBe(false);
+      const ok1 = { unitPrice: 1000, minimumStock: 1 };
+      expect(ops.receivePurchase(ctx(staff()), r.data.id, recv(ok1, ok1)).ok).toBe(false);
+      expect(ops.receivePurchase(ctx(), r.data.id, recv(ok1, { unitPrice: 1000, minimumStock: -1 })).ok).toBe(false); // the second line is bad: nothing is created
       expect(db.items.length).toBe(count);
       expect(r.data.status).toBe("Approved");
-      expect(ops.receivePurchase(ctx(), r.data.id, recv(ok1, { unitPrice: 1000, code: "ATK-095", minimumStock: 1 })).ok).toBe(true);
+      expect(ops.receivePurchase(ctx(), r.data.id, recv(ok1, ok1)).ok).toBe(true);
       for (const i of db.items) {
         const sum = db.transactions.flatMap((t) => t.lines).filter((l) => l.itemId === i.id).reduce((n, l) => n + l.quantityChange, 0);
         expect(sum).toBe(i.currentStock);
@@ -388,17 +393,27 @@ describe("master data and users", () => {
 
   it("deletes an unreferenced item", () => {
     const created = ops.createItem(ctx(), {
-      code: "TMP-001", name: "Temp", categoryId: 1, unit: "pcs", openingStock: 0, minimumStock: 0, lastPurchasePrice: 0, supplierId: null, location: "", status: "Active", notes: "",
+      name: "Temp", categoryId: 1, unit: "pcs", openingStock: 0, minimumStock: 0, lastPurchasePrice: 0, supplierId: null, location: "", status: "Active", notes: "",
     });
     expect(created.ok).toBe(true);
     if (created.ok) expect(ops.deleteItem(ctx(), created.data.id).ok).toBe(true);
   });
 
-  it("keeps item codes unique ignoring case (BR-01)", () => {
-    const r = ops.createItem(ctx(), {
-      code: "atk-001", name: "Dup", categoryId: 1, unit: "pcs", openingStock: 0, minimumStock: 0, lastPurchasePrice: 0, supplierId: null, location: "", status: "Active", notes: "",
-    });
-    expect(r.ok).toBe(false);
+  it("generates item codes per category and never reuses a number (BR-32)", () => {
+    const make = (name: string, categoryId: number) => {
+      const r = ops.createItem(ctx(), { name, categoryId, unit: "pcs", openingStock: 0, minimumStock: 0, lastPurchasePrice: 0, supplierId: null, location: "", status: "Active", notes: "" });
+      if (!r.ok) throw new Error("setup");
+      return r.data;
+    };
+    const next = db.items.filter((i) => i.categoryId === 1).length + 1; // category 1 is Paper (PPR)
+    const a = make("Code Test A", 1);
+    const b = make("Code Test B", 1);
+    expect([a.code, b.code]).toEqual([`PPR-${String(next).padStart(4, "0")}`, `PPR-${String(next + 1).padStart(4, "0")}`]);
+    expect(make("Code Test C", 2).code).toMatch(/^STN-\d{4}$/);
+    ops.deleteItem(ctx(), b.id);
+    expect(make("Code Test D", 1).code).toBe(`PPR-${String(next + 2).padStart(4, "0")}`);
+    expect(ops.updateItem(ctx(), a.id, { name: "Code Test A", categoryId: 2, unit: "pcs", openingStock: 0, minimumStock: 0, lastPurchasePrice: 0, supplierId: null, location: "", status: "Active", notes: "" }).ok).toBe(true);
+    expect(db.items.find((i) => i.id === a.id)!.code).toBe(a.code); // the code never changes
   });
 
   it("protects the last active Admin (BR-22)", () => {

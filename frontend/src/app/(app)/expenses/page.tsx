@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Receipt, ShoppingCart } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -11,9 +11,9 @@ import { Field } from "@/components/shared/form-field";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { CardsSkeleton, EmptyState, LoadGate } from "@/components/shared/states";
-import { usePageLoad } from "@/hooks/use-page-load";
+import { useGet } from "@/lib/api";
+import type { ExpenseSummary } from "@/lib/api/admin";
 import { formatIDR, formatNumber, monthKey, monthLabel, today } from "@/lib/format";
-import { useStore } from "@/lib/mock/store";
 import { t } from "@/lib/strings";
 
 const firstDayMonthsBack = (n: number): string => {
@@ -22,41 +22,29 @@ const firstDayMonthsBack = (n: number): string => {
   return d.toISOString().slice(0, 10);
 };
 
-const monthsBetween = (from: string, to: string): string[] => {
-  const out: string[] = [];
-  let [y, m] = from.split("-").map(Number);
+// Friendly check before asking; the server repeats it (PRD 6.5).
+const rangeError = (from: string, to: string): string => {
+  if (!from || !to) return "";
+  if (to < from) return t.expenses.rangeInvalid;
+  const [fy, fm] = from.split("-").map(Number);
   const [ty, tm] = to.split("-").map(Number);
-  while (y < ty || (y === ty && m <= tm)) {
-    out.push(`${y}-${String(m).padStart(2, "0")}`);
-    if (++m > 12) { m = 1; y++; }
-  }
-  return out;
+  return (ty - fy) * 12 + (tm - fm) >= 12 ? t.expenses.rangeTooLong : "";
 };
 
 export default function ExpensesPage() {
-  const { db } = useStore();
-  const load = usePageLoad("expenses");
   const monthStart = () => `${monthKey(today())}-01`;
   const [from, setFrom] = useState(monthStart);
   const [to, setTo] = useState(today);
 
-  const error = !from || !to ? "" : to < from ? t.expenses.rangeInvalid : monthsBetween(monthKey(from), monthKey(to)).length > 12 ? t.expenses.rangeTooLong : "";
-
-  const { rows, total, count } = useMemo(() => {
-    if (error || !from || !to) return { rows: [], total: 0, count: 0 };
-    // Formula (PRD 4.7): sum of line totals of posted, non-voided IN transactions in the period.
-    const ins = db.transactions.filter((x) => x.type === "IN" && x.status === "Posted" && x.date >= from && x.date <= to);
-    const rows = monthsBetween(monthKey(from), monthKey(to)).map((k) => {
-      const inMonth = ins.filter((x) => monthKey(x.date) === k);
-      return { key: k, count: inMonth.length, value: inMonth.reduce((n, x) => n + x.lines.reduce((m, l) => m + (l.total ?? 0), 0), 0) };
-    });
-    return { rows, total: rows.reduce((n, r) => n + r.value, 0), count: ins.length };
-  }, [db.transactions, from, to, error]);
+  const error = rangeError(from, to);
+  // Total and month rows are computed by the server (PRD 4.7).
+  const load = useGet<ExpenseSummary>(error || !from || !to ? null : "/expenses/summary", { from, to });
+  const { months: rows = [], total = 0, count = 0 } = load.data ?? {};
 
   return (
     <>
       <PageHeader title={t.expenses.title} description={t.expenses.description} />
-      <LoadGate load={load} skeleton={<CardsSkeleton />}>
+      <LoadGate load={error ? { status: "ready", retry: load.retry } : load} skeleton={<CardsSkeleton />}>
         <div className="mb-6 flex flex-wrap items-end gap-3">
           <Field label={t.expenses.from} className="w-44">{(p) => <Input {...p} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />}</Field>
           <Field label={t.expenses.to} className="w-44">{(p) => <Input {...p} type="date" value={to} onChange={(e) => setTo(e.target.value)} />}</Field>
@@ -86,8 +74,8 @@ export default function ExpensesPage() {
                   </TableHeader>
                   <TableBody>
                     {rows.map((r) => (
-                      <TableRow key={r.key}>
-                        <TableCell className="font-medium">{monthLabel(r.key)}</TableCell>
+                      <TableRow key={r.month}>
+                        <TableCell className="font-medium">{monthLabel(r.month)}</TableCell>
                         <TableCell className="tabular text-right">{r.count}</TableCell>
                         <TableCell className="tabular text-right">{formatIDR(r.value)}</TableCell>
                       </TableRow>

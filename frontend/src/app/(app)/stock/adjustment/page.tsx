@@ -11,14 +11,15 @@ import { Field } from "@/components/shared/form-field";
 import { PageHeader } from "@/components/shared/page-header";
 import { SelectField } from "@/components/shared/select-field";
 import { formatNumber, today } from "@/lib/format";
-import { api, useStore } from "@/lib/mock/store";
-import { reservedQuantity } from "@/lib/rules";
+import { api, useGet, useRequestId } from "@/lib/api";
+import type { ItemDto } from "@/lib/api/master";
 import { adjustmentSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
 export default function AdjustmentPage() {
   const router = useRouter();
-  const { db } = useStore();
+  const items = useGet<ItemDto[]>("/items", { status: "Active", pageSize: 500, sort: "name:asc" });
+  const requestId = useRequestId();
   const [date, setDate] = useState(today);
   const [itemId, setItemId] = useState("");
   const [physical, setPhysical] = useState("");
@@ -26,8 +27,9 @@ export default function AdjustmentPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState(false);
 
-  const item = db.items.find((i) => String(i.id) === itemId);
-  const diff = item && /^\d+$/.test(physical.trim()) ? Number(physical) - item.currentStock : null;
+  const item = items.data?.find((i) => String(i.id) === itemId);
+  const systemStock = item?.currentStock ?? 0;
+  const diff = item && /^\d+$/.test(physical.trim()) ? Number(physical) - systemStock : null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,9 +39,10 @@ export default function AdjustmentPage() {
     setErrors(next);
     if (!v.ok || Object.keys(next).length) return;
     setPending(true);
-    const r = await api.stock.adjust(v.data);
+    const r = await api.stock.adjust(v.data, requestId.id);
     setPending(false);
-    if (!r.ok) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    requestId.renew();
     toast.success(t.stock.savedAdj(r.data.number));
     router.push("/stock");
   };
@@ -52,15 +55,15 @@ export default function AdjustmentPage() {
           <div className="grid gap-4 px-5 sm:grid-cols-2">
             <Field label={t.fields.item} required error={errors.itemId} hint={t.stock.adjItemHint}>
               {(p) => <SelectField {...p} value={itemId} onChange={(v) => { setItemId(v); setPhysical(""); }} placeholder={t.stock.selectItem}
-                options={db.items.filter((i) => i.status === "Active").map((i) => ({ value: String(i.id), label: `${i.name} (${i.code})` }))} />}
+                options={(items.data ?? []).map((i) => ({ value: String(i.id), label: `${i.name} (${i.code})` }))} />}
             </Field>
             <Field label={t.fields.date} required error={errors.date}>
               {(p) => <Input {...p} type="date" value={date} onChange={(e) => setDate(e.target.value)} />}
             </Field>
           </div>
           <div className="grid gap-4 px-5 sm:grid-cols-3">
-            <Field label={t.fields.systemStock} hint={item ? t.stock.reservedNote(reservedQuantity(db.loans, item.id)) : undefined}>
-              {(p) => <Input {...p} readOnly disabled value={item ? `${formatNumber(item.currentStock)} ${item.unit}` : "-"} />}
+            <Field label={t.fields.systemStock} hint={item ? t.stock.reservedNote(systemStock - item.availableForLoan) : undefined}>
+              {(p) => <Input {...p} readOnly disabled value={item ? `${formatNumber(systemStock)} ${item.unit}` : "-"} />}
             </Field>
             <Field label={t.fields.physicalStock} required error={errors.physical}>
               {(p) => <Input {...p} inputMode="numeric" value={physical} onChange={(e) => setPhysical(e.target.value)} />}

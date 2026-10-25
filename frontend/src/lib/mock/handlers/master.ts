@@ -1,6 +1,6 @@
 // Categories, suppliers and items. Business rules are in ops.ts; this file shapes the responses (PRD 6.6).
 import type { CategoryDto, ItemDto, SupplierDto } from "../../api/master";
-import { availableForLoan, reservedQuantity, stockStatus } from "../../rules";
+import { availableForLoan, reservedQuantity, stockStatus } from "../rules";
 import { t } from "../../strings";
 import type { Category, Item, Supplier } from "../../types";
 import {

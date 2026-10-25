@@ -8,12 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ReasonDialog } from "@/components/shared/dialogs";
 import { PageHeader } from "@/components/shared/page-header";
-import { RecordNotFound, TableSkeleton } from "@/components/shared/states";
+import { LoadGate, RecordNotFound, TableSkeleton } from "@/components/shared/states";
 import { TxStatusBadge, TxTypeBadge } from "@/components/shared/status-badge";
 import { useQueryId } from "@/hooks/use-query-id";
 import { formatDate, formatDateTime, formatIDR, formatNumber } from "@/lib/format";
-import { api, useStore } from "@/lib/mock/store";
-import { byId, canVoid, itemName, party, userName } from "@/lib/queries";
+import { api, useGet } from "@/lib/api";
+import type { StockTxDto } from "@/lib/api/stock";
 import { t } from "@/lib/strings";
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -27,14 +27,13 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
 
 function TransactionView() {
   const id = useQueryId();
-  const { db } = useStore();
-  const [voiding, setVoiding] = useState(false);
-  const tx = byId(db.transactions, id);
-  if (!tx) return <RecordNotFound backHref="/stock" backLabel={t.stock.notFoundBack} />;
+  const load = useGet<StockTxDto>(id ? `/stock/transactions/${id}` : null);
+  if (load.errorStatus === 404) return <RecordNotFound backHref="/stock" backLabel={t.stock.notFoundBack} />;
+  return <LoadGate load={load} skeleton={<TableSkeleton />}>{load.data && <TransactionDetail tx={load.data} />}</LoadGate>;
+}
 
-  const reversal = db.transactions.find((x) => x.reversalOfId === tx.id);
-  const original = byId(db.transactions, tx.reversalOfId);
-  const loan = byId(db.loans, tx.loanId);
+function TransactionDetail({ tx }: { tx: StockTxDto }) {
+  const [voiding, setVoiding] = useState(false);
   const isIn = tx.type === "IN";
 
   return (
@@ -43,20 +42,20 @@ function TransactionView() {
         title={t.stock.detailTitle(tx.number)}
         crumbs={[{ label: t.nav.stock, href: "/stock" }, { label: tx.number }]}
         badge={<><TxTypeBadge type={tx.type} /><TxStatusBadge status={tx.status} /></>}
-        actions={canVoid(tx) && <Button variant="destructive" onClick={() => setVoiding(true)}>{t.stock.void}</Button>}
+        actions={tx.allowedActions.includes("void") && <Button variant="destructive" onClick={() => setVoiding(true)}>{t.stock.void}</Button>}
       />
       <Card className="gap-4">
         <h2 className="px-5 text-lg font-semibold">{t.stock.detailsCard}</h2>
         <dl className="grid gap-x-6 gap-y-4 px-5 sm:grid-cols-2 lg:grid-cols-3">
           <Detail label={t.fields.date}>{formatDate(tx.date)}</Detail>
-          <Detail label={t.stock.colUser}>{userName(db, tx.userId)}</Detail>
-          <Detail label={t.stock.colParty}>{party(db, tx) || "-"}</Detail>
+          <Detail label={t.stock.colUser}>{tx.userName}</Detail>
+          <Detail label={t.stock.colParty}>{tx.party || "-"}</Detail>
           <Detail label={t.stock.noteField}>{tx.notes || "-"}</Detail>
           <Detail label={t.stock.recordedAt}>{formatDateTime(tx.createdAt)}</Detail>
           {tx.reason && <Detail label={t.stock.reasonLabel}>{tx.reason}</Detail>}
-          {reversal && <Detail label={t.stock.voidedBy}><Link href={`/stock/view?id=${reversal.id}`} className="text-link hover:underline">{reversal.number}</Link></Detail>}
-          {original && <Detail label={t.stock.reversalOf}><Link href={`/stock/view?id=${original.id}`} className="text-link hover:underline">{original.number}</Link></Detail>}
-          {loan && <Detail label={t.stock.linkedLoan}><Link href={`/loans/view?id=${loan.id}`} className="text-link hover:underline">{loan.number}</Link></Detail>}
+          {tx.voidedById && <Detail label={t.stock.voidedBy}><Link href={`/stock/view?id=${tx.voidedById}`} className="text-link hover:underline">{tx.voidedByNumber}</Link></Detail>}
+          {tx.reversalOfId && <Detail label={t.stock.reversalOf}><Link href={`/stock/view?id=${tx.reversalOfId}`} className="text-link hover:underline">{tx.reversalOfNumber}</Link></Detail>}
+          {tx.loanId && <Detail label={t.stock.linkedLoan}><Link href={`/loans/view?id=${tx.loanId}`} className="text-link hover:underline">{tx.loanNumber}</Link></Detail>}
         </dl>
       </Card>
 
@@ -75,7 +74,7 @@ function TransactionView() {
           <TableBody>
             {tx.lines.map((l) => (
               <TableRow key={l.itemId}>
-                <TableCell className="font-medium"><Link href={`/items/view?id=${l.itemId}`} className="hover:text-link hover:underline">{itemName(db, l.itemId)}</Link></TableCell>
+                <TableCell className="font-medium"><Link href={`/items/view?id=${l.itemId}`} className="hover:text-link hover:underline">{l.itemName}</Link></TableCell>
                 <TableCell className={`tabular text-right font-medium ${l.quantityChange < 0 ? "text-danger-icon" : "text-success-icon"}`}>{l.quantityChange > 0 ? "+" : ""}{formatNumber(l.quantityChange)}</TableCell>
                 <TableCell className="tabular text-right">{formatNumber(l.balanceAfter)}</TableCell>
                 {isIn && <TableCell className="tabular text-right">{formatIDR(l.unitPrice ?? 0)}</TableCell>}
@@ -95,7 +94,7 @@ function TransactionView() {
           confirmLabel={t.stock.voidConfirm}
           onConfirm={async (reason) => {
             const r = await api.stock.void(tx.id, reason);
-            if (r.ok) toast.success(t.stock.voided);
+            if (r.success) toast.success(t.stock.voided);
             return r;
           }}
         />

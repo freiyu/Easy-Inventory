@@ -2,7 +2,7 @@
 
 import { LoanForm } from "@/components/loans/loan-form";
 import { PageHeader } from "@/components/shared/page-header";
-import { useCurrentUser } from "@/lib/mock/store";
+import { useCurrentUser } from "@/lib/api";
 import { t } from "@/lib/strings";
 
 export default function NewLoanPage() {

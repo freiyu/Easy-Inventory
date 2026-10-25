@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { KeyRound, Pencil, Power, PowerOff, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,24 +14,19 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SelectField } from "@/components/shared/select-field";
 import { ActiveBadge, RoleBadge, StatusBadge } from "@/components/shared/status-badge";
 import { EmptyState, LoadGate } from "@/components/shared/states";
-import { usePageLoad } from "@/hooks/use-page-load";
+import { api, tableProps, useCurrentUser, useGet, useListParams, type Envelope } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
-import { api, useCurrentUser, useStore } from "@/lib/mock/store";
-import { matches } from "@/lib/queries";
 import { userSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
-import type { Result, User } from "@/lib/types";
+import type { User } from "@/lib/types";
 
 const ALL = "all";
 type Pending = { kind: "deactivate" | "activate" | "reset"; user: User } | null;
 
 export default function UsersPage() {
   const me = useCurrentUser();
-  const { db } = useStore();
-  const load = usePageLoad("users");
-  const [query, setQuery] = useState("");
-  const [role, setRole] = useState(ALL);
-  const [status, setStatus] = useState(ALL);
+  const lp = useListParams({ sort: "name:asc", filters: { role: ALL, status: ALL } });
+  const list = useGet<User[]>("/users", lp.params);
   const [editing, setEditing] = useState<User | "new" | null>(null);
   const [values, setValues] = useState({ name: "", email: "", role: "Staff" });
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -39,9 +34,6 @@ export default function UsersPage() {
   const [pending, setPending] = useState<Pending>(null);
   const [temp, setTemp] = useState<{ name: string; password: string } | null>(null);
 
-  const clear = () => { setQuery(""); setRole(ALL); setStatus(ALL); };
-  const rows = useMemo(() => db.users.filter((u) =>
-    (role === ALL || u.role === role) && (status === ALL || u.status === status) && matches(query, u.name, u.email)), [db.users, query, role, status]);
 
   const open = (u: User | "new") => {
     setEditing(u);
@@ -57,7 +49,7 @@ export default function UsersPage() {
     const creating = editing === "new";
     const r = creating ? await api.users.create(v.data) : await api.users.update((editing as User).id, v.data);
     setSaving(false);
-    if (!r.ok) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
     toast.success(t.users.saved);
     setEditing(null);
     if (creating && "tempPassword" in r.data) setTemp({ name: r.data.user.name, password: r.data.tempPassword });
@@ -65,13 +57,13 @@ export default function UsersPage() {
 
   const columns: Column<User>[] = [
     {
-      id: "name", header: t.users.colName, sortValue: (u) => u.name,
+      id: "name", header: t.users.colName, sortable: true,
       cell: (u) => <span className="font-medium">{u.name}{u.id === me?.id && <span className="font-normal text-muted-foreground"> ({t.common.you})</span>}</span>,
     },
-    { id: "email", header: t.users.colEmail, cell: (u) => <span className="break-all">{u.email}</span>, sortValue: (u) => u.email, hideOnMobile: true },
-    { id: "role", header: t.users.colRole, cell: (u) => <RoleBadge role={u.role} />, sortValue: (u) => u.role },
+    { id: "email", header: t.users.colEmail, cell: (u) => <span className="break-all">{u.email}</span>, sortable: true, hideOnMobile: true },
+    { id: "role", header: t.users.colRole, cell: (u) => <RoleBadge role={u.role} />, sortable: true },
     {
-      id: "status", header: t.users.colStatus, sortValue: (u) => u.status,
+      id: "status", header: t.users.colStatus, sortable: true,
       cell: (u) => (
         <span className="flex flex-wrap gap-1.5">
           <ActiveBadge status={u.status} />
@@ -79,7 +71,7 @@ export default function UsersPage() {
         </span>
       ),
     },
-    { id: "last", header: t.users.colLastLogin, cell: (u) => <span className="tabular">{u.lastLoginAt ? formatDateTime(u.lastLoginAt) : t.users.never}</span>, sortValue: (u) => u.lastLoginAt ?? "", hideOnMobile: true },
+    { id: "last", header: t.users.colLastLogin, cell: (u) => <span className="tabular">{u.lastLoginAt ? formatDateTime(u.lastLoginAt) : t.users.never}</span>, sortable: true, hideOnMobile: true },
   ];
 
   const actions = (u: User): RowAction[] => [
@@ -96,38 +88,37 @@ export default function UsersPage() {
     reset: { title: t.users.resetTitle(pending.user.name), body: t.users.resetBody, label: t.users.resetPassword, destructive: false },
   }[pending.kind];
 
-  const runPending = async (): Promise<Result<unknown>> => {
+  const runPending = async (): Promise<Envelope<unknown>> => {
     if (!pending) throw new Error("no pending action");
     const { kind, user } = pending;
     if (kind === "reset") {
       const r = await api.users.resetPassword(user.id);
-      if (r.ok) setTemp({ name: user.name, password: r.data.tempPassword });
+      if (r.success) setTemp({ name: user.name, password: r.data.tempPassword });
       return r;
     }
-    const r = await (kind === "deactivate" ? api.users.deactivate(user.id) : api.users.activate(user.id));
-    if (r.ok) toast.success(kind === "deactivate" ? t.users.deactivated : t.users.activated);
+    const r = await api.users.setStatus(user.id, kind);
+    if (r.success) toast.success(kind === "deactivate" ? t.users.deactivated : t.users.activated);
     return r;
   };
 
   return (
     <>
       <PageHeader title={t.users.title} description={t.users.description} actions={<Button onClick={() => open("new")}>{t.users.add}</Button>} />
-      <LoadGate load={load}>
-        <FilterBar dirty={query !== "" || role !== ALL || status !== ALL} onClear={clear}>
-          <SearchBox value={query} onChange={setQuery} placeholder={t.users.searchPlaceholder} />
-          <SelectField className="w-44" aria-label={t.users.colRole} value={role} onChange={setRole} options={[{ value: ALL, label: t.users.allRoles }, { value: "Admin", label: "Admin" }, { value: "Staff", label: "Staff" }]} />
-          <SelectField className="w-44" aria-label={t.users.colStatus} value={status} onChange={setStatus}
+      <LoadGate load={list}>
+        <FilterBar dirty={lp.dirty} onClear={lp.clear}>
+          <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.users.searchPlaceholder} />
+          <SelectField className="w-44" aria-label={t.users.colRole} value={lp.filters.role} onChange={(v) => lp.set({ role: v })} options={[{ value: ALL, label: t.users.allRoles }, { value: "Admin", label: "Admin" }, { value: "Staff", label: "Staff" }]} />
+          <SelectField className="w-44" aria-label={t.users.colStatus} value={lp.filters.status} onChange={(v) => lp.set({ status: v })}
             options={[{ value: ALL, label: t.common.activeFilter.all }, { value: "Active", label: t.common.activeFilter.Active }, { value: "Inactive", label: t.common.activeFilter.Inactive }]} />
         </FilterBar>
         <DataTable
           caption={t.users.caption}
-          rows={rows}
+          {...tableProps(list, lp)}
           columns={columns}
           rowKey={(u) => u.id}
           rowLabel={(u) => u.name}
           actions={actions}
-          initialSort={{ id: "name", dir: "asc" }}
-          empty={<EmptyState title={t.users.emptyTitle} action={<Button variant="outline" onClick={clear}>{t.common.clear}</Button>} />}
+          empty={<EmptyState title={t.users.emptyTitle} action={<Button variant="outline" onClick={lp.clear}>{t.common.clear}</Button>} />}
         />
       </LoadGate>
 

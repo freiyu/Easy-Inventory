@@ -12,13 +12,16 @@ import { LinesEditor, newLine, parseInt0, type LineDraft } from "@/components/sh
 import { PageHeader } from "@/components/shared/page-header";
 import { SelectField } from "@/components/shared/select-field";
 import { formatIDR, today } from "@/lib/format";
-import { api, useStore } from "@/lib/mock/store";
+import { api, useGet, useRequestId } from "@/lib/api";
+import type { ItemDto, SupplierDto } from "@/lib/api/master";
 import { incomingSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
 export default function IncomingStockPage() {
   const router = useRouter();
-  const { db } = useStore();
+  const items = useGet<ItemDto[]>("/items", { status: "Active", pageSize: 500, sort: "name:asc" });
+  const suppliers = useGet<SupplierDto[]>("/suppliers", { status: "Active", pageSize: 500, sort: "name:asc" });
+  const requestId = useRequestId();
   const [date, setDate] = useState(today);
   const [supplierId, setSupplierId] = useState("");
   const [notes, setNotes] = useState("");
@@ -34,9 +37,10 @@ export default function IncomingStockPage() {
     setErrors(v.ok ? {} : v.errors);
     if (!v.ok) return;
     setPending(true);
-    const r = await api.stock.in(v.data);
+    const r = await api.stock.in(v.data, requestId.id);
     setPending(false);
-    if (!r.ok) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    requestId.renew();
     toast.success(t.stock.savedIn(r.data.number));
     router.push("/stock");
   };
@@ -52,12 +56,12 @@ export default function IncomingStockPage() {
             </Field>
             <Field label={t.fields.supplier} required error={errors.supplierId}>
               {(p) => <SelectField {...p} value={supplierId} onChange={setSupplierId} placeholder={t.stock.selectSupplier}
-                options={db.suppliers.filter((s) => s.status === "Active").map((s) => ({ value: String(s.id), label: s.name }))} />}
+                options={(suppliers.data ?? []).map((s) => ({ value: String(s.id), label: s.name }))} />}
             </Field>
           </div>
           <section className="flex flex-col gap-3 border-t px-5 pt-5">
             <h2 className="text-lg font-semibold">{t.stock.itemsSection}</h2>
-            <LinesEditor mode="in" lines={lines} onChange={setLines} errors={errors} items={db.items.filter((i) => i.status === "Active")} />
+            <LinesEditor mode="in" lines={lines} onChange={setLines} errors={errors} items={items.data ?? []} />
             <p className="flex justify-end gap-3 text-base">
               <span className="text-muted-foreground">{t.stock.totalPurchase}</span>
               <span className="tabular font-semibold">{formatIDR(total)}</span>

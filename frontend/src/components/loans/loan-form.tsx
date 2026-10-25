@@ -11,17 +11,20 @@ import { Field } from "@/components/shared/form-field";
 import { LinesEditor, newLine, type LineDraft } from "@/components/shared/lines-editor";
 import { SelectField } from "@/components/shared/select-field";
 import { daysFromToday, today } from "@/lib/format";
-import { api, useCurrentUser, useStore } from "@/lib/mock/store";
-import { availableForLoan } from "@/lib/rules";
+import { api, useCurrentUser, useGet, useRequestId } from "@/lib/api";
+import type { LoanDto } from "@/lib/api/loans";
+import type { ItemDto } from "@/lib/api/master";
 import { loanSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
-import type { Loan } from "@/lib/types";
 
-export function LoanForm({ loan }: { loan?: Loan }) {
+export function LoanForm({ loan }: { loan?: LoanDto }) {
   const router = useRouter();
   const user = useCurrentUser()!;
-  const { db } = useStore();
   const isAdmin = user.role === "Admin";
+  const requestId = useRequestId();
+  const itemList = useGet<ItemDto[]>("/items", { status: "Active", pageSize: 500, sort: "name:asc" });
+  // Admin books on behalf of anyone active; Staff always borrow for themselves.
+  const userList = useGet<{ id: number; name: string; role: string }[]>(isAdmin ? "/users" : null, { status: "Active", pageSize: 500, sort: "name:asc" });
   const [borrowerId, setBorrowerId] = useState(String(loan?.borrowerId ?? user.id));
   const [loanDate, setLoanDate] = useState(loan?.loanDate ?? today());
   const [expected, setExpected] = useState(loan?.expectedReturnDate ?? daysFromToday(3));
@@ -37,9 +40,9 @@ export function LoanForm({ loan }: { loan?: Loan }) {
     setErrors(v.ok ? {} : v.errors);
     if (!v.ok) return;
     setPending(submit ? "submit" : "draft");
-    const r = loan ? await api.loans.update(loan.id, v.data, submit) : await api.loans.create(v.data, submit);
+    const r = loan ? await api.loans.update(loan.id, v.data, submit) : await api.loans.create(v.data, submit, requestId.id);
     setPending(null);
-    if (!r.ok) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
     toast.success(submit ? t.loans.submitted : t.loans.draftSaved);
     router.push(`/loans/view?id=${r.data.id}`);
   };
@@ -53,14 +56,14 @@ export function LoanForm({ loan }: { loan?: Loan }) {
             <div className="px-5">
               <Field label={t.fields.borrower} required error={errors.borrowerId} hint={t.loans.borrowerHint}>
                 {(p) => <SelectField {...p} value={borrowerId} onChange={setBorrowerId}
-                  options={db.users.filter((u) => u.status === "Active").map((u) => ({ value: String(u.id), label: `${u.name} (${u.role})` }))} />}
+                  options={(userList.data ?? []).map((u) => ({ value: String(u.id), label: `${u.name} (${u.role})` }))} />}
               </Field>
             </div>
           )}
           <section className="flex flex-col gap-3 px-5">
             <h2 className="text-lg font-semibold">{t.loans.sectionItems}</h2>
             <LinesEditor mode="loan" lines={lines} onChange={setLines} errors={errors}
-              items={db.items.filter((i) => i.status === "Active")} available={(i) => availableForLoan(i, db.loans, loan?.id)} addLabel={t.loans.addLine} />
+              items={itemList.data ?? []} addLabel={t.loans.addLine} />
           </section>
           <section className="flex flex-col gap-3 border-t px-5 pt-5">
             <h2 className="text-lg font-semibold">{t.loans.sectionWhen}</h2>

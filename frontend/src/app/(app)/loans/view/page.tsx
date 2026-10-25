@@ -12,16 +12,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ConfirmDialog, FormDialog, ReasonDialog } from "@/components/shared/dialogs";
 import { Field } from "@/components/shared/form-field";
 import { PageHeader } from "@/components/shared/page-header";
-import { RecordNotFound, TableSkeleton } from "@/components/shared/states";
+import { LoadGate, RecordNotFound, TableSkeleton } from "@/components/shared/states";
 import { LoanBadge } from "@/components/shared/status-badge";
 import { useQueryId } from "@/hooks/use-query-id";
+import { api, useCurrentUser, useGet, type Envelope } from "@/lib/api";
+import type { LoanDto } from "@/lib/api/loans";
 import { formatDate, formatDateTime, formatNumber, today } from "@/lib/format";
-import { api, useCurrentUser, useStore } from "@/lib/mock/store";
-import { byId, itemName, userName } from "@/lib/queries";
-import { availableForLoan, daysOverdue, loanDisplayStatus, loanStep, returnFloor } from "@/lib/rules";
+import { loanStep } from "@/lib/steps";
 import { returnSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
-import type { Loan, Result } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -38,29 +37,27 @@ type Dialog = "reject" | "issue" | "return" | "cancel" | null;
 function LoanView() {
   const id = useQueryId();
   const user = useCurrentUser();
-  const { db } = useStore();
+  const load = useGet<LoanDto>(id ? `/loans/${id}` : null);
+  if (!user) return null;
+  if (load.errorStatus === 404) return <RecordNotFound backHref="/loans" backLabel={t.loans.notFoundBack} />;
+  return <LoadGate load={load} skeleton={<TableSkeleton />}>{load.data && <LoanDetail loan={load.data} userId={user.id} userName={user.name} isAdmin={user.role === "Admin"} />}</LoadGate>;
+}
+
+function LoanDetail({ loan, userId, userName, isAdmin }: { loan: LoanDto; userId: number; userName: string; isAdmin: boolean }) {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [busy, setBusy] = useState("");
-  const loan = byId(db.loans, id);
-  if (!user) return null;
-  const isAdmin = user.role === "Admin";
-  if (!loan || (!isAdmin && loan.borrowerId !== user.id)) return <RecordNotFound backHref="/loans" backLabel={t.loans.notFoundBack} />;
-
-  const status = loanDisplayStatus(loan);
-  const own = loan.borrowerId === user.id;
+  const status = loan.displayStatus;
+  const own = loan.borrowerId === userId;
   const totalQty = loan.lines.reduce((n, l) => n + l.quantity, 0);
+  const can = (a: LoanDto["allowedActions"][number]) => loan.allowedActions.includes(a);
 
-  const act = async (key: string, fn: () => Promise<Result<unknown>>, message: string) => {
+  const act = async (key: string, fn: () => Promise<Envelope<unknown>>, message: string) => {
     setBusy(key);
     const r = await fn();
     setBusy("");
-    if (r.ok) toast.success(message);
+    if (r.success) toast.success(message);
     else toast.error(r.error.message);
   };
-
-  const canCancel = isAdmin
-    ? ["Draft", "Pending Approval", "Approved"].includes(loan.status)
-    : own && ["Draft", "Pending Approval"].includes(loan.status);
 
   return (
     <>
@@ -70,25 +67,25 @@ function LoanView() {
         badge={<LoanBadge status={status} />}
         actions={
           <>
-            {loan.status === "Draft" && (own || isAdmin) && (
+            {can("edit") && (
               <>
                 <Link href={`/loans/edit?id=${loan.id}`} className={buttonVariants({ variant: "outline" })}>{t.loans.editDraft}</Link>
                 <Button disabled={!!busy} onClick={() => act("submit", () => api.loans.submit(loan.id), t.loans.submitted)}>{busy === "submit" ? t.common.saving : t.loans.submit}</Button>
               </>
             )}
-            {canCancel && (
+            {can("cancel") && (
               <Button variant="outline" disabled={!!busy} onClick={() => setDialog("cancel")}>
                 {loan.status === "Pending Approval" && !isAdmin ? t.loans.cancelRequest : t.loans.cancel}
               </Button>
             )}
-            {isAdmin && loan.status === "Pending Approval" && !own && (
+            {can("approve") && (
               <>
                 <Button variant="outline" disabled={!!busy} onClick={() => setDialog("reject")}>{t.loans.reject}</Button>
                 <Button disabled={!!busy} onClick={() => act("approve", () => api.loans.approve(loan.id), t.loans.approved)}>{busy === "approve" ? t.common.saving : t.loans.approve}</Button>
               </>
             )}
-            {isAdmin && loan.status === "Approved" && <Button disabled={!!busy} onClick={() => setDialog("issue")}>{t.loans.issue}</Button>}
-            {isAdmin && loan.status === "Borrowed" && <Button disabled={!!busy} onClick={() => setDialog("return")}>{t.loans.recordReturn}</Button>}
+            {can("issue") && <Button disabled={!!busy} onClick={() => setDialog("issue")}>{t.loans.issue}</Button>}
+            {can("return") && <Button disabled={!!busy} onClick={() => setDialog("return")}>{t.loans.recordReturn}</Button>}
           </>
         }
       />
@@ -102,7 +99,7 @@ function LoanView() {
       {status === "Overdue" && (
         <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-danger-soft px-4 py-3 text-base text-foreground">
           <CircleAlert className="mt-0.5 size-5 shrink-0 text-danger-icon" aria-hidden="true" />
-          {t.loans.overdueNote(daysOverdue(loan))}
+          {t.loans.overdueNote(loan.daysOverdue)}
         </p>
       )}
 
@@ -111,17 +108,17 @@ function LoanView() {
           <Card className="gap-4">
             <h2 className="px-5 text-lg font-semibold">{t.loans.detailTitle}</h2>
             <dl className="grid gap-x-6 gap-y-4 px-5 sm:grid-cols-2">
-              <Detail label={t.loans.borrower}>{userName(db, loan.borrowerId)}</Detail>
+              <Detail label={t.loans.borrower}>{loan.borrowerName}</Detail>
               <Detail label={t.loans.requestedOn}>{formatDateTime(loan.createdAt)}</Detail>
               <Detail label={t.loans.loanDate}>{formatDate(loan.loanDate)}</Detail>
               <Detail label={t.loans.expectedReturn}>{formatDate(loan.expectedReturnDate)}</Detail>
               <div className="sm:col-span-2"><Detail label={t.loans.purpose}>{loan.purpose}</Detail></div>
               {loan.notes && <div className="sm:col-span-2"><Detail label={t.loans.note}>{loan.notes}</Detail></div>}
-              {loan.approvedBy && <Detail label={loan.status === "Rejected" ? t.loans.rejectedBy : t.loans.approvedBy}>{userName(db, loan.approvedBy)} · {formatDate(loan.approvedAt)}</Detail>}
+              {loan.approvedBy && <Detail label={loan.status === "Rejected" ? t.loans.rejectedBy : t.loans.approvedBy}>{loan.approvedByName} · {formatDate(loan.approvedAt)}</Detail>}
               {loan.rejectReason && <div className="sm:col-span-2"><Detail label={t.loans.rejectReason}>{loan.rejectReason}</Detail></div>}
-              {loan.issuedBy && <Detail label={t.loans.issuedBy}>{userName(db, loan.issuedBy)} · {formatDate(loan.issuedAt)}</Detail>}
+              {loan.issuedBy && <Detail label={t.loans.issuedBy}>{loan.issuedByName} · {formatDate(loan.issuedAt)}</Detail>}
               {loan.returnedAt && <Detail label={t.loans.returnedOn}>{formatDate(loan.returnedAt)}</Detail>}
-              {loan.receivedBy && <Detail label={t.loans.receivedBy}>{userName(db, loan.receivedBy)}</Detail>}
+              {loan.receivedBy && <Detail label={t.loans.receivedBy}>{loan.receivedByName}</Detail>}
               {loan.returnNotes && <div className="sm:col-span-2"><Detail label={t.loans.returnNote}>{loan.returnNotes}</Detail></div>}
             </dl>
           </Card>
@@ -138,25 +135,22 @@ function LoanView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loan.lines.map((l) => {
-                  const item = byId(db.items, l.itemId);
-                  return (
-                    <TableRow key={l.itemId}>
-                      <TableCell className="font-medium">{itemName(db, l.itemId)}</TableCell>
-                      <TableCell className="tabular text-right">{formatNumber(l.quantity)} {item?.unit}</TableCell>
-                      {isAdmin && <TableCell className="tabular text-right">{item ? formatNumber(item.currentStock) : "-"}</TableCell>}
-                      {isAdmin && <TableCell className="tabular text-right">{item ? formatNumber(availableForLoan(item, db.loans)) : "-"}</TableCell>}
-                    </TableRow>
-                  );
-                })}
+                {loan.lines.map((l) => (
+                  <TableRow key={l.itemId}>
+                    <TableCell className="font-medium">{l.itemName}</TableCell>
+                    <TableCell className="tabular text-right">{formatNumber(l.quantity)} {l.unit}</TableCell>
+                    {isAdmin && <TableCell className="tabular text-right">{l.currentStock !== undefined ? formatNumber(l.currentStock) : "-"}</TableCell>}
+                    {isAdmin && <TableCell className="tabular text-right">{l.availableForLoan !== undefined ? formatNumber(l.availableForLoan) : "-"}</TableCell>}
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </Card>
         </div>
 
         <div className="flex flex-col gap-6">
-          <Progress loan={loan} who={userName(db, loan.borrowerId)} />
-          {isAdmin && loan.status === "Pending Approval" && !own && (
+          <Progress loan={loan} who={loan.borrowerName} />
+          {can("approve") && (
             <p className="flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-base text-foreground">
               <Info className="mt-0.5 size-5 shrink-0 text-info-icon" aria-hidden="true" />
               {t.loans.approveInfo(totalQty)}
@@ -174,7 +168,7 @@ function LoanView() {
           confirmLabel={t.loans.rejectConfirm}
           onConfirm={async (reason) => {
             const r = await api.loans.reject(loan.id, reason);
-            if (r.ok) toast.success(t.loans.rejected);
+            if (r.success) toast.success(t.loans.rejected);
             return r;
           }}
         />
@@ -188,12 +182,12 @@ function LoanView() {
           confirmLabel={t.loans.issueConfirm}
           onConfirm={async () => {
             const r = await api.loans.issue(loan.id);
-            if (r.ok) toast.success(t.loans.issued);
+            if (r.success) toast.success(t.loans.issued);
             return r;
           }}
         >
           <ul className="rounded-lg bg-muted px-4 py-3 text-base">
-            {loan.lines.map((l) => <li key={l.itemId}>{itemName(db, l.itemId)} × {l.quantity}</li>)}
+            {loan.lines.map((l) => <li key={l.itemId}>{l.itemName} × {l.quantity}</li>)}
           </ul>
         </ConfirmDialog>
       )}
@@ -207,18 +201,17 @@ function LoanView() {
           destructive
           onConfirm={async () => {
             const r = await api.loans.cancel(loan.id);
-            if (r.ok) toast.success(t.loans.cancelled);
+            if (r.success) toast.success(t.loans.cancelled);
             return r;
           }}
         />
       )}
-      {dialog === "return" && <ReturnDialog loan={loan} onClose={() => setDialog(null)} />}
+      {dialog === "return" && <ReturnDialog loan={loan} receiver={userName} onClose={() => setDialog(null)} />}
     </>
   );
 }
 
-function ReturnDialog({ loan, onClose }: { loan: Loan; onClose: () => void }) {
-  const user = useCurrentUser()!;
+function ReturnDialog({ loan, receiver, onClose }: { loan: LoanDto; receiver: string; onClose: () => void }) {
   const [returnDate, setReturnDate] = useState(today());
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -231,7 +224,7 @@ function ReturnDialog({ loan, onClose }: { loan: Loan; onClose: () => void }) {
     setPending(true);
     const r = await api.loans.return(loan.id, v.data);
     setPending(false);
-    if (!r.ok) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
     toast.success(t.loans.returned);
     onClose();
   };
@@ -249,10 +242,10 @@ function ReturnDialog({ loan, onClose }: { loan: Loan; onClose: () => void }) {
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t.fields.returnDate} required error={errors.returnDate}>
-          {(p) => <Input {...p} type="date" min={returnFloor(loan)} max={today()} value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />}
+          {(p) => <Input {...p} type="date" min={loan.returnFloor} max={today()} value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />}
         </Field>
         <Field label={t.loans.receivedBy}>
-          {(p) => <Input {...p} readOnly disabled value={user.name} />}
+          {(p) => <Input {...p} readOnly disabled value={receiver} />}
         </Field>
       </div>
       <Field label={t.fields.returnNote}>
@@ -262,7 +255,7 @@ function ReturnDialog({ loan, onClose }: { loan: Loan; onClose: () => void }) {
   );
 }
 
-function Progress({ loan, who }: { loan: Loan; who: string }) {
+function Progress({ loan, who }: { loan: LoanDto; who: string }) {
   const step = loanStep(loan.status);
   const steps = [
     { title: t.loans.stepSubmitted, body: t.loans.stepSubmittedBody(who, formatDate(loan.createdAt)) },

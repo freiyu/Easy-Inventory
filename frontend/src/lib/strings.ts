@@ -714,7 +714,7 @@ export const t = {
     receiveTitle: (n: string) => `Record items received for ${n}`,
     receiveBody: "Adds the full requested quantities to stock as incoming stock.",
     receiveLineName: (name: string, qty: number, unit: string) => `${name}, ${qty} ${unit}`,
-    receiveNewItemsNote: "New items are added to the item list when you confirm. Enter a code and a minimum stock for each. The supplier you choose becomes each new item's preferred supplier.",
+    receiveNewItemsNote: "New items are added to the item list when you confirm. Enter a minimum stock for each; the item code is generated automatically. The supplier you choose becomes each new item's preferred supplier.",
     newItemTag: "New item",
     lineExisting: "Existing item",
     lineNew: "New item",

@@ -119,7 +119,7 @@ describe("automatic item codes (BR-32)", () => {
     await loginAs(ADMIN);
     const dup = await categories.create({ name: "Another", code: "ppr", description: "", status: "Active" });
     expect(dup).toMatchObject({ success: false, error: { code: "CONFLICT" } });
-    const paper = ok<{ id: number }>(await categories.list({ search: "Paper" })).data[0] as { id: number; name: string; code: string };
+    const paper = ok<{ id: number; name: string; code: string }[]>(await categories.list({ search: "Paper" })).data[0];
     const locked = await categories.update(paper.id, { name: paper.name, code: "NEW", description: "", status: "Active" });
     expect(locked).toMatchObject({ success: false, error: { code: "BUSINESS_RULE_VIOLATION" } });
   });

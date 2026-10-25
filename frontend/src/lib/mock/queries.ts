@@ -1,7 +1,7 @@
 // Small read helpers over the prototype DB. Pages call these instead of repeating lookups.
 import { loanDisplayStatus, stockStatus } from "./rules";
-import type { DB } from "./mock/ops";
-import type { Category, Item, Loan, PurchaseLine, PurchaseRequest, StockTransaction, Supplier, User } from "./types";
+import type { DB } from "./ops";
+import type { Category, Item, Loan, PurchaseLine, PurchaseRequest, StockTransaction, Supplier, User } from "../types";
 
 export const byId = <T extends { id: number }>(list: T[], id: number | null | undefined): T | undefined =>
   id == null ? undefined : list.find((x) => x.id === id);

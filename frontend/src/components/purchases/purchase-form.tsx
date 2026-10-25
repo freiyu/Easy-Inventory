@@ -11,15 +11,20 @@ import { Field } from "@/components/shared/form-field";
 import { LinesEditor, newLine, type LineDraft } from "@/components/shared/lines-editor";
 import { SelectField } from "@/components/shared/select-field";
 import { daysFromToday } from "@/lib/format";
-import { api, useCurrentUser, useStore } from "@/lib/mock/store";
+import { api, useCurrentUser, useGet, useRequestId } from "@/lib/api";
+import type { CategoryOption, ItemDto } from "@/lib/api/master";
+import type { PurchaseDto } from "@/lib/api/purchases";
 import { purchaseSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
-import type { PurchaseRequest } from "@/lib/types";
 
-export function PurchaseForm({ request }: { request?: PurchaseRequest }) {
+export function PurchaseForm({ request }: { request?: PurchaseDto }) {
   const router = useRouter();
   const user = useCurrentUser()!;
-  const { db } = useStore();
+  const items = useGet<ItemDto[]>("/items", { status: "Active", pageSize: 500, sort: "name:asc" });
+  const categories = useGet<CategoryOption[]>("/categories", { status: "Active", pageSize: 500, sort: "name:asc" });
+  // Only an Admin may file a request for someone else (PRD 3.2); the list is Admin only.
+  const users = useGet<{ id: number; name: string; role: string }[]>(user.role === "Admin" ? "/users" : null, { status: "Active", pageSize: 500, sort: "name:asc" });
+  const requestId = useRequestId();
   const isAdmin = user.role === "Admin";
   const [requesterId, setRequesterId] = useState(String(request?.requesterId ?? user.id));
   const [neededBy, setNeededBy] = useState(request?.neededBy ?? daysFromToday(7));
@@ -40,9 +45,10 @@ export function PurchaseForm({ request }: { request?: PurchaseRequest }) {
     setErrors(v.ok ? {} : v.errors);
     if (!v.ok) return;
     setPending(submit ? "submit" : "draft");
-    const r = request ? await api.purchases.update(request.id, v.data, submit) : await api.purchases.create(v.data, submit);
+    const r = request ? await api.purchases.update(request.id, v.data, submit) : await api.purchases.create(v.data, submit, requestId.id);
     setPending(null);
-    if (!r.ok) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    requestId.renew();
     toast.success(submit ? t.purchases.submitted : t.purchases.draftSaved);
     router.push(`/purchases/view?id=${r.data.id}`);
   };
@@ -56,7 +62,7 @@ export function PurchaseForm({ request }: { request?: PurchaseRequest }) {
             <div className="px-5">
               <Field label={t.fields.requester} required error={errors.requesterId} hint={t.purchases.requesterHint}>
                 {(p) => <SelectField {...p} value={requesterId} onChange={setRequesterId}
-                  options={db.users.filter((u) => u.status === "Active").map((u) => ({ value: String(u.id), label: `${u.name} (${u.role})` }))} />}
+                  options={(users.data ?? []).map((u) => ({ value: String(u.id), label: `${u.name} (${u.role})` }))} />}
               </Field>
             </div>
           )}
@@ -64,7 +70,7 @@ export function PurchaseForm({ request }: { request?: PurchaseRequest }) {
             <h2 className="text-lg font-semibold">{t.purchases.sectionItems}</h2>
             <p className="text-sm text-muted-foreground">{t.purchases.howNew}</p>
             <LinesEditor mode="purchase" lines={lines} onChange={setLines} errors={errors}
-              items={db.items.filter((i) => i.status === "Active")} categories={db.categories.filter((c) => c.status === "Active")} addLabel={t.purchases.addLine} />
+              items={items.data ?? []} categories={categories.data ?? []} addLabel={t.purchases.addLine} />
           </section>
           <section className="flex flex-col gap-3 border-t px-5 pt-5">
             <h2 className="text-lg font-semibold">{t.purchases.sectionWhen}</h2>

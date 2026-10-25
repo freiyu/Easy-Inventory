@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { FilterBar, SearchBox } from "@/components/shared/filter-bar";
@@ -11,17 +12,22 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SelectField } from "@/components/shared/select-field";
 import { LoanBadge, StockBadge, TxTypeBadge } from "@/components/shared/status-badge";
 import { EmptyState, LoadGate } from "@/components/shared/states";
-import { usePageLoad } from "@/hooks/use-page-load";
+import { tableProps, useGet, useListParams } from "@/lib/api";
+import type { LoanReportRow, MovementRow, StockReportRow } from "@/lib/api/admin";
+import type { CategoryOption } from "@/lib/api/master";
 import { formatDate, formatNumber } from "@/lib/format";
-import { useStore } from "@/lib/mock/store";
-import type { DB } from "@/lib/mock/ops";
-import { categoryName, itemName, lineSummary, matches, userName } from "@/lib/queries";
-import { loanDisplayStatus, stockStatus } from "@/lib/rules";
 import { t } from "@/lib/strings";
-import type { Item, Loan, StockLine, StockTransaction } from "@/lib/types";
 
 const ALL = "all";
 const exportMock = () => toast.info(t.common.exportMocked);
+
+type ListState = ReturnType<typeof useListParams>;
+
+/** Clears search, sort, paging and the given filters but keeps the `tab` in the URL. */
+const clearTab = (lp: ListState, filterKeys: string[]) => {
+  lp.setSearch("");
+  lp.set({ search: undefined, sort: undefined, pageSize: undefined, ...Object.fromEntries(filterKeys.map((k) => [k, undefined])) });
+};
 
 const NoRows = ({ onClear }: { onClear: () => void }) => (
   <EmptyState title={t.reports.emptyTitle} body={t.reports.emptyBody} action={<Button variant="outline" onClick={onClear}>{t.common.clear}</Button>} />
@@ -36,113 +42,126 @@ function ReportHeader({ count }: { count: number }) {
   );
 }
 
-function StockReport({ db }: { db: DB }) {
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState(ALL);
-  const [status, setStatus] = useState(ALL);
-  const clear = () => { setQuery(""); setCategory(ALL); setStatus(ALL); };
-  const rows = useMemo(() => db.items.filter((i) =>
-    i.status === "Active" && (category === ALL || String(i.categoryId) === category) &&
-    (status === ALL || stockStatus(i.currentStock, i.minimumStock) === status) && matches(query, i.name, i.code)), [db.items, query, category, status]);
-  const columns: Column<Item>[] = [
-    { id: "code", header: t.reports.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortValue: (i) => i.code },
-    { id: "name", header: t.reports.colItem, cell: (i) => <Link href={`/items/view?id=${i.id}`} className="font-medium hover:text-link hover:underline">{i.name}</Link>, sortValue: (i) => i.name },
-    { id: "category", header: t.reports.colCategory, cell: (i) => categoryName(db, i.categoryId), sortValue: (i) => categoryName(db, i.categoryId), hideOnMobile: true },
+/** From / To dates for the movement and loan reports. */
+function DateRange({ lp }: { lp: ListState }) {
+  return (
+    <>
+      <Input type="date" className="w-40" aria-label={t.expenses.from} value={lp.filters.from} onChange={(e) => lp.set({ from: e.target.value })} />
+      <Input type="date" className="w-40" aria-label={t.expenses.to} value={lp.filters.to} onChange={(e) => lp.set({ to: e.target.value })} />
+    </>
+  );
+}
+
+function StockReport() {
+  const lp = useListParams({ sort: "code:asc", filters: { categoryId: ALL, stockStatus: ALL } });
+  const list = useGet<StockReportRow[]>("/reports/stock", lp.params);
+  const categories = useGet<CategoryOption[]>("/categories", { status: "Active", pageSize: 500, sort: "name:asc" });
+  const clear = () => clearTab(lp, ["categoryId", "stockStatus"]);
+  const columns: Column<StockReportRow>[] = [
+    { id: "code", header: t.reports.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortable: true },
+    { id: "name", header: t.reports.colItem, cell: (i) => <Link href={`/items/view?id=${i.id}`} className="font-medium hover:text-link hover:underline">{i.name}</Link>, sortable: true },
+    { id: "category", header: t.reports.colCategory, cell: (i) => i.categoryName, sortable: true, hideOnMobile: true },
     { id: "unit", header: t.reports.colUnit, cell: (i) => i.unit, hideOnMobile: true },
-    { id: "stock", header: t.reports.colStock, cell: (i) => formatNumber(i.currentStock), numeric: true, sortValue: (i) => i.currentStock },
-    { id: "minimum", header: t.reports.colMinimum, cell: (i) => formatNumber(i.minimumStock), numeric: true, sortValue: (i) => i.minimumStock, hideOnMobile: true },
-    { id: "status", header: t.reports.colStatus, cell: (i) => <StockBadge status={stockStatus(i.currentStock, i.minimumStock)} />, sortValue: (i) => stockStatus(i.currentStock, i.minimumStock) },
+    { id: "stock", header: t.reports.colStock, cell: (i) => formatNumber(i.currentStock ?? 0), numeric: true, sortable: true },
+    { id: "minimum", header: t.reports.colMinimum, cell: (i) => formatNumber(i.minimumStock ?? 0), numeric: true, sortable: true, hideOnMobile: true },
+    { id: "status", header: t.reports.colStatus, cell: (i) => <StockBadge status={i.stockStatus} />, sortable: true },
   ];
   return (
     <>
-      <FilterBar dirty={query !== "" || category !== ALL || status !== ALL} onClear={clear}>
-        <SearchBox value={query} onChange={setQuery} placeholder={t.reports.searchStock} />
-        <SelectField className="w-48" aria-label={t.reports.colCategory} value={category} onChange={setCategory} options={[{ value: ALL, label: t.items.allCategories }, ...db.categories.map((c) => ({ value: String(c.id), label: c.name }))]} />
-        <SelectField className="w-52" aria-label={t.reports.colStatus} value={status} onChange={setStatus} options={[{ value: ALL, label: t.items.allStockStatus }, ...(["Safe", "Low", "Out"] as const).map((s) => ({ value: s, label: s }))]} />
+      <FilterBar dirty={lp.dirty} onClear={clear}>
+        <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.reports.searchStock} />
+        <SelectField className="w-48" aria-label={t.reports.colCategory} value={lp.filters.categoryId} onChange={(v) => lp.set({ categoryId: v })} options={[{ value: ALL, label: t.items.allCategories }, ...(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
+        <SelectField className="w-52" aria-label={t.reports.colStatus} value={lp.filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: t.items.allStockStatus }, ...(["Safe", "Low", "Out"] as const).map((s) => ({ value: s, label: s }))]} />
       </FilterBar>
-      <ReportHeader count={rows.length} />
-      <DataTable caption={t.reports.stockCaption} rows={rows} columns={columns} rowKey={(i) => i.id} rowLabel={(i) => i.name} initialSort={{ id: "code", dir: "asc" }} empty={<NoRows onClear={clear} />} />
+      <LoadGate load={list}>
+        <ReportHeader count={list.meta?.total ?? 0} />
+        <DataTable caption={t.reports.stockCaption} {...tableProps(list, lp)} columns={columns} rowKey={(i) => i.id} rowLabel={(i) => i.name} empty={<NoRows onClear={clear} />} />
+      </LoadGate>
     </>
   );
 }
 
-interface Movement { tx: StockTransaction; line: StockLine; key: string }
-
-function MovementsReport({ db }: { db: DB }) {
-  const [query, setQuery] = useState("");
-  const [type, setType] = useState(ALL);
-  const clear = () => { setQuery(""); setType(ALL); };
-  const rows = useMemo<Movement[]>(() => db.transactions.flatMap((tx) => tx.lines.map((line) => ({ tx, line, key: `${tx.id}-${line.itemId}` })))
-    .filter((m) => (type === ALL || m.tx.type === type) && matches(query, itemName(db, m.line.itemId), m.tx.number, userName(db, m.tx.userId))), [db, query, type]);
-  const columns: Column<Movement>[] = [
-    { id: "date", header: t.reports.colDate, cell: (m) => <span className="tabular">{formatDate(m.tx.date)}</span>, sortValue: (m) => `${m.tx.date}${String(m.tx.id).padStart(6, "0")}` },
-    { id: "item", header: t.reports.colItem, cell: (m) => <span className="font-medium">{itemName(db, m.line.itemId)}</span>, sortValue: (m) => itemName(db, m.line.itemId) },
-    { id: "type", header: t.reports.colType, cell: (m) => <TxTypeBadge type={m.tx.type} />, sortValue: (m) => m.tx.type },
-    { id: "change", header: t.reports.colChange, cell: (m) => <span className={m.line.quantityChange < 0 ? "text-danger-icon" : "text-success-icon"}>{m.line.quantityChange > 0 ? "+" : ""}{formatNumber(m.line.quantityChange)}</span>, numeric: true, sortValue: (m) => m.line.quantityChange },
-    { id: "balance", header: t.reports.colBalance, cell: (m) => formatNumber(m.line.balanceAfter), numeric: true, sortValue: (m) => m.line.balanceAfter },
-    { id: "user", header: t.reports.colUser, cell: (m) => userName(db, m.tx.userId), hideOnMobile: true },
-    { id: "ref", header: t.reports.colRef, cell: (m) => <Link href={`/stock/view?id=${m.tx.id}`} className="text-link hover:underline">{m.tx.number}</Link>, sortValue: (m) => m.tx.number },
+function MovementsReport() {
+  const lp = useListParams({ sort: "date:desc", filters: { type: ALL, from: "", to: "" } });
+  const list = useGet<MovementRow[]>("/reports/movements", lp.params);
+  const clear = () => clearTab(lp, ["type", "from", "to"]);
+  const columns: Column<MovementRow>[] = [
+    { id: "date", header: t.reports.colDate, cell: (m) => <span className="tabular">{formatDate(m.date)}</span>, sortable: true },
+    { id: "item", header: t.reports.colItem, cell: (m) => <span className="font-medium">{m.itemName}</span>, sortable: true },
+    { id: "type", header: t.reports.colType, cell: (m) => <TxTypeBadge type={m.type} />, sortable: true },
+    { id: "change", header: t.reports.colChange, cell: (m) => <span className={m.quantityChange < 0 ? "text-danger-icon" : "text-success-icon"}>{m.quantityChange > 0 ? "+" : ""}{formatNumber(m.quantityChange)}</span>, numeric: true, sortable: true },
+    { id: "balance", header: t.reports.colBalance, cell: (m) => formatNumber(m.balanceAfter), numeric: true, sortable: true },
+    { id: "user", header: t.reports.colUser, cell: (m) => m.userName, sortable: true, hideOnMobile: true },
+    { id: "ref", header: t.reports.colRef, cell: (m) => <Link href={`/stock/view?id=${m.txId}`} className="text-link hover:underline">{m.number}</Link>, sortable: true },
   ];
   return (
     <>
-      <FilterBar dirty={query !== "" || type !== ALL} onClear={clear}>
-        <SearchBox value={query} onChange={setQuery} placeholder={t.reports.searchMovements} />
-        <SelectField className="w-48" aria-label={t.reports.colType} value={type} onChange={setType}
+      <FilterBar dirty={lp.dirty} onClear={clear}>
+        <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.reports.searchMovements} />
+        <SelectField className="w-48" aria-label={t.reports.colType} value={lp.filters.type} onChange={(v) => lp.set({ type: v })}
           options={[{ value: ALL, label: t.stock.allTypes }, ...(Object.keys(t.status.txType) as (keyof typeof t.status.txType)[]).map((k) => ({ value: k, label: t.status.txType[k] }))]} />
+        <DateRange lp={lp} />
       </FilterBar>
-      <ReportHeader count={rows.length} />
-      <DataTable caption={t.reports.movementsCaption} rows={rows} columns={columns} rowKey={(m) => m.key} rowLabel={(m) => `${m.tx.number} ${itemName(db, m.line.itemId)}`} initialSort={{ id: "date", dir: "desc" }} empty={<NoRows onClear={clear} />} />
+      <LoadGate load={list}>
+        <ReportHeader count={list.meta?.total ?? 0} />
+        <DataTable caption={t.reports.movementsCaption} {...tableProps(list, lp)} columns={columns} rowKey={(m) => m.key} rowLabel={(m) => `${m.number} ${m.itemName}`} empty={<NoRows onClear={clear} />} />
+      </LoadGate>
     </>
   );
 }
 
-function LoansReport({ db }: { db: DB }) {
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState(ALL);
-  const clear = () => { setQuery(""); setStatus(ALL); };
-  const rows = useMemo(() => db.loans.filter((l) => (status === ALL || loanDisplayStatus(l) === status) &&
-    matches(query, l.number, userName(db, l.borrowerId), lineSummary(db, l))), [db, query, status]);
-  const columns: Column<Loan>[] = [
-    { id: "number", header: t.reports.colLoan, cell: (l) => <Link href={`/loans/view?id=${l.id}`} className="font-medium text-link hover:underline">{l.number}</Link>, sortValue: (l) => l.number },
-    { id: "borrower", header: t.reports.colBorrower, cell: (l) => userName(db, l.borrowerId), sortValue: (l) => userName(db, l.borrowerId) },
-    { id: "items", header: t.loans.colItems, cell: (l) => <span className="line-clamp-1 max-w-64 whitespace-normal">{lineSummary(db, l)}</span>, hideOnMobile: true },
-    { id: "loanDate", header: t.reports.colLoanDate, cell: (l) => <span className="tabular">{formatDate(l.loanDate)}</span>, sortValue: (l) => l.loanDate, hideOnMobile: true },
-    { id: "expected", header: t.reports.colExpected, cell: (l) => <span className="tabular">{formatDate(l.expectedReturnDate)}</span>, sortValue: (l) => l.expectedReturnDate },
-    { id: "returned", header: t.reports.colReturned, cell: (l) => <span className="tabular">{formatDate(l.returnedAt)}</span>, sortValue: (l) => l.returnedAt ?? "", hideOnMobile: true },
-    { id: "status", header: t.reports.colStatus, cell: (l) => <LoanBadge status={loanDisplayStatus(l)} />, sortValue: (l) => loanDisplayStatus(l) },
+function LoansReport() {
+  const lp = useListParams({ sort: "number:desc", filters: { status: ALL, from: "", to: "" } });
+  const list = useGet<LoanReportRow[]>("/reports/loans", lp.params);
+  const clear = () => clearTab(lp, ["status", "from", "to"]);
+  const columns: Column<LoanReportRow>[] = [
+    { id: "number", header: t.reports.colLoan, cell: (l) => <Link href={`/loans/view?id=${l.id}`} className="font-medium text-link hover:underline">{l.number}</Link>, sortable: true },
+    { id: "borrower", header: t.reports.colBorrower, cell: (l) => l.borrowerName, sortable: true },
+    { id: "items", header: t.loans.colItems, cell: (l) => <span className="line-clamp-1 max-w-64 whitespace-normal">{l.summary}</span>, hideOnMobile: true },
+    { id: "loanDate", header: t.reports.colLoanDate, cell: (l) => <span className="tabular">{formatDate(l.loanDate)}</span>, sortable: true, hideOnMobile: true },
+    { id: "expected", header: t.reports.colExpected, cell: (l) => <span className="tabular">{formatDate(l.expectedReturnDate)}</span>, sortable: true },
+    { id: "returned", header: t.reports.colReturned, cell: (l) => <span className="tabular">{formatDate(l.returnedAt)}</span>, sortable: true, hideOnMobile: true },
+    { id: "status", header: t.reports.colStatus, cell: (l) => <LoanBadge status={l.status} />, sortable: true },
   ];
   return (
     <>
-      <FilterBar dirty={query !== "" || status !== ALL} onClear={clear}>
-        <SearchBox value={query} onChange={setQuery} placeholder={t.reports.searchLoans} />
-        <SelectField className="w-52" aria-label={t.reports.colStatus} value={status} onChange={setStatus}
+      <FilterBar dirty={lp.dirty} onClear={clear}>
+        <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.reports.searchLoans} />
+        <SelectField className="w-52" aria-label={t.reports.colStatus} value={lp.filters.status} onChange={(v) => lp.set({ status: v })}
           options={[{ value: ALL, label: t.reports.allLoanStatuses }, ...(Object.keys(t.status.loan) as (keyof typeof t.status.loan)[]).map((k) => ({ value: k, label: t.status.loan[k] }))]} />
+        <DateRange lp={lp} />
       </FilterBar>
-      <ReportHeader count={rows.length} />
-      <p className="mb-3 text-sm text-muted-foreground">{t.reports.overdueHighlight}</p>
-      <DataTable caption={t.reports.loansCaption} rows={rows} columns={columns} rowKey={(l) => l.id} rowLabel={(l) => l.number} initialSort={{ id: "number", dir: "desc" }} empty={<NoRows onClear={clear} />} />
+      <LoadGate load={list}>
+        <ReportHeader count={list.meta?.total ?? 0} />
+        <p className="mb-3 text-sm text-muted-foreground">{t.reports.overdueHighlight}</p>
+        <DataTable caption={t.reports.loansCaption} {...tableProps(list, lp)} columns={columns} rowKey={(l) => l.id} rowLabel={(l) => l.number} empty={<NoRows onClear={clear} />} />
+      </LoadGate>
     </>
   );
 }
+
+const TABS = ["stock", "movements", "loans"] as const;
 
 export default function ReportsPage() {
-  const { db } = useStore();
-  const load = usePageLoad("reports");
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  const tab = TABS.find((x) => x === sp.get("tab")) ?? "stock";
+  // Each report has its own search, sort and filters, so switching tabs starts a fresh URL.
+  const open = (value: unknown) => router.replace(`${pathname}?tab=${String(value)}`, { scroll: false });
   return (
     <>
       <PageHeader title={t.reports.title} description={t.reports.description} />
-      <LoadGate load={load}>
-        <Tabs defaultValue="stock">
-          <TabsList variant="line" className="mb-4 w-full justify-start overflow-x-auto">
-            <TabsTrigger value="stock" className="h-10 flex-none px-4 text-base">{t.reports.tabStock}</TabsTrigger>
-            <TabsTrigger value="movements" className="h-10 flex-none px-4 text-base">{t.reports.tabMovements}</TabsTrigger>
-            <TabsTrigger value="loans" className="h-10 flex-none px-4 text-base">{t.reports.tabLoans}</TabsTrigger>
-          </TabsList>
-          <TabsContent value="stock"><StockReport db={db} /></TabsContent>
-          <TabsContent value="movements"><MovementsReport db={db} /></TabsContent>
-          <TabsContent value="loans"><LoansReport db={db} /></TabsContent>
-        </Tabs>
-      </LoadGate>
+      <Tabs value={tab} onValueChange={open}>
+        <TabsList variant="line" className="mb-4 w-full justify-start overflow-x-auto">
+          <TabsTrigger value="stock" className="h-10 flex-none px-4 text-base">{t.reports.tabStock}</TabsTrigger>
+          <TabsTrigger value="movements" className="h-10 flex-none px-4 text-base">{t.reports.tabMovements}</TabsTrigger>
+          <TabsTrigger value="loans" className="h-10 flex-none px-4 text-base">{t.reports.tabLoans}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="stock">{tab === "stock" && <StockReport />}</TabsContent>
+        <TabsContent value="movements">{tab === "movements" && <MovementsReport />}</TabsContent>
+        <TabsContent value="loans">{tab === "loans" && <LoansReport />}</TabsContent>
+      </Tabs>
     </>
   );
 }

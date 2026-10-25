@@ -1,5 +1,5 @@
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, type Query } from "../../api/types";
-import { matches } from "../../queries";
+import { matches } from "../queries";
 import { ok } from "../ops";
 import type { Out } from "./types";
 
