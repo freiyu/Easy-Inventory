@@ -3,12 +3,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { t } from "../strings";
 import { getFile } from "./client";
-import { apiUrl, send } from "./transport";
+import { apiUrl, download, send } from "./transport";
 
 const reply = (status: number, body: unknown) =>
   vi.fn().mockResolvedValue(new Response(typeof body === "string" ? body : JSON.stringify(body), { status }));
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe("transport", () => {
   it("builds /api URLs and leaves out undefined query values", () => {
@@ -45,5 +48,18 @@ describe("file download", () => {
   it("returns the error envelope when the server refuses the export", async () => {
     vi.stubGlobal("fetch", reply(403, { success: false, error: { code: "FORBIDDEN", message: "no" } }));
     expect(await getFile("/export/items")).toEqual({ success: false, status: 403, error: { code: "FORBIDDEN", message: "no" } });
+  });
+
+  it.each([
+    ['attachment; filename="ezi-items-20261026.xlsx"', "ezi-items-20261026.xlsx"],
+    ["attachment; filename=ezi-backup-20261026171715-manual.sql.gz", "ezi-backup-20261026171715-manual.sql.gz"],
+  ])("saves the file under the server's name (%s)", async (header, name) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("x", { status: 200, headers: { "Content-Disposition": header } })));
+    const a = { href: "", download: "", click: vi.fn() };
+    vi.stubGlobal("document", { createElement: () => a });
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:x");
+    expect(await download("/x")).toEqual({ success: true, data: null });
+    expect(a.download).toBe(name);
+    expect(a.click).toHaveBeenCalled();
   });
 });

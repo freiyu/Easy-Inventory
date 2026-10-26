@@ -37,7 +37,8 @@ export async function download(path: string, query?: Query): Promise<Envelope<nu
   const res = await fetch(apiUrl(path, query), { credentials: "same-origin" }).catch(() => null);
   if (!res) return failure(0, t.errors.network);
   if (!res.ok) return errorOf(res);
-  const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "download";
+  // Express quotes the name for attachment() but not for download(), so accept both.
+  const name = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "download";
   const url = URL.createObjectURL(await res.blob());
   const a = document.createElement("a");
   a.href = url;
