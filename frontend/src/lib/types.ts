@@ -194,7 +194,3 @@ export interface ApiError {
   fields?: Record<string, string>;
 }
 
-// Internal result of the mock business operations (lib/mock). Pages never see it: they get an Envelope.
-export type Result<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: ApiError };

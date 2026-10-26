@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CircleX, Eye, Pencil, Power, PowerOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { DownloadButton } from "@/components/shared/download-button";
 import { DataTable, type Column, type RowAction } from "@/components/shared/data-table";
 import { ConfirmDialog } from "@/components/shared/dialogs";
 import { FilterBar, SearchBox } from "@/components/shared/filter-bar";
@@ -90,7 +91,7 @@ export default function ItemsPage() {
         actions={isAdmin && (
           <>
             <Link href="/items/import" className={buttonVariants({ variant: "outline" })}>{t.itemImport.button}</Link>
-            <Button variant="outline" onClick={() => toast.info(t.common.exportMocked)}>{t.common.exportExcel}</Button>
+            <DownloadButton variant="outline" run={() => api.items.export(lp.params)} label={t.common.exportExcel} busyLabel={t.common.exporting} />
             <Link href="/items/new" className={buttonVariants()}>{t.items.add}</Link>
           </>
         )}

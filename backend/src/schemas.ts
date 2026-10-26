@@ -25,7 +25,8 @@ const password = z.string({ error: v.passwordLength }).min(8, v.passwordLength).
 const status = z.enum(["Active", "Inactive"]);
 const lines = <T extends z.ZodType>(line: T) => z.array(line, { error: v.atLeastOneLine }).min(1, v.atLeastOneLine).max(200, v.tooLarge(f.item));
 
-export const clientRequestId = z.string().max(64).optional();
+// 48 leaves room for the user id prefix in the 64-character column (services/core.ts requestKey).
+export const clientRequestId = z.string().max(48).optional();
 
 export const loginSchema = z.object({
   email: z.string().trim().default(""),
@@ -55,7 +56,7 @@ export const supplierSchema = z.object({
 export const itemSchema = z.object({
   name: text(f.name, 150),
   categoryId: id(v.selectCategory),
-  unit: text(f.unit, 20),
+  unit: text(f.unit, 20).refine((u) => UNITS.includes(u), v.selectUnit),
   openingStock: whole(f.openingStock, 0).default(0),
   minimumStock: whole(f.minimumStock, 0),
   lastPurchasePrice: money(f.lastPrice),

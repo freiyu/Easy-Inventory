@@ -7,7 +7,7 @@ import { filterId, filterValue, paged, searchRows, type Query } from "../list";
 import type { ItemInput } from "../schemas";
 import { t, UNITS, type StockStatus, type StockTxType } from "../shared";
 import { createBackup } from "./backup";
-import { iso, isAdmin, log, num, postTransaction, reservedByItem, write, ymd, type Ctx, type SessionUser } from "./core";
+import { iso, isAdmin, lockItemNames, log, num, postTransaction, reservedByItem, write, ymd, type Ctx, type SessionUser } from "./core";
 
 const e = t.errors;
 const STOCK_ORDER = { Out: 0, Low: 1, Safe: 2 };
@@ -199,11 +199,17 @@ export async function itemLocations(c: Ctx) {
   return rows.map((r) => r.location);
 }
 
-async function checkItemRefs(tx: Tx, input: { categoryId: number; supplierId: number | null }) {
-  if (!(await tx.category.findUnique({ where: { id: input.categoryId } }))) throw fail("VALIDATION_ERROR", e.fix, { categoryId: t.validation.selectCategory });
-  if (input.supplierId !== null && !(await tx.supplier.findUnique({ where: { id: input.supplierId } }))) {
-    throw fail("VALIDATION_ERROR", e.fix, { supplierId: t.validation.selectSupplier });
-  }
+type Refs = { categoryId: number; supplierId: number | null };
+
+/** The category and supplier must exist and be active (PRD 4.3, 4.4); an item may keep the one it already has. */
+async function checkItemRefs(tx: Tx, input: Refs, current?: Refs) {
+  const cat = await tx.category.findUnique({ where: { id: input.categoryId } });
+  if (!cat) throw fail("VALIDATION_ERROR", e.fix, { categoryId: t.validation.selectCategory });
+  if (cat.status !== "Active" && cat.id !== current?.categoryId) throw fail("BUSINESS_RULE_VIOLATION", e.fix, { categoryId: e.categoryInactive(cat.name) });
+  if (input.supplierId === null) return;
+  const sup = await tx.supplier.findUnique({ where: { id: input.supplierId } });
+  if (!sup) throw fail("VALIDATION_ERROR", e.fix, { supplierId: t.validation.selectSupplier });
+  if (sup.status !== "Active" && sup.id !== current?.supplierId) throw fail("BUSINESS_RULE_VIOLATION", e.fix, { supplierId: e.supplierInactive(sup.name) });
 }
 
 /** Locks category counters in id order before creating several items, so two writers never wait on each other in a circle (PRD 7.4). */
@@ -240,9 +246,11 @@ export function createItem(actor: SessionUser, input: ItemInput) {
 /** BR-32: the code never changes, even when the category does. Stock is changed only by transactions (BR-02). */
 export function updateItem(actor: SessionUser, id: number, input: ItemInput) {
   return write(actor, async (c) => {
+    // Category before item, the same order as purchase receive and import (PRD 7.4: no deadlock).
+    await lockCategories(c.tx, [input.categoryId]);
     const item = await c.tx.item.findUnique({ where: { id } });
     if (!item) throw notFound();
-    await checkItemRefs(c.tx, input);
+    await checkItemRefs(c.tx, input, item);
     await c.tx.item.update({
       where: { id },
       data: {
@@ -392,6 +400,7 @@ export async function importConfirm(actor: SessionUser, csv: string) {
   if (check.ready === 0) throw fail("BUSINESS_RULE_VIOLATION", e.importNothing);
   await createBackup(actor, "Before import");
   const report = await write(actor, async (c) => {
+    await lockItemNames(c.tx);
     const pre = await previewImport(c.tx, csv); // the data may have changed since the check above
     if (pre.ready === 0) throw fail("BUSINESS_RULE_VIOLATION", e.importNothing);
     await lockCategories(c.tx, pre.rows.flatMap((r) => (r.categoryId ? [r.categoryId] : [])));

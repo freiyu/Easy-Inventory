@@ -35,10 +35,11 @@ const status = (kind: (typeof KINDS)[number]) => (kind === "activate" ? "Active"
 api.get("/setup/status", async (_req, res) => send(res, await setupStatus()));
 api.post("/setup/first-admin", async (req, res) => send(res, await createFirstAdmin(parse(s.firstAdminSchema, req.body)), 201));
 api.post("/auth/login", async (req, res) => send(res, await login(req, res, parse(s.loginSchema, req.body))));
+// Public so an expired session can still clear its cookie.
+api.post("/auth/logout", async (req, res) => send(res, await logout(req, res)));
 
 // ------------------------------------------------------------ logged in
 api.use(requireAuth);
-api.post("/auth/logout", async (req, res) => send(res, await logout(req, res)));
 api.get("/auth/me", (req, res) => send(res, me(req)));
 api.post("/auth/change-password", async (req, res) => send(res, await changePassword(me(req), parse(s.changePasswordSchema, req.body))));
 api.get("/dashboard/summary", async (req, res) => send(res, await rep.dashboardSummary(ctx(req))));

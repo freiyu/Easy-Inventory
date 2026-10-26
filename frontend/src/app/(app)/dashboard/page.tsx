@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { ClipboardCheck, HandHelping, Package, PackageX, TriangleAlert } from "lucide-react";
-import { toast } from "sonner";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { DownloadButton } from "@/components/shared/download-button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoanBadge, StockBadge } from "@/components/shared/status-badge";
 import { CardsSkeleton, EmptyState, LoadGate } from "@/components/shared/states";
-import { useCurrentUser, useGet } from "@/lib/api";
+import { api, useCurrentUser, useGet } from "@/lib/api";
 import type { AdminDashboard, DashboardSummary, StaffDashboard } from "@/lib/api/admin";
 import { formatDate, formatNumber } from "@/lib/format";
 import { t } from "@/lib/strings";
@@ -27,7 +27,7 @@ export default function DashboardPage() {
         actions={
           user.role === "Admin" ? (
             <>
-              <Button variant="outline" onClick={() => toast.info(t.common.exportMocked)}>{t.common.exportExcel}</Button>
+              <DownloadButton variant="outline" run={() => api.items.export({})} label={t.common.exportExcel} busyLabel={t.common.exporting} />
               <Link href="/loans/new" className={buttonVariants({ variant: "outline" })}>{t.dashboard.newLoan}</Link>
               <Link href="/items/new" className={buttonVariants({ variant: "outline" })}>{t.dashboard.addItem}</Link>
               <Link href="/stock/in" className={buttonVariants()}>{t.dashboard.incoming}</Link>

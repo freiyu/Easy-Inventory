@@ -7,7 +7,7 @@ import { filterId, filterValue, paged, searchRows, type Query } from "../list";
 import type { LoanInput } from "../schemas";
 import { dayDiff, t, type LoanDisplayStatus, type LoanStatus } from "../shared";
 import {
-  assertActive, iso, isAdmin, isoOrNull, localDay, lockItems, lockRow, log, nextNumber, once, postTransaction, reader, reservedByItem,
+  assertActive, iso, isAdmin, isoOrNull, localDay, lockItems, lockRow, log, nextNumber, once, postTransaction, reader, requestKey, reservedByItem,
   toDate, write, ymd, ymdOrNull, type Ctx, type SessionUser,
 } from "./core";
 
@@ -124,8 +124,8 @@ const lineData = (input: LoanInput) => input.lines.map((l) => ({ itemId: l.itemI
 
 export function createLoan(actor: SessionUser, input: LoanInput) {
   const find = async (k: string) => {
-    const l = await reader(actor).tx.loan.findUnique({ where: { clientRequestId: k }, select: { id: true, borrowerId: true } });
-    return l && (actor.role === "Admin" || l.borrowerId === actor.id) ? l.id : null;
+    const l = await reader(actor).tx.loan.findUnique({ where: { clientRequestId: requestKey(actor, k)! }, select: { id: true } });
+    return l?.id ?? null;
   };
   const create = () => write(actor, async (c) => {
     await checkBasics(c, input);
@@ -134,7 +134,7 @@ export function createLoan(actor: SessionUser, input: LoanInput) {
       data: {
         number: await nextNumber(c.tx, "LN", c.today), borrowerId: input.borrowerId, status: input.submit ? "Pending Approval" : "Draft",
         loanDate: toDate(input.loanDate), expectedReturnDate: toDate(input.expectedReturnDate), purpose: input.purpose, notes: input.notes,
-        rejectReason: "", returnNotes: "", clientRequestId: input.clientRequestId || null, lines: { create: lineData(input) },
+        rejectReason: "", returnNotes: "", clientRequestId: requestKey(actor, input.clientRequestId), lines: { create: lineData(input) },
       },
     });
     await log(c, input.submit ? "Loan submitted" : "Loan draft saved", "Loans", loan.number);

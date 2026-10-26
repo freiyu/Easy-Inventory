@@ -1,5 +1,5 @@
-// Form validation (PRD 6.5). Zod parses raw form strings; the mock store re-checks
-// business rules, the same split the real frontend and backend will have.
+// Form validation (PRD 6.5). Zod parses raw form strings; the backend re-checks
+// every business rule (backend/src/schemas.ts and services).
 import { z } from "zod";
 import { t } from "./strings";
 import type { PurchaseLine } from "./types";

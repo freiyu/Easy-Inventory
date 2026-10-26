@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Archive, CalendarClock, CircleCheck, Hand, Info, RefreshCw, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DownloadButton } from "@/components/shared/download-button";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageHeader } from "@/components/shared/page-header";
@@ -39,7 +40,7 @@ export default function BackupPage() {
     { id: "created", header: t.backup.colCreated, cell: (b) => <span className="tabular">{formatDateTime(b.createdAt)}</span>, sortable: true },
     { id: "kind", header: t.backup.colType, cell: (b) => <StatusBadge tone="neutral" icon={kindIcon[b.kind]}>{t.backup.kinds[b.kind]}</StatusBadge>, sortable: true },
     { id: "size", header: t.backup.colSize, cell: (b) => formatSize(b.sizeKb), numeric: true, sortable: true },
-    { id: "download", header: t.backup.download, cell: (b) => <Button variant="link" className="h-auto p-0" aria-label={`${t.backup.download} ${b.fileName}`} onClick={() => toast.info(t.backup.downloadMocked)}>{t.backup.download}</Button> },
+    { id: "download", header: t.backup.download, cell: (b) => <DownloadButton variant="link" className="h-auto p-0" aria-label={`${t.backup.download} ${b.fileName}`} run={() => api.backup.download(b.id)} label={t.backup.download} busyLabel={t.backup.downloading} /> },
   ];
 
   return (

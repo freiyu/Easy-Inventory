@@ -1,7 +1,7 @@
 // Dashboard, expenses, reports, users, activity log and backup (PRD 4.1, 4.7 to 4.12, 6.6).
 import type { UserInput } from "../schemas";
 import type { ActivityEntry, BackupFile, LoanDisplayStatus, StockStatus, StockTxType, User } from "../types";
-import { clean, get, post, put } from "./client";
+import { clean, get, getFile, post, put } from "./client";
 import type { ItemDto } from "./master";
 import type { Query } from "./types";
 
@@ -105,12 +105,6 @@ export interface ActivityRow extends ActivityEntry {
   userName: string | null;
 }
 
-export interface BackupDownload {
-  fileName: string;
-  /** Mock only: the real endpoint streams the file (Stage 3). */
-  stub: true;
-}
-
 export const dashboard = {
   summary: () => get<DashboardSummary>("/dashboard/summary"),
 };
@@ -123,6 +117,8 @@ export const reports = {
   stock: (q: Query) => get<StockReportRow[]>("/reports/stock", clean(q)),
   movements: (q: Query) => get<MovementRow[]>("/reports/movements", clean(q)),
   loans: (q: Query) => get<LoanReportRow[]>("/reports/loans", clean(q)),
+  /** Excel export of a report with its active filters (PRD 4.9). */
+  export: (type: "stock" | "movements" | "loans", q: Query) => getFile(`/reports/${type}/export`, clean(q)),
 };
 
 export const users = {
@@ -142,5 +138,5 @@ export const activity = {
 export const backup = {
   list: (q: Query) => get<BackupFile[]>("/backup/database", clean(q)),
   create: () => post<BackupFile>("/backup/database"),
-  download: (id: number) => get<BackupDownload>(`/backup/database/${id}/download`),
+  download: (id: number) => getFile(`/backup/database/${id}/download`),
 };

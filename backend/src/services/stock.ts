@@ -6,7 +6,7 @@ import { fail, notFound } from "../http";
 import { clampPage, filterId, filterValue, pageParams, sortParam, type Query } from "../list";
 import { t, type StockTxType } from "../shared";
 import {
-  assertActive, iso, lockItems, lockRow, log, num, once, postTransaction, reader, reservedByItem, toDate, write, ymd, type Ctx, type SessionUser,
+  assertActive, iso, lockItems, lockRow, log, num, once, postTransaction, reader, requestKey, reservedByItem, toDate, write, ymd, type Ctx, type SessionUser,
 } from "./core";
 
 const e = t.errors;
@@ -148,8 +148,8 @@ export async function ledger(c: Ctx, q: Query, opts: { report: boolean }) {
 /** BR-19: the same clientRequestId from the same user returns the first transaction. */
 function idempotent(actor: SessionUser, key: string | undefined, create: () => Promise<number>) {
   const find = async (k: string) => {
-    const x = await reader(actor).tx.stockTransaction.findUnique({ where: { clientRequestId: k }, select: { id: true, userId: true } });
-    return x && x.userId === actor.id ? x.id : null;
+    const x = await reader(actor).tx.stockTransaction.findUnique({ where: { clientRequestId: requestKey(actor, k)! }, select: { id: true } });
+    return x?.id ?? null;
   };
   return once(key, find, create).then((id) => oneTransaction(reader(actor), id));
 }

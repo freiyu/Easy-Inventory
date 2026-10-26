@@ -1,4 +1,4 @@
-// API contract shapes (PRD 6.6). Pages and components import these, never anything from lib/mock.
+// API contract shapes (PRD 6.6). Pages and components import these.
 import type { ApiError } from "../types";
 
 export type { ApiError };

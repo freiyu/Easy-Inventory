@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DownloadButton } from "@/components/shared/download-button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/shared/form-field";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,14 +13,13 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SelectField } from "@/components/shared/select-field";
 import { LoanBadge, StockBadge, TxTypeBadge } from "@/components/shared/status-badge";
 import { EmptyState, LoadGate } from "@/components/shared/states";
-import { tableProps, useGet, useListParams } from "@/lib/api";
+import { api, tableProps, useGet, useListParams } from "@/lib/api";
 import type { LoanReportRow, MovementRow, StockReportRow } from "@/lib/api/admin";
 import type { CategoryOption } from "@/lib/api/master";
 import { formatDate, formatNumber } from "@/lib/format";
 import { t } from "@/lib/strings";
 
 const ALL = "all";
-const exportMock = () => toast.info(t.common.exportMocked);
 
 type ListState = ReturnType<typeof useListParams>;
 
@@ -34,11 +33,12 @@ const NoRows = ({ onClear }: { onClear: () => void }) => (
   <EmptyState title={t.reports.emptyTitle} body={t.reports.emptyBody} action={<Button variant="outline" onClick={onClear}>{t.common.clear}</Button>} />
 );
 
-function ReportHeader({ count }: { count: number }) {
+/** Row count and the Excel export of the report with the filters and sort on screen (PRD 4.9). */
+function ReportHeader({ count, type, lp }: { count: number; type: "stock" | "movements" | "loans"; lp: ListState }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
       <p className="text-base text-muted-foreground" aria-live="polite">{t.reports.rows(count)}</p>
-      <Button variant="outline" onClick={exportMock}>{t.reports.exportReport}</Button>
+      <DownloadButton variant="outline" run={() => api.reports.export(type, lp.params)} label={t.common.exportExcel} busyLabel={t.common.exporting} />
     </div>
   );
 }
@@ -75,7 +75,7 @@ function StockReport() {
         <SelectField className="w-52" aria-label={t.reports.colStatus} value={lp.filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: t.items.allStockStatus }, ...(["Safe", "Low", "Out"] as const).map((s) => ({ value: s, label: t.status.stockAdmin[s] }))]} />
       </FilterBar>
       <LoadGate load={list}>
-        <ReportHeader count={list.meta?.total ?? 0} />
+        <ReportHeader count={list.meta?.total ?? 0} type="stock" lp={lp} />
         <DataTable caption={t.reports.stockCaption} {...tableProps(list, lp)} columns={columns} rowKey={(i) => i.id} rowLabel={(i) => i.name} empty={<NoRows onClear={clear} />} />
       </LoadGate>
     </>
@@ -104,7 +104,7 @@ function MovementsReport() {
         <DateRange lp={lp} />
       </FilterBar>
       <LoadGate load={list}>
-        <ReportHeader count={list.meta?.total ?? 0} />
+        <ReportHeader count={list.meta?.total ?? 0} type="movements" lp={lp} />
         <DataTable caption={t.reports.movementsCaption} {...tableProps(list, lp)} columns={columns} rowKey={(m) => m.key} rowLabel={(m) => `${m.number} ${m.itemName}`} empty={<NoRows onClear={clear} />} />
       </LoadGate>
     </>
@@ -133,7 +133,7 @@ function LoansReport() {
         <DateRange lp={lp} />
       </FilterBar>
       <LoadGate load={list}>
-        <ReportHeader count={list.meta?.total ?? 0} />
+        <ReportHeader count={list.meta?.total ?? 0} type="loans" lp={lp} />
         <p className="mb-3 text-sm text-muted-foreground">{t.reports.overdueHighlight}</p>
         <DataTable caption={t.reports.loansCaption} {...tableProps(list, lp)} columns={columns} rowKey={(l) => l.id} rowLabel={(l) => l.number} empty={<NoRows onClear={clear} />} />
       </LoadGate>

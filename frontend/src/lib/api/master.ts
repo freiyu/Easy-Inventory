@@ -1,7 +1,7 @@
 // Categories, suppliers and items (PRD 4.2 to 4.4, 6.6).
 import type { CategoryInput, ItemInput, SupplierInput } from "../schemas";
 import type { ActiveStatus, Category, StockStatus, Supplier } from "../types";
-import { clean, del, get, post, put } from "./client";
+import { clean, del, get, getFile, post, put } from "./client";
 import type { Query } from "./types";
 
 /** Admin sees every field; Staff get only id and name of active categories (PRD 3.2). */
@@ -104,6 +104,8 @@ export const items = {
   list: (q: Query) => get<ItemDto[]>("/items", clean(q)),
   one: (id: number) => get<ItemDto>(`/items/${id}`),
   locations: () => get<string[]>("/items/locations"),
+  /** Excel export of the items list with its active filters (PRD 4.9). */
+  export: (q: Query) => getFile("/export/items", clean(q)),
   create: (v: ItemInput) => post<ItemDto>("/items", v),
   update: (id: number, v: ItemInput) => put<ItemDto>(`/items/${id}`, v),
   remove: (id: number) => del<null>(`/items/${id}`),

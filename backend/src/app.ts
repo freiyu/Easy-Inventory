@@ -31,6 +31,11 @@ export function createApp() {
   app.use(securityHeaders);
   app.use("/api", noStore, express.json({ limit: "2mb" }), cookieParser(env.sessionSecret), sameOrigin, loadSession, api);
   if (existsSync(env.staticDir)) {
+    // Next exports /login as login.html next to a login/ folder; serve the page instead of redirecting into the folder.
+    app.use((req, res, next) => {
+      if ((req.method !== "GET" && req.method !== "HEAD") || req.path === "/" || path.extname(req.path)) return next();
+      res.sendFile(`${req.path.replace(/\/$/, "")}.html`, { root: env.staticDir }, (err) => err && !res.headersSent && next());
+    });
     app.use(express.static(env.staticDir, { extensions: ["html"] }));
     app.use((_req, res) => res.status(404).sendFile(path.join(env.staticDir, "404.html")));
   }

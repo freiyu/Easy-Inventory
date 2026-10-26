@@ -63,6 +63,14 @@ export async function nextNumber(tx: Tx, prefix: string, date: string): Promise<
 
 // ------------------------------------------------------------------------ locks
 
+/**
+ * Serializes writers that check new item names (purchase receive BR-31, CSV import BR-33): a sentinel counter row
+ * stays locked until commit, so two of them cannot both pass the name check. Take it before locking categories.
+ */
+export async function lockItemNames(tx: Tx): Promise<void> {
+  await tx.$executeRaw`INSERT INTO number_sequences (\`key\`, value) VALUES ('lock:item-names', 0) ON DUPLICATE KEY UPDATE value = value`;
+}
+
 type Lockable = "loans" | "purchase_requests" | "stock_transactions" | "users";
 
 /** Locks one document row until commit, so two Admins cannot move the same loan or request at once. */
@@ -168,7 +176,7 @@ export async function postTransaction(c: Ctx, input: PostInput): Promise<number>
       notes: input.notes ?? "",
       reversalOfId: input.reversalOfId ?? null,
       loanId: input.loanId ?? null,
-      clientRequestId: input.clientRequestId || null,
+      clientRequestId: requestKey(c.actor, input.clientRequestId),
       lines: { create: lines },
     },
     select: { id: true },
@@ -183,9 +191,11 @@ export async function postTransaction(c: Ctx, input: PostInput): Promise<number>
   return created.id;
 }
 
+/** BR-19 keys are per user: the stored key carries the user id, so two users can never collide. */
+export const requestKey = (actor: { id: number }, key?: string) => (key ? `${actor.id}:${key}` : null);
+
 /**
  * BR-19: a repeated clientRequestId returns the first result instead of creating a second record.
- * `find` must return null when the record belongs to someone else.
  */
 export async function once<T>(key: string | undefined, find: (key: string) => Promise<T | null>, create: () => Promise<T>): Promise<T> {
   if (!key) return create();

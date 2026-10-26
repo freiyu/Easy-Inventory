@@ -6,7 +6,7 @@ import { fail, forbidden, notFound } from "../http";
 import { filterId, filterValue, matches, paged, type Query } from "../list";
 import { isUnit, type PurchaseInput } from "../schemas";
 import { dayDiff, t, type PurchaseStatus } from "../shared";
-import { iso, isAdmin, isoOrNull, lockRow, log, nextNumber, num, once, reader, toDate, write, ymd, ymdOrNull, type Ctx, type SessionUser } from "./core";
+import { iso, isAdmin, isoOrNull, lockItemNames, lockRow, log, nextNumber, num, once, reader, requestKey, toDate, write, ymd, ymdOrNull, type Ctx, type SessionUser } from "./core";
 import { insertItem, lockCategories } from "./master";
 import { postIncoming } from "./stock";
 
@@ -145,8 +145,8 @@ async function load(c: Ctx, id: number, action: PurchaseAction) {
 
 export function createPurchase(actor: SessionUser, input: PurchaseInput) {
   const find = async (k: string) => {
-    const p = await reader(actor).tx.purchaseRequest.findUnique({ where: { clientRequestId: k }, select: { id: true, requesterId: true } });
-    return p && (actor.role === "Admin" || p.requesterId === actor.id) ? p.id : null;
+    const p = await reader(actor).tx.purchaseRequest.findUnique({ where: { clientRequestId: requestKey(actor, k)! }, select: { id: true } });
+    return p?.id ?? null;
   };
   const create = () => write(actor, async (c) => {
     await checkRequest(c, input);
@@ -154,7 +154,7 @@ export function createPurchase(actor: SessionUser, input: PurchaseInput) {
       data: {
         number: await nextNumber(c.tx, "PR", c.today), requesterId: input.requesterId, status: input.submit ? "Pending Approval" : "Draft",
         neededBy: toDate(input.neededBy), reason: input.reason, notes: input.notes, rejectReason: "",
-        clientRequestId: input.clientRequestId || null, lines: { create: lineData(input.lines) },
+        clientRequestId: requestKey(actor, input.clientRequestId), lines: { create: lineData(input.lines) },
       },
     });
     await log(c, input.submit ? "Purchase request submitted" : "Purchase request draft saved", "Purchases", p.number);
@@ -232,6 +232,7 @@ export function receivePurchase(actor: SessionUser, id: number, input: { date: s
     if (!supplier) throw fail("VALIDATION_ERROR", e.fix, { supplierId: t.validation.selectSupplier });
     if (supplier.status !== "Active") throw fail("BUSINESS_RULE_VIOLATION", e.supplierInactive(supplier.name));
     const lines = storedLines(p.lines);
+    if (lines.some((l) => l.newItem)) await lockItemNames(c.tx);
     await checkLines(c, lines);
 
     await lockCategories(c.tx, lines.flatMap((l) => (l.newItem ? [l.newItem.categoryId] : [])));

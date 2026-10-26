@@ -140,8 +140,11 @@ async function allRows<T>(list: (q: Query) => Promise<{ rows: T[]; meta: { total
   }
 }
 
+/** PRD 4.9: dates are real date cells, not text. "YYYY-MM-DD" is a calendar day, so it is kept as UTC midnight. */
+const day = (s: string | null) => (s ? new Date(`${s}T00:00:00Z`) : "");
+
 function workbook(sheet: string, header: string[], rows: unknown[][]): Buffer {
-  const ws = XLSX.utils.aoa_to_sheet([header, ...rows.map((r) => r.map(safeCell))]);
+  const ws = XLSX.utils.aoa_to_sheet([header, ...rows.map((r) => r.map(safeCell))], { cellDates: true, UTC: true, dateNF: "yyyy-mm-dd" });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheet.slice(0, 31));
   return XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -172,12 +175,12 @@ export async function exportReport(c: Ctx, type: string, q: Query) {
   if (type === "movements") {
     const rows = await allRows((p) => movementsReport(c, p), q);
     return workbook(rc.movementsCaption, [rc.colDate, rc.colItem, rc.colType, rc.colChange, rc.colBalance, rc.colUser, rc.colRef],
-      rows.map((r) => [r.date, r.itemName, r.type, r.quantityChange, r.balanceAfter, r.userName, r.number]));
+      rows.map((r) => [day(r.date), r.itemName, r.type, r.quantityChange, r.balanceAfter, r.userName, r.number]));
   }
   if (type === "loans") {
     const rows = await allRows((p) => loansReport(c, p), q);
     return workbook(rc.loansCaption, [rc.colLoan, rc.colBorrower, rc.colItem, rc.colLoanDate, rc.colExpected, rc.colReturned, rc.colStatus],
-      rows.map((r) => [r.number, r.borrowerName, r.summary, r.loanDate, r.expectedReturnDate, r.returnedAt ?? "", r.status]));
+      rows.map((r) => [r.number, r.borrowerName, r.summary, day(r.loanDate), day(r.expectedReturnDate), day(r.returnedAt), r.status]));
   }
   throw fail("NOT_FOUND", t.errors.notFound);
 }
