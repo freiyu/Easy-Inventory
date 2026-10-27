@@ -59,11 +59,11 @@ describe("subcategory management (BR-34)", () => {
 
 describe("item codes and names (BR-31 to BR-33)", () => {
   it("numbers each category and subcategory pair on its own, without gaps or repeats under concurrency", async () => {
-    const area = await admin.ok("POST", "/categories", { name: "GSG", code: "GSG" });
+    const area = await admin.ok("POST", "/categories", { name: "Aula", code: "AUL" });
     const fur = await admin.ok("POST", "/subcategories", { name: "Furnitur", code: "FUR" });
     const made = await Promise.all(Array.from({ length: 6 }, (_, i) => admin.ok("POST", "/items", item(`Kursi ${i}`, area.id, data.subcategoryId))));
-    expect(made.map((m) => m.code).sort()).toEqual(["GSG-ELK-0001", "GSG-ELK-0002", "GSG-ELK-0003", "GSG-ELK-0004", "GSG-ELK-0005", "GSG-ELK-0006"]);
-    expect((await admin.ok("POST", "/items", item("Meja Panjang", area.id, fur.id))).code).toBe("GSG-FUR-0001");
+    expect(made.map((m) => m.code).sort()).toEqual(["AUL-ELK-0001", "AUL-ELK-0002", "AUL-ELK-0003", "AUL-ELK-0004", "AUL-ELK-0005", "AUL-ELK-0006"]);
+    expect((await admin.ok("POST", "/items", item("Meja Panjang", area.id, fur.id))).code).toBe("AUL-FUR-0001");
   });
 
   it("allows the same new-item name in another category but not in the same one", async () => {
@@ -79,7 +79,7 @@ describe("item codes and names (BR-31 to BR-33)", () => {
   });
 
   it("imports a CSV name that exists in another category, and skips one in the same category", async () => {
-    const csv = "name,category,subcategory,unit\nProyektor,Office,ELK,unit\nProyektor,GSG,elk,unit\n";
+    const csv = "name,category,subcategory,unit\nProyektor,Office,ELK,unit\nProyektor,Aula,elk,unit\n";
     const report = await admin.ok("POST", "/items/import/preview", { csv });
     expect(report.rows.map((r: { status: string }) => r.status)).toEqual(["skipped", "ready"]);
   });
@@ -107,10 +107,10 @@ describe("filters and exports", () => {
     const fur = await prisma.subcategory.findUniqueOrThrow({ where: { code: "FUR" } });
     const items = await admin.ok("GET", `/items?subcategoryId=${fur.id}`);
     expect(items.map((i: { name: string; subcategoryName: string }) => [i.name, i.subcategoryName])).toEqual([["Meja Panjang", "Furnitur"]]);
-    expect((await admin.ok("GET", `/reports/stock?subcategoryId=${fur.id}`)).map((i: { code: string }) => i.code)).toEqual(["GSG-FUR-0001"]);
+    expect((await admin.ok("GET", `/reports/stock?subcategoryId=${fur.id}`)).map((i: { code: string }) => i.code)).toEqual(["AUL-FUR-0001"]);
     const file = await admin.get(`/export/items?subcategoryId=${fur.id}`);
     const rows = XLSX.utils.sheet_to_json<unknown[]>(XLSX.read(Buffer.from(file.raw!)).Sheets[XLSX.read(Buffer.from(file.raw!)).SheetNames[0]], { header: 1 });
     expect(rows[0]).toContain("Subcategory");
-    expect(rows[1]).toEqual(expect.arrayContaining(["GSG-FUR-0001", "Meja Panjang", "GSG", "Furnitur"]));
+    expect(rows[1]).toEqual(expect.arrayContaining(["AUL-FUR-0001", "Meja Panjang", "Aula", "Furnitur"]));
   });
 });

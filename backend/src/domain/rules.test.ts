@@ -106,7 +106,7 @@ describe("numbers and codes (BR-23, BR-32)", () => {
   it("formats item codes with 4 digits, more after 9999", () => {
     expect(itemCode("KTR", 7)).toBe("KTR-0007");
     expect(itemCode("KTR", 10000)).toBe("KTR-10000");
-    expect(itemCode("GSG-ELK", 1)).toBe("GSG-ELK-0001"); // v12: category and subcategory pair
+    expect(itemCode("AUL-ELK", 1)).toBe("AUL-ELK-0001"); // v12: category and subcategory pair
   });
 });
 

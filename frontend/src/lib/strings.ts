@@ -426,7 +426,7 @@ export const t = {
     sectionPurchasing: "Purchasing and storage",
     fieldCode: "Item code",
     fieldName: "Item name",
-    codeHint: "Generated automatically from the category and subcategory, for example GSG-ELK-0001.",
+    codeHint: "Generated automatically from the category and subcategory, for example AUL-ELK-0001.",
     codeAuto: "Created when you save",
     openingHint: "Recorded as an adjustment with the reason \"Opening stock\".",
     openingReadOnly: "Stock is read-only. Use a stock transaction to change it.",
@@ -449,7 +449,7 @@ export const t = {
   },
 
   categories: {
-    codeHint: "3 letters, the first part of item codes (GSG in GSG-ELK-0001). Cannot be changed once an item uses it.",
+    codeHint: "3 letters, the first part of item codes (AUL in AUL-ELK-0001). Cannot be changed once an item uses it.",
     title: "Categories",
     description: "Areas (buildings or rooms) and the kinds of item inside them.",
     tabCategories: "Categories",
@@ -478,7 +478,7 @@ export const t = {
     deleted: "Category deleted.",
   },
   subcategories: {
-    codeHint: "3 letters, the middle part of item codes (ELK in GSG-ELK-0001). Cannot be changed once an item uses it.",
+    codeHint: "3 letters, the middle part of item codes (ELK in AUL-ELK-0001). Cannot be changed once an item uses it.",
     add: "+ Add subcategory",
     searchPlaceholder: "Search subcategories",
     caption: "Subcategories",
