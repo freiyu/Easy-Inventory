@@ -56,6 +56,7 @@ export const supplierSchema = z.object({
 export const itemSchema = z.object({
   name: text(f.name, 150),
   categoryId: id(v.selectCategory),
+  subcategoryId: id(v.selectSubcategory),
   unit: text(f.unit, 20).refine((u) => UNITS.includes(u), v.selectUnit),
   openingStock: whole(f.openingStock, 0).default(0),
   minimumStock: whole(f.minimumStock, 0),
@@ -111,7 +112,7 @@ export const returnSchema = z.object({ returnDate: date(f.returnDate), notes: op
 const purchaseLine = z.object({
   itemId: id(v.selectItem).nullable().default(null),
   quantity: whole(f.quantity, 1),
-  newItem: z.object({ name: text(f.itemName, 150), categoryId: id(v.selectCategory), unit: z.string() }).optional(),
+  newItem: z.object({ name: text(f.itemName, 150), categoryId: id(v.selectCategory), subcategoryId: id(v.selectSubcategory), unit: z.string() }).optional(),
 });
 export const purchaseSchema = z.object({
   requesterId: id(v.selectRequester),

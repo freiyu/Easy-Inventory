@@ -50,6 +50,7 @@ export const changePasswordSchema = z
 export const itemSchema = z.object({
   name: text(f.name),
   categoryId: idField(v.selectCategory),
+  subcategoryId: idField(v.selectSubcategory),
   unit: text(f.unit),
   openingStock: wholeNumber(f.openingStock, 0),
   minimumStock: wholeNumber(f.minimumStock, 0),
@@ -138,6 +139,7 @@ const purchaseLine = z
     quantity: wholeNumber(f.quantity, 1),
     name: z.string().trim(),
     categoryId: z.string(),
+    subcategoryId: z.string(),
     unit: z.string(),
   })
   .superRefine((l, ctx) => {
@@ -147,11 +149,12 @@ const purchaseLine = z
     if (!l.isNew) return need("itemId", !!l.itemId, v.selectItem);
     need("name", !!l.name, v.required(f.itemName));
     need("categoryId", !!l.categoryId, v.selectCategory);
+    need("subcategoryId", !!l.subcategoryId, v.selectSubcategory);
     need("unit", !!l.unit, v.selectUnit);
   })
   .transform((l): PurchaseLine =>
     l.isNew
-      ? { itemId: null, quantity: l.quantity, newItem: { name: l.name, categoryId: Number(l.categoryId), unit: l.unit } }
+      ? { itemId: null, quantity: l.quantity, newItem: { name: l.name, categoryId: Number(l.categoryId), subcategoryId: Number(l.subcategoryId), unit: l.unit } }
       : { itemId: Number(l.itemId), quantity: l.quantity },
   );
 

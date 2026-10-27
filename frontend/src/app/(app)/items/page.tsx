@@ -27,9 +27,10 @@ export default function ItemsPage() {
   const router = useRouter();
   const user = useCurrentUser();
   const isAdmin = user?.role === "Admin";
-  const lp = useListParams({ sort: "name:asc", filters: { categoryId: ALL, stockStatus: ALL, supplierId: ALL, location: ALL, status: "Active" } });
+  const lp = useListParams({ sort: "name:asc", filters: { categoryId: ALL, subcategoryId: ALL, stockStatus: ALL, supplierId: ALL, location: ALL, status: "Active" } });
   const list = useGet<ItemDto[]>("/items", lp.params);
   const categories = useGet<CategoryOption[]>("/categories", { status: "Active", pageSize: 500, sort: "name:asc" });
+  const subcategories = useGet<CategoryOption[]>("/subcategories", { status: "Active", pageSize: 500, sort: "name:asc" });
   const suppliers = useGet<SupplierDto[]>(isAdmin ? "/suppliers" : null, { pageSize: 500, sort: "name:asc" });
   const locations = useGet<string[]>(isAdmin ? "/items/locations" : null);
   const [pending, setPending] = useState<Pending>(null);
@@ -49,6 +50,7 @@ export default function ItemsPage() {
     { id: "code", header: t.items.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortable: true, hideOnMobile: true },
     { id: "name", header: t.items.colName, cell: nameCell, sortable: true, primary: true },
     { id: "category", header: t.items.colCategory, cell: (i) => i.categoryName, sortable: true },
+    { id: "subcategory", header: t.items.colSubcategory, cell: (i) => i.subcategoryName, sortable: true, hideOnMobile: true },
     { id: "stock", header: t.items.colStock, cell: (i) => <>{formatNumber(i.currentStock ?? 0)} <span className="text-muted-foreground">{i.unit}</span></>, numeric: true, sortable: true },
     { id: "minimum", header: t.items.colMinimum, cell: (i) => formatNumber(i.minimumStock ?? 0), numeric: true, sortable: true, hideOnMobile: true },
     { id: "supplier", header: t.items.colSupplier, cell: (i) => <span className="block max-w-44 truncate" title={i.supplierName}>{i.supplierName}</span>, sortable: true, hideOnMobile: true },
@@ -58,6 +60,7 @@ export default function ItemsPage() {
   const staffColumns: Column<ItemDto>[] = [
     { id: "name", header: t.items.colName, cell: nameCell, sortable: true },
     { id: "category", header: t.items.colCategory, cell: (i) => i.categoryName, sortable: true },
+    { id: "subcategory", header: t.items.colSubcategory, cell: (i) => i.subcategoryName, sortable: true, hideOnMobile: true },
     { id: "unit", header: t.items.colUnit, cell: (i) => i.unit },
     { id: "availability", header: t.items.colAvailability, cell: stock, sortable: true },
   ];
@@ -99,6 +102,7 @@ export default function ItemsPage() {
       <FilterBar dirty={lp.dirty} onClear={lp.clear}>
         <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.items.searchPlaceholder} />
         <SelectField className="w-48" aria-label={t.fields.category} value={filters.categoryId} onChange={(v) => lp.set({ categoryId: v })} options={[{ value: ALL, label: t.items.allCategories }, ...(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
+        <SelectField className="w-48" aria-label={t.fields.subcategory} value={filters.subcategoryId} onChange={(v) => lp.set({ subcategoryId: v })} options={[{ value: ALL, label: t.items.allSubcategories }, ...(subcategories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
         <SelectField className="w-52" aria-label={isAdmin ? t.items.stockStatusFilter : t.items.availabilityFilter} value={filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: isAdmin ? t.items.allStockStatus : t.items.allAvailability }, ...stockOptions]} />
         {isAdmin && (
           <>

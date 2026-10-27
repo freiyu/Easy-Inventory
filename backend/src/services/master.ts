@@ -1,4 +1,4 @@
-// Categories, suppliers and items (PRD 4.2 to 4.4, 4.10, BR-01, BR-14, BR-24, BR-32, BR-33).
+// Categories, subcategories, suppliers and items (PRD 4.2 to 4.4, 4.10, BR-01, BR-14, BR-24, BR-32 to BR-34).
 import { prisma, Prisma, type Tx } from "../db";
 import { parseCsv, UNCLOSED_QUOTE } from "../domain/csv";
 import { availableForLoan, itemCode, stockStatus } from "../domain/rules";
@@ -7,21 +7,29 @@ import { filterId, filterValue, paged, searchRows, type Query } from "../list";
 import type { ItemInput } from "../schemas";
 import { t, UNITS, type StockStatus, type StockTxType } from "../shared";
 import { createBackup } from "./backup";
-import { iso, isAdmin, lockItemNames, log, num, postTransaction, reservedByItem, write, ymd, type Ctx, type SessionUser } from "./core";
+import { counter, iso, isAdmin, lockItemNames, log, num, postTransaction, reservedByItem, write, ymd, type Ctx, type SessionUser } from "./core";
 
 const e = t.errors;
 const STOCK_ORDER = { Out: 0, Low: 1, Safe: 2 };
 
-// ---------------------------------------------------------------- categories
+// -------------------------------------------------- categories and subcategories
+// Categories (areas, PRD 4.3) and subcategories (kinds of item, 4.3A, BR-34) have the same columns and rules.
 
-export async function listCategories(c: Ctx, q: Query): Promise<Paged<unknown>> {
+export type Group = "category" | "subcategory";
+const GROUP = {
+  category: { module: "Categories", label: "Category", codeTaken: e.categoryCodeTaken, inUse: e.categoryInUse },
+  subcategory: { module: "Subcategories", label: "Subcategory", codeTaken: e.subcategoryCodeTaken, inUse: e.subcategoryInUse },
+} as const;
+const table = (tx: Tx, g: Group) => tx[g] as unknown as Tx["category"]; // same columns, so one delegate type serves both
+
+export async function listCategories(c: Ctx, q: Query, g: Group = "category"): Promise<Paged<unknown>> {
   if (!isAdmin(c)) {
-    // Staff: names of active categories only, for the new-item lines of a purchase request (PRD 3.2).
-    const rows = await c.tx.category.findMany({ where: { status: "Active" }, select: { id: true, name: true } });
+    // Staff: names of active entries only, for the new-item lines of a purchase request (PRD 3.2).
+    const rows = await table(c.tx, g).findMany({ where: { status: "Active" }, select: { id: true, name: true } });
     return paged(rows, q, { name: (r) => r.name }, "name:asc");
   }
   const status = filterValue(q, "status");
-  const cats = await c.tx.category.findMany({ where: status ? { status } : {}, include: { _count: { select: { items: true } } } });
+  const cats = await table(c.tx, g).findMany({ where: status ? { status } : {}, include: { _count: { select: { items: true } } } });
   const rows = searchRows(cats.map(categoryDto), q, (r) => [r.name, r.code, r.description]);
   return paged(rows, q, { name: (r) => r.name, code: (r) => r.code, items: (r) => r.itemCount, status: (r) => r.status }, "name:asc");
 }
@@ -31,48 +39,49 @@ const categoryDto = (x: CategoryRow) => ({
   id: x.id, name: x.name, code: x.code, description: x.description, status: x.status, createdAt: iso(x.createdAt), itemCount: x._count.items,
 });
 
-export function saveCategory(actor: SessionUser, id: number | null, input: { name: string; code: string; description: string; status: string }) {
+export function saveCategory(actor: SessionUser, id: number | null, input: { name: string; code: string; description: string; status: string }, g: Group = "category") {
   return write(actor, async (c) => {
-    const current = id === null ? null : await c.tx.category.findUnique({ where: { id } });
+    const tbl = table(c.tx, g);
+    const current = id === null ? null : await tbl.findUnique({ where: { id } });
     if (id !== null && !current) throw notFound();
     // Names and codes are unique without regard to case (BR-01); the database collation compares that way too.
-    if (await c.tx.category.findFirst({ where: { name: input.name, ...(id ? { NOT: { id } } : {}) } })) {
+    if (await tbl.findFirst({ where: { name: input.name, ...(id ? { NOT: { id } } : {}) } })) {
       throw fail("CONFLICT", e.nameTaken, { name: e.nameTaken });
     }
-    if (await c.tx.category.findFirst({ where: { code: input.code, ...(id ? { NOT: { id } } : {}) } })) {
-      throw fail("CONFLICT", e.categoryCodeTaken, { code: e.categoryCodeTaken });
+    if (await tbl.findFirst({ where: { code: input.code, ...(id ? { NOT: { id } } : {}) } })) {
+      throw fail("CONFLICT", GROUP[g].codeTaken, { code: GROUP[g].codeTaken });
     }
-    // BR-32: once an item code was made from this category, its code is fixed.
+    // BR-32, BR-34: once an item code was made with it, its code is fixed.
     if (current && current.code !== input.code && current.nextItemNumber > 1) {
       throw fail("BUSINESS_RULE_VIOLATION", e.categoryCodeLocked, { code: e.categoryCodeLocked });
     }
     const data = { name: input.name, code: input.code, description: input.description, status: input.status };
     const saved = current
-      ? await c.tx.category.update({ where: { id: current.id }, data, include: { _count: { select: { items: true } } } })
-      : await c.tx.category.create({ data, include: { _count: { select: { items: true } } } });
-    await log(c, current ? "Category updated" : "Category created", "Categories", saved.name);
+      ? await tbl.update({ where: { id: current.id }, data, include: { _count: { select: { items: true } } } })
+      : await tbl.create({ data, include: { _count: { select: { items: true } } } });
+    await log(c, `${GROUP[g].label} ${current ? "updated" : "created"}`, GROUP[g].module, saved.name);
     return categoryDto(saved);
   });
 }
 
-export function setCategoryStatus(actor: SessionUser, id: number, status: "Active" | "Inactive") {
+export function setCategoryStatus(actor: SessionUser, id: number, status: "Active" | "Inactive", g: Group = "category") {
   return write(actor, async (c) => {
-    const cat = await c.tx.category.findUnique({ where: { id } });
+    const cat = await table(c.tx, g).findUnique({ where: { id } });
     if (!cat) throw notFound();
-    await c.tx.category.update({ where: { id }, data: { status } });
-    await log(c, status === "Active" ? "Category activated" : "Category deactivated", "Categories", cat.name);
+    await table(c.tx, g).update({ where: { id }, data: { status } });
+    await log(c, `${GROUP[g].label} ${status === "Active" ? "activated" : "deactivated"}`, GROUP[g].module, cat.name);
     return null;
   });
 }
 
-/** BR-14: only an unused category can be deleted. One that ever issued item codes is kept so its numbers are never reused (BR-32). */
-export function deleteCategory(actor: SessionUser, id: number) {
+/** BR-14: only an unused entry can be deleted. One that ever issued item codes is kept so its numbers are never reused (BR-32). */
+export function deleteCategory(actor: SessionUser, id: number, g: Group = "category") {
   return write(actor, async (c) => {
-    const cat = await c.tx.category.findUnique({ where: { id }, include: { _count: { select: { items: true, purchaseLines: true } } } });
+    const cat = await table(c.tx, g).findUnique({ where: { id }, include: { _count: { select: { items: true, purchaseLines: true } } } });
     if (!cat) throw notFound();
-    if (cat._count.items > 0 || cat._count.purchaseLines > 0 || cat.nextItemNumber > 1) throw fail("CONFLICT", e.categoryInUse);
-    await c.tx.category.delete({ where: { id } });
-    await log(c, "Category deleted", "Categories", cat.name);
+    if (cat._count.items > 0 || cat._count.purchaseLines > 0 || cat.nextItemNumber > 1) throw fail("CONFLICT", GROUP[g].inUse);
+    await table(c.tx, g).delete({ where: { id } });
+    await log(c, `${GROUP[g].label} deleted`, GROUP[g].module, cat.name);
     return null;
   });
 }
@@ -125,16 +134,17 @@ export function deleteSupplier(actor: SessionUser, id: number) {
 // --------------------------------------------------------------------- items
 
 type ItemRow = {
-  id: number; code: string; name: string; categoryId: number; unit: string; currentStock: number; minimumStock: number;
+  id: number; code: string; name: string; categoryId: number; subcategoryId: number | null; unit: string; currentStock: number; minimumStock: number;
   lastPurchasePrice: unknown; supplierId: number | null; location: string; status: string; notes: string; createdAt: Date; updatedAt: Date;
-  category: { name: string }; supplier: { name: string } | null;
+  category: { name: string }; subcategory: { name: string } | null; supplier: { name: string } | null;
 };
-const itemInclude = { category: { select: { name: true } }, supplier: { select: { name: true } } } as const;
+const itemInclude = { category: { select: { name: true } }, subcategory: { select: { name: true } }, supplier: { select: { name: true } } } as const;
 
 /** Every role gets status and availability (BR-07, BR-25); only Admin gets codes, stock numbers, price and supplier (PRD 3.2, 6.6). */
 export function itemDto(admin: boolean, i: ItemRow, reserved: number) {
   const base = {
-    id: i.id, name: i.name, categoryId: i.categoryId, categoryName: i.category.name, unit: i.unit, status: i.status,
+    id: i.id, name: i.name, categoryId: i.categoryId, categoryName: i.category.name,
+    subcategoryId: i.subcategoryId, subcategoryName: i.subcategory?.name ?? "-", unit: i.unit, status: i.status,
     stockStatus: stockStatus(i.currentStock, i.minimumStock) as StockStatus,
     availableForLoan: availableForLoan(i.currentStock, reserved),
   };
@@ -159,6 +169,8 @@ export async function listItems(c: Ctx, q: Query) {
   if (admin && status) where.status = status;
   const categoryId = filterId(q, "categoryId");
   if (categoryId) where.categoryId = categoryId;
+  const subcategoryId = filterId(q, "subcategoryId");
+  if (subcategoryId) where.subcategoryId = subcategoryId;
   const supplierId = filterId(q, "supplierId");
   if (admin && supplierId) where.supplierId = supplierId;
   const location = filterValue(q, "location");
@@ -168,7 +180,7 @@ export async function listItems(c: Ctx, q: Query) {
   if (stock) rows = rows.filter((r) => r.stockStatus === stock);
   rows = searchRows(rows, q, (i) => (admin ? [i.name, i.code, i.location] : [i.name]));
   return paged(rows, q, {
-    code: (r) => r.code ?? "", name: (r) => r.name, category: (r) => r.categoryName, unit: (r) => r.unit,
+    code: (r) => r.code ?? "", name: (r) => r.name, category: (r) => r.categoryName, subcategory: (r) => r.subcategoryName, unit: (r) => r.unit,
     stock: (r) => r.currentStock ?? 0, minimum: (r) => r.minimumStock ?? 0, supplier: (r) => r.supplierName ?? "",
     location: (r) => r.location ?? "", status: (r) => STOCK_ORDER[r.stockStatus], availability: (r) => STOCK_ORDER[r.stockStatus],
   }, "name:asc");
@@ -199,31 +211,42 @@ export async function itemLocations(c: Ctx) {
   return rows.map((r) => r.location);
 }
 
-type Refs = { categoryId: number; supplierId: number | null };
+type Refs = { categoryId: number; subcategoryId: number | null; supplierId: number | null };
 
-/** The category and supplier must exist and be active (PRD 4.3, 4.4); an item may keep the one it already has. */
+/** The category, subcategory and supplier must exist and be active (PRD 4.3, 4.3A, 4.4); an item may keep the ones it already has. */
 async function checkItemRefs(tx: Tx, input: Refs, current?: Refs) {
   const cat = await tx.category.findUnique({ where: { id: input.categoryId } });
   if (!cat) throw fail("VALIDATION_ERROR", e.fix, { categoryId: t.validation.selectCategory });
   if (cat.status !== "Active" && cat.id !== current?.categoryId) throw fail("BUSINESS_RULE_VIOLATION", e.fix, { categoryId: e.categoryInactive(cat.name) });
+  const sub = input.subcategoryId === null ? null : await tx.subcategory.findUnique({ where: { id: input.subcategoryId } });
+  if (!sub) throw fail("VALIDATION_ERROR", e.fix, { subcategoryId: t.validation.selectSubcategory });
+  if (sub.status !== "Active" && sub.id !== current?.subcategoryId) throw fail("BUSINESS_RULE_VIOLATION", e.fix, { subcategoryId: e.subcategoryInactive(sub.name) });
   if (input.supplierId === null) return;
   const sup = await tx.supplier.findUnique({ where: { id: input.supplierId } });
   if (!sup) throw fail("VALIDATION_ERROR", e.fix, { supplierId: t.validation.selectSupplier });
   if (sup.status !== "Active" && sup.id !== current?.supplierId) throw fail("BUSINESS_RULE_VIOLATION", e.fix, { supplierId: e.supplierInactive(sup.name) });
 }
 
-/** Locks category counters in id order before creating several items, so two writers never wait on each other in a circle (PRD 7.4). */
-export async function lockCategories(tx: Tx, ids: number[]) {
-  const sorted = [...new Set(ids)].sort((a, b) => a - b);
-  if (sorted.length) await tx.$queryRaw`SELECT id FROM categories WHERE id IN (${Prisma.join(sorted)}) ORDER BY id FOR UPDATE`;
+/**
+ * Locks categories, then subcategories, each in id order, before items are created or moved, so two writers never wait on
+ * each other in a circle (PRD 7.4). Every writer that creates or edits items takes them in this order.
+ */
+export async function lockCategories(tx: Tx, ids: number[], subIds: number[] = []) {
+  const order = (xs: number[]) => [...new Set(xs)].sort((a, b) => a - b);
+  const cats = order(ids), subs = order(subIds);
+  if (cats.length) await tx.$queryRaw`SELECT id FROM categories WHERE id IN (${Prisma.join(cats)}) ORDER BY id FOR UPDATE`;
+  if (subs.length) await tx.$queryRaw`SELECT id FROM subcategories WHERE id IN (${Prisma.join(subs)}) ORDER BY id FOR UPDATE`;
 }
 
-/** BR-32: the code comes from the category's own counter; the row update holds the lock until commit. */
+/** BR-32: `<category>-<subcategory>-<number>`, the number from the pair's own counter (locked until commit). */
 export async function insertItem(c: Ctx, input: ItemInput) {
-  const cat = await c.tx.category.update({ where: { id: input.categoryId }, data: { nextItemNumber: { increment: 1 } }, select: { code: true, nextItemNumber: true } });
+  // The issued counts mark both codes as used (they lock the codes, BR-32, BR-34).
+  const cat = await c.tx.category.update({ where: { id: input.categoryId }, data: { nextItemNumber: { increment: 1 } }, select: { code: true } });
+  const sub = await c.tx.subcategory.update({ where: { id: input.subcategoryId }, data: { nextItemNumber: { increment: 1 } }, select: { code: true } });
+  const prefix = `${cat.code}-${sub.code}`;
   const item = await c.tx.item.create({
     data: {
-      code: itemCode(cat.code, cat.nextItemNumber - 1), name: input.name, categoryId: input.categoryId, unit: input.unit,
+      code: itemCode(prefix, await counter(c.tx, `item:${prefix}`)), name: input.name, categoryId: input.categoryId, subcategoryId: input.subcategoryId, unit: input.unit,
       minimumStock: input.minimumStock, lastPurchasePrice: input.lastPurchasePrice, supplierId: input.supplierId,
       location: input.location, status: input.status, notes: input.notes,
     },
@@ -243,18 +266,18 @@ export function createItem(actor: SessionUser, input: ItemInput) {
   });
 }
 
-/** BR-32: the code never changes, even when the category does. Stock is changed only by transactions (BR-02). */
+/** BR-32: the code never changes, even when the category or subcategory does. Stock is changed only by transactions (BR-02). */
 export function updateItem(actor: SessionUser, id: number, input: ItemInput) {
   return write(actor, async (c) => {
-    // Category before item, the same order as purchase receive and import (PRD 7.4: no deadlock).
-    await lockCategories(c.tx, [input.categoryId]);
+    // Category and subcategory before item, the same order as purchase receive and import (PRD 7.4: no deadlock).
+    await lockCategories(c.tx, [input.categoryId], [input.subcategoryId]);
     const item = await c.tx.item.findUnique({ where: { id } });
     if (!item) throw notFound();
     await checkItemRefs(c.tx, input, item);
     await c.tx.item.update({
       where: { id },
       data: {
-        name: input.name, categoryId: input.categoryId, unit: input.unit, minimumStock: input.minimumStock, lastPurchasePrice: input.lastPurchasePrice,
+        name: input.name, categoryId: input.categoryId, subcategoryId: input.subcategoryId, unit: input.unit, minimumStock: input.minimumStock, lastPurchasePrice: input.lastPurchasePrice,
         supplierId: input.supplierId, location: input.location, status: input.status, notes: input.notes,
       },
     });
@@ -290,8 +313,8 @@ export function deleteItem(actor: SessionUser, id: number) {
 
 export const IMPORT_MAX_ROWS = 500;
 export const IMPORT_MAX_BYTES = 1_000_000;
-const IMPORT_REQUIRED = ["name", "category", "unit"] as const;
-type ImportColumn = "name" | "category" | "unit" | "opening_stock" | "minimum_stock" | "price" | "supplier" | "location" | "notes";
+const IMPORT_REQUIRED = ["name", "category", "subcategory", "unit"] as const;
+type ImportColumn = "name" | "category" | "subcategory" | "unit" | "opening_stock" | "minimum_stock" | "price" | "supplier" | "location" | "notes";
 const lc = (s: string) => s.trim().toLowerCase();
 const wholeOrNull = (v: string): number | null => (v.trim() === "" ? 0 : /^\d+$/.test(v.trim()) && Number(v) <= 1_000_000_000 ? Number(v.trim()) : null);
 
@@ -301,6 +324,7 @@ export interface ImportRow {
   message: string;
   name: string;
   category: string;
+  subcategory: string;
   unit: string;
   openingStock: number;
   minimumStock: number;
@@ -310,6 +334,7 @@ export interface ImportRow {
   notes: string;
   /** Resolved ids for a ready row (not sent to the client). */
   categoryId?: number;
+  subcategoryId?: number;
   supplierId?: number | null;
 }
 
@@ -332,20 +357,23 @@ export async function previewImport(tx: Tx, csv: string) {
   if (data.length === 0) throw bad(e.importNoRows);
   if (data.length > IMPORT_MAX_ROWS) throw bad(e.importTooManyRows(IMPORT_MAX_ROWS));
 
-  const [cats, sups, names] = await Promise.all([
+  const [cats, subs, sups, names] = await Promise.all([
     tx.category.findMany({ select: { id: true, name: true, status: true } }),
+    tx.subcategory.findMany({ select: { id: true, name: true, code: true, status: true } }),
     tx.supplier.findMany({ select: { id: true, name: true, status: true } }),
-    tx.item.findMany({ select: { name: true } }),
+    tx.item.findMany({ select: { name: true, categoryId: true } }),
   ]);
   const col = (cells: string[], name: ImportColumn) => {
     const i = header.indexOf(name);
     return i < 0 ? "" : (cells[i] ?? "").trim();
   };
-  const seen = new Set(names.map((i) => lc(i.name)));
+  // v12 (BR-33): a name is a duplicate only within the same category.
+  const nameKey = (categoryId: number, name: string) => `${categoryId}:${lc(name)}`;
+  const seen = new Set(names.map((i) => nameKey(i.categoryId, i.name)));
   const rows: ImportRow[] = data.map((cells, idx) => {
     const row: ImportRow = {
       line: idx + 2, status: "ready", message: "",
-      name: col(cells, "name"), category: col(cells, "category"), unit: col(cells, "unit"),
+      name: col(cells, "name"), category: col(cells, "category"), subcategory: col(cells, "subcategory"), unit: col(cells, "unit"),
       openingStock: 0, minimumStock: 0, price: 0, supplier: col(cells, "supplier"), location: col(cells, "location"), notes: col(cells, "notes"),
     };
     const problem = (message: string) => { row.status = "error"; row.message = message; return row; };
@@ -355,6 +383,11 @@ export async function previewImport(tx: Tx, csv: string) {
     const cat = cats.find((x) => lc(x.name) === lc(row.category));
     if (!cat) return problem(e.importUnknownCategory(row.category));
     if (cat.status !== "Active") return problem(e.categoryInactive(cat.name));
+    if (!row.subcategory) return problem(t.validation.required(t.fields.subcategory));
+    // Code first, then name, so a name that looks like another entry's code can never pick the wrong one.
+    const sub = subs.find((x) => lc(x.code) === lc(row.subcategory)) ?? subs.find((x) => lc(x.name) === lc(row.subcategory));
+    if (!sub) return problem(e.importUnknownSubcategory(row.subcategory));
+    if (sub.status !== "Active") return problem(e.subcategoryInactive(sub.name));
     if (!row.unit) return problem(t.validation.required(t.fields.unit));
     const unit = UNITS.find((u) => lc(u) === lc(row.unit));
     if (!unit) return problem(e.importUnknownUnit(row.unit));
@@ -376,9 +409,10 @@ export async function previewImport(tx: Tx, csv: string) {
       supplierId = sup.id;
     }
     if (row.location.length > 100) return problem(t.validation.tooLong(t.fields.location, 100));
-    if (seen.has(lc(row.name))) { row.status = "skipped"; row.message = e.importDuplicate; return row; }
-    seen.add(lc(row.name));
+    if (seen.has(nameKey(cat.id, row.name))) { row.status = "skipped"; row.message = e.importDuplicate; return row; }
+    seen.add(nameKey(cat.id, row.name));
     row.categoryId = cat.id;
+    row.subcategoryId = sub.id;
     row.supplierId = supplierId;
     return row;
   });
@@ -387,7 +421,7 @@ export async function previewImport(tx: Tx, csv: string) {
 }
 
 const publicReport = (r: Awaited<ReturnType<typeof previewImport>>) => ({
-  ...r, rows: r.rows.map(({ categoryId: _c, supplierId: _s, ...row }) => row),
+  ...r, rows: r.rows.map(({ categoryId: _c, subcategoryId: _sc, supplierId: _s, ...row }) => row),
 });
 
 export async function importPreview(c: Ctx, csv: string) {
@@ -403,11 +437,12 @@ export async function importConfirm(actor: SessionUser, csv: string) {
     await lockItemNames(c.tx);
     const pre = await previewImport(c.tx, csv); // the data may have changed since the check above
     if (pre.ready === 0) throw fail("BUSINESS_RULE_VIOLATION", e.importNothing);
-    await lockCategories(c.tx, pre.rows.flatMap((r) => (r.categoryId ? [r.categoryId] : [])));
+    const ready = pre.rows.filter((r) => r.status === "ready");
+    await lockCategories(c.tx, ready.map((r) => r.categoryId!), ready.map((r) => r.subcategoryId!));
     for (const row of pre.rows) {
       if (row.status !== "ready") continue;
       await insertItem(c, {
-        name: row.name, categoryId: row.categoryId!, unit: row.unit, openingStock: row.openingStock, minimumStock: row.minimumStock,
+        name: row.name, categoryId: row.categoryId!, subcategoryId: row.subcategoryId!, unit: row.unit, openingStock: row.openingStock, minimumStock: row.minimumStock,
         lastPurchasePrice: row.price, supplierId: row.supplierId ?? null, location: row.location, status: "Active", notes: row.notes,
       });
       row.status = "imported";

@@ -72,7 +72,7 @@ describe("purchase requests", () => {
   it("approves without touching stock and receives once, creating the new item with a code", async () => {
     const pr = await staff.ok("POST", "/purchase-requests", request([
       { itemId: data.itemIds[0], quantity: 2 },
-      { itemId: null, quantity: 5, newItem: { name: "Kabel HDMI", categoryId: data.categoryId, unit: "pcs" } },
+      { itemId: null, quantity: 5, newItem: { name: "Kabel HDMI", categoryId: data.categoryId, subcategoryId: data.subcategoryId, unit: "pcs" } },
     ]));
     expect((await staff.ok("GET", `/purchase-requests/${pr.id}`))).not.toHaveProperty("lines.0.unitPrice");
     await admin.ok("POST", `/purchase-requests/${pr.id}/approve`);
@@ -80,14 +80,14 @@ describe("purchase requests", () => {
     const [r1, r2] = await Promise.all([admin.post(`/purchase-requests/${pr.id}/receive`, receive(2)), admin.post(`/purchase-requests/${pr.id}/receive`, receive(2))]);
     expect([r1.status, r2.status].sort()).toEqual([200, 422]);
     const created = await prisma.item.findFirstOrThrow({ where: { name: "Kabel HDMI" } });
-    expect(created).toMatchObject({ code: "OFF-0002", currentStock: 5, minimumStock: 2 });
+    expect(created).toMatchObject({ code: "OFF-ELK-0002", currentStock: 5, minimumStock: 2, subcategoryId: data.subcategoryId });
     expect(await stockOf(data.itemIds[0])).toBe(5);
     expect(await prisma.stockTransaction.count({ where: { type: "IN" } })).toBe(1);
     expect(await ledgerMismatches()).toEqual([]);
   });
 
   it("creates a new item name only once when two requests with that name are received at the same time", async () => {
-    const line = [{ itemId: null, quantity: 1, newItem: { name: "Webcam", categoryId: data.categoryId, unit: "pcs" } }];
+    const line = [{ itemId: null, quantity: 1, newItem: { name: "Webcam", categoryId: data.categoryId, subcategoryId: data.subcategoryId, unit: "pcs" } }];
     const a = await staff.ok("POST", "/purchase-requests", request(line));
     const b = await staff.ok("POST", "/purchase-requests", request(line));
     await admin.ok("POST", `/purchase-requests/${a.id}/approve`);

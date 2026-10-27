@@ -14,7 +14,7 @@ export interface PurchaseLineDto {
   itemName: string;
   unit: string;
   quantity: number;
-  newItem?: { name: string; categoryId: number; categoryName: string; unit: string };
+  newItem?: { name: string; categoryId: number; categoryName: string; subcategoryId: number | null; subcategoryName: string; unit: string };
   // Admin only (the server leaves these out for Staff, BR-16):
   currentStock?: number;
   minimumStock?: number;

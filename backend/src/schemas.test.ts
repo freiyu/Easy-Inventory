@@ -14,10 +14,10 @@ const fields = (schema: Parameters<typeof parse>[0], raw: unknown) => {
 };
 
 describe("validation (PRD 6.5)", () => {
-  it("item: name, category, unit required; numbers whole and not negative", () => {
+  it("item: name, category, subcategory, unit required; numbers whole and not negative", () => {
     const f = fields(itemSchema, { name: " ", categoryId: 0, unit: "", minimumStock: -1, lastPurchasePrice: 1.5 })!;
-    expect(Object.keys(f).sort()).toEqual(["categoryId", "lastPurchasePrice", "minimumStock", "name", "unit"]);
-    expect(fields(itemSchema, { name: "Pen", categoryId: 1, unit: "pcs", minimumStock: 0, lastPurchasePrice: 0 })).toBeNull();
+    expect(Object.keys(f).sort()).toEqual(["categoryId", "lastPurchasePrice", "minimumStock", "name", "subcategoryId", "unit"]);
+    expect(fields(itemSchema, { name: "Pen", categoryId: 1, subcategoryId: 1, unit: "pcs", minimumStock: 0, lastPurchasePrice: 0 })).toBeNull();
   });
   it("category: code is exactly 3 letters and is stored in capitals", () => {
     expect(fields(categorySchema, { name: "Kantor", code: "KT1" })).toHaveProperty("code");

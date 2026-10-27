@@ -57,13 +57,15 @@ for (const kind of KINDS) {
   api.post(`/items/:id/${kind}`, admin, async (req, res) => send(res, await m.setItemStatus(me(req), id(req), status(kind))));
 }
 
-// Categories (Staff read active names only)
-api.get("/categories", async (req, res) => sendList(res, await m.listCategories(ctx(req), q(req))));
-api.post("/categories", admin, async (req, res) => send(res, await m.saveCategory(me(req), null, parse(s.categorySchema, req.body)), 201));
-api.put("/categories/:id", admin, async (req, res) => send(res, await m.saveCategory(me(req), id(req), parse(s.categorySchema, req.body))));
-api.delete("/categories/:id", admin, async (req, res) => send(res, await m.deleteCategory(me(req), id(req))));
-for (const kind of KINDS) {
-  api.post(`/categories/:id/${kind}`, admin, async (req, res) => send(res, await m.setCategoryStatus(me(req), id(req), status(kind))));
+// Categories and subcategories (v12, PRD 4.3A): same endpoints and rules; Staff read active names only
+for (const [path, g] of [["/categories", "category"], ["/subcategories", "subcategory"]] as const) {
+  api.get(path, async (req, res) => sendList(res, await m.listCategories(ctx(req), q(req), g)));
+  api.post(path, admin, async (req, res) => send(res, await m.saveCategory(me(req), null, parse(s.categorySchema, req.body), g), 201));
+  api.put(`${path}/:id`, admin, async (req, res) => send(res, await m.saveCategory(me(req), id(req), parse(s.categorySchema, req.body), g)));
+  api.delete(`${path}/:id`, admin, async (req, res) => send(res, await m.deleteCategory(me(req), id(req), g)));
+  for (const kind of KINDS) {
+    api.post(`${path}/:id/${kind}`, admin, async (req, res) => send(res, await m.setCategoryStatus(me(req), id(req), status(kind), g)));
+  }
 }
 
 // Suppliers

@@ -54,14 +54,16 @@ function DateRange({ lp }: { lp: ListState }) {
 }
 
 function StockReport() {
-  const lp = useListParams({ sort: "code:asc", filters: { categoryId: ALL, stockStatus: ALL } });
+  const lp = useListParams({ sort: "code:asc", filters: { categoryId: ALL, subcategoryId: ALL, stockStatus: ALL } });
   const list = useGet<StockReportRow[]>("/reports/stock", lp.params);
   const categories = useGet<CategoryOption[]>("/categories", { status: "Active", pageSize: 500, sort: "name:asc" });
-  const clear = () => clearTab(lp, ["categoryId", "stockStatus"]);
+  const subcategories = useGet<CategoryOption[]>("/subcategories", { status: "Active", pageSize: 500, sort: "name:asc" });
+  const clear = () => clearTab(lp, ["categoryId", "subcategoryId", "stockStatus"]);
   const columns: Column<StockReportRow>[] = [
     { id: "code", header: t.reports.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortable: true },
     { id: "name", header: t.reports.colItem, cell: (i) => <Link href={`/items/view?id=${i.id}`} className="font-medium hover:text-link hover:underline">{i.name}</Link>, sortable: true },
     { id: "category", header: t.reports.colCategory, cell: (i) => i.categoryName, sortable: true, hideOnMobile: true },
+    { id: "subcategory", header: t.fields.subcategory, cell: (i) => i.subcategoryName, sortable: true, hideOnMobile: true },
     { id: "unit", header: t.reports.colUnit, cell: (i) => i.unit, hideOnMobile: true },
     { id: "stock", header: t.reports.colStock, cell: (i) => formatNumber(i.currentStock ?? 0), numeric: true, sortable: true },
     { id: "minimum", header: t.reports.colMinimum, cell: (i) => formatNumber(i.minimumStock ?? 0), numeric: true, sortable: true, hideOnMobile: true },
@@ -72,6 +74,7 @@ function StockReport() {
       <FilterBar dirty={lp.dirty} onClear={clear}>
         <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.reports.searchStock} />
         <SelectField className="w-48" aria-label={t.reports.colCategory} value={lp.filters.categoryId} onChange={(v) => lp.set({ categoryId: v })} options={[{ value: ALL, label: t.items.allCategories }, ...(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
+        <SelectField className="w-48" aria-label={t.fields.subcategory} value={lp.filters.subcategoryId} onChange={(v) => lp.set({ subcategoryId: v })} options={[{ value: ALL, label: t.items.allSubcategories }, ...(subcategories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
         <SelectField className="w-52" aria-label={t.reports.colStatus} value={lp.filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: t.items.allStockStatus }, ...(["Safe", "Low", "Out"] as const).map((s) => ({ value: s, label: t.status.stockAdmin[s] }))]} />
       </FilterBar>
       <LoadGate load={list}>

@@ -40,6 +40,8 @@ export interface Item {
   code: string;
   name: string;
   categoryId: number;
+  /** v12 (BR-34): null only for items created before subcategories existed. */
+  subcategoryId: number | null;
   unit: string;
   currentStock: number;
   minimumStock: number;
@@ -138,7 +140,7 @@ export interface PurchaseLine {
   /** Null while the line is a new item; set to the created item when the request is received (BR-31). */
   itemId: number | null;
   quantity: number;
-  newItem?: { name: string; categoryId: number; unit: string };
+  newItem?: { name: string; categoryId: number; subcategoryId: number; unit: string };
 }
 
 export interface PurchaseRequest {

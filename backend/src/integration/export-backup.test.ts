@@ -44,7 +44,7 @@ describe("Excel export", () => {
     expect(rows).toHaveLength(2); // header + the one matching item
     expect(ws.B2.v).toBe("'=HYPERLINK(\"http://x\")");
     expect(ws.B2.f).toBeUndefined();
-    expect(typeof ws.E2.v).toBe("number"); // current stock is a real number
+    expect(typeof ws.F2.v).toBe("number"); // current stock is a real number (after the v12 subcategory column)
   });
 
   it("writes report dates as date cells", async () => {
@@ -58,7 +58,7 @@ describe("Excel export", () => {
 
 describe("CSV item import (BR-33)", () => {
   it("previews without saving, then backs up and creates only the ready rows", async () => {
-    const csv = "name,category,unit,opening_stock\nKertas HVS,Office,ream,10\nStapler,Office,pcs,1\nPenggaris,Gudang,pcs,1\n";
+    const csv = "name,category,subcategory,unit,opening_stock\nKertas HVS,Office,ELK,ream,10\nStapler,Office,Elektronik,pcs,1\nPenggaris,Gudang,ELK,pcs,1\n";
     const before = await prisma.item.count();
     const preview = await admin.ok("POST", "/items/import/preview", { csv });
     expect(preview).toMatchObject({ ready: 1, skipped: 1, errors: 1 });

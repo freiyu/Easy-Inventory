@@ -20,6 +20,7 @@ const prInclude = {
     include: {
       item: { select: { name: true, unit: true, currentStock: true, minimumStock: true, lastPurchasePrice: true, supplierId: true } },
       newItemCategory: name,
+      newItemSubcategory: name,
     },
   },
 } satisfies Prisma.PurchaseRequestInclude;
@@ -28,7 +29,10 @@ type PrRow = Prisma.PurchaseRequestGetPayload<{ include: typeof prInclude }>;
 function purchaseDto(c: Ctx, p: PrRow) {
   const admin = isAdmin(c);
   const lines = p.lines.map((l) => {
-    const ni = l.newItemName ? { name: l.newItemName, categoryId: l.newItemCategoryId!, categoryName: l.newItemCategory?.name ?? "-", unit: l.newItemUnit ?? "" } : undefined;
+    const ni = l.newItemName ? {
+      name: l.newItemName, categoryId: l.newItemCategoryId!, categoryName: l.newItemCategory?.name ?? "-",
+      subcategoryId: l.newItemSubcategoryId, subcategoryName: l.newItemSubcategory?.name ?? "-", unit: l.newItemUnit ?? "",
+    } : undefined;
     const base = {
       itemId: l.itemId, itemName: l.item?.name ?? ni?.name ?? "-", unit: l.item?.unit ?? ni?.unit ?? "", quantity: l.quantity, ...(ni ? { newItem: ni } : {}),
     };
@@ -75,17 +79,17 @@ export async function onePurchase(c: Ctx, id: number) {
 
 // ---------------------------------------------------------------------- checks
 
-type Line = { itemId: number | null; quantity: number; newItem?: { name: string; categoryId: number; unit: string } };
+type Line = { itemId: number | null; quantity: number; newItem?: { name: string; categoryId: number; subcategoryId: number | null; unit: string } };
 const lc = (s: string) => s.trim().toLowerCase();
 
-/** BR-24, BR-31: existing lines need an active item; new lines a unique name, an active category and a known unit. */
+/** BR-24, BR-31, BR-34: existing lines need an active item; new lines a name unique in their category, an active category and subcategory, and a known unit. */
 async function checkLines(c: Ctx, lines: Line[]) {
   const seen = new Set<string>();
   for (const [i, l] of lines.entries()) {
     const ni = l.newItem;
     if (l.itemId !== null && ni) throw fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.itemId`]: t.validation.selectItem });
     if (l.itemId === null && (!ni || !ni.name.trim())) throw fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.name`]: t.validation.required(t.fields.itemName) });
-    const key = l.itemId !== null ? `item:${l.itemId}` : `new:${lc(ni!.name)}`;
+    const key = l.itemId !== null ? `item:${l.itemId}` : `new:${ni!.categoryId}:${lc(ni!.name)}`;
     if (seen.has(key)) throw fail("VALIDATION_ERROR", e.fix, { lines: e.duplicateItem });
     seen.add(key);
     if (l.itemId !== null) {
@@ -97,9 +101,14 @@ async function checkLines(c: Ctx, lines: Line[]) {
     const cat = await c.tx.category.findUnique({ where: { id: ni!.categoryId } });
     if (!cat) throw fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.categoryId`]: t.validation.selectCategory });
     if (cat.status !== "Active") throw fail("BUSINESS_RULE_VIOLATION", e.fix, { [`lines.${i}.categoryId`]: e.categoryInactive(cat.name) });
+    // Only lines saved before v12 have none (the input schema requires it): say so instead of pointing at a field the receive form lacks.
+    if (ni!.subcategoryId === null) throw fail("BUSINESS_RULE_VIOLATION", e.newItemNoSubcategory);
+    const sub = await c.tx.subcategory.findUnique({ where: { id: ni!.subcategoryId } });
+    if (!sub) throw fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.subcategoryId`]: t.validation.selectSubcategory });
+    if (sub.status !== "Active") throw fail("BUSINESS_RULE_VIOLATION", e.fix, { [`lines.${i}.subcategoryId`]: e.subcategoryInactive(sub.name) });
     if (!isUnit(ni!.unit)) throw fail("VALIDATION_ERROR", e.fix, { [`lines.${i}.unit`]: t.validation.selectUnit });
-    // Case-insensitive: the database collation compares names that way.
-    if (await c.tx.item.findFirst({ where: { name: ni!.name.trim() } })) throw fail("CONFLICT", e.fix, { [`lines.${i}.name`]: e.itemNameTaken });
+    // Case-insensitive (the database collation compares names that way), within the category (v12).
+    if (await c.tx.item.findFirst({ where: { name: ni!.name.trim(), categoryId: ni!.categoryId } })) throw fail("CONFLICT", e.fix, { [`lines.${i}.name`]: e.itemNameTaken });
   }
 }
 
@@ -113,12 +122,13 @@ async function checkRequest(c: Ctx, input: PurchaseInput) {
 
 const lineData = (lines: Line[]) =>
   lines.map((l) => (l.newItem
-    ? { itemId: null, quantity: l.quantity, newItemName: l.newItem.name.trim(), newItemCategoryId: l.newItem.categoryId, newItemUnit: l.newItem.unit }
+    ? { itemId: null, quantity: l.quantity, newItemName: l.newItem.name.trim(), newItemCategoryId: l.newItem.categoryId, newItemSubcategoryId: l.newItem.subcategoryId, newItemUnit: l.newItem.unit }
     : { itemId: l.itemId, quantity: l.quantity }));
 
-const storedLines = (rows: { itemId: number | null; quantity: number; newItemName: string | null; newItemCategoryId: number | null; newItemUnit: string | null }[]): Line[] =>
+type StoredLine = { itemId: number | null; quantity: number; newItemName: string | null; newItemCategoryId: number | null; newItemSubcategoryId: number | null; newItemUnit: string | null };
+const storedLines = (rows: StoredLine[]): Line[] =>
   rows.map((l) => (l.itemId === null && l.newItemName
-    ? { itemId: null, quantity: l.quantity, newItem: { name: l.newItemName, categoryId: l.newItemCategoryId!, unit: l.newItemUnit ?? "" } }
+    ? { itemId: null, quantity: l.quantity, newItem: { name: l.newItemName, categoryId: l.newItemCategoryId!, subcategoryId: l.newItemSubcategoryId, unit: l.newItemUnit ?? "" } }
     : { itemId: l.itemId, quantity: l.quantity }));
 
 const VERB: Record<PurchaseAction, [string, PurchaseStatus]> = {
@@ -235,13 +245,14 @@ export function receivePurchase(actor: SessionUser, id: number, input: { date: s
     if (lines.some((l) => l.newItem)) await lockItemNames(c.tx);
     await checkLines(c, lines);
 
-    await lockCategories(c.tx, lines.flatMap((l) => (l.newItem ? [l.newItem.categoryId] : [])));
+    const news = lines.flatMap((l) => (l.newItem ? [l.newItem] : []));
+    await lockCategories(c.tx, news.map((n) => n.categoryId), news.map((n) => n.subcategoryId!));
     const itemIds: number[] = [];
     for (const [i, l] of lines.entries()) {
       if (l.itemId !== null) { itemIds.push(l.itemId); continue; }
       const ni = l.newItem!;
       itemIds.push(await insertItem(c, {
-        name: ni.name, categoryId: ni.categoryId, unit: ni.unit, openingStock: 0, minimumStock: input.lines[i].minimumStock,
+        name: ni.name, categoryId: ni.categoryId, subcategoryId: ni.subcategoryId!, unit: ni.unit, openingStock: 0, minimumStock: input.lines[i].minimumStock,
         lastPurchasePrice: input.lines[i].unitPrice, supplierId: supplier.id, location: "", status: "Active", notes: "",
       }));
     }

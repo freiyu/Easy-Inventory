@@ -22,6 +22,7 @@ export function PurchaseForm({ request }: { request?: PurchaseDto }) {
   const user = useCurrentUser()!;
   const items = useGet<ItemDto[]>("/items", { status: "Active", pageSize: 500, sort: "name:asc" });
   const categories = useGet<CategoryOption[]>("/categories", { status: "Active", pageSize: 500, sort: "name:asc" });
+  const subcategories = useGet<CategoryOption[]>("/subcategories", { status: "Active", pageSize: 500, sort: "name:asc" });
   // Only an Admin may file a request for someone else (PRD 3.2); the list is Admin only.
   const users = useGet<{ id: number; name: string; role: string }[]>(user.role === "Admin" ? "/users" : null, { status: "Active", pageSize: 500, sort: "name:asc" });
   const requestId = useRequestId();
@@ -34,7 +35,7 @@ export function PurchaseForm({ request }: { request?: PurchaseDto }) {
     request
       ? request.lines.map((l) => ({
           ...newLine(), itemId: l.itemId === null ? "" : String(l.itemId), quantity: String(l.quantity),
-          isNew: l.itemId === null, name: l.newItem?.name ?? "", categoryId: String(l.newItem?.categoryId ?? ""), unit: l.newItem?.unit ?? "",
+          isNew: l.itemId === null, name: l.newItem?.name ?? "", categoryId: String(l.newItem?.categoryId ?? ""), subcategoryId: String(l.newItem?.subcategoryId ?? ""), unit: l.newItem?.unit ?? "",
         }))
       : [newLine()]);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -70,7 +71,7 @@ export function PurchaseForm({ request }: { request?: PurchaseDto }) {
             <h2 className="text-lg font-semibold">{t.purchases.sectionItems}</h2>
             <p className="text-sm text-muted-foreground">{t.purchases.howNew}</p>
             <LinesEditor mode="purchase" lines={lines} onChange={setLines} errors={errors}
-              items={items.data ?? []} categories={categories.data ?? []} addLabel={t.purchases.addLine} />
+              items={items.data ?? []} categories={categories.data ?? []} subcategories={subcategories.data ?? []} addLabel={t.purchases.addLine} />
           </section>
           <section className="flex flex-col gap-3 border-t px-5 pt-5">
             <h2 className="text-lg font-semibold">{t.purchases.sectionWhen}</h2>

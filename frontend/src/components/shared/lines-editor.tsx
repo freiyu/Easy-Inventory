@@ -21,21 +21,22 @@ export interface LineDraft {
   isNew: boolean;
   name: string;
   categoryId: string;
+  subcategoryId: string;
   unit: string;
 }
 
 let counter = 0;
-export const newLine = (): LineDraft => ({ key: ++counter, itemId: "", quantity: "", unitPrice: "", isNew: false, name: "", categoryId: "", unit: "" });
+export const newLine = (): LineDraft => ({ key: ++counter, itemId: "", quantity: "", unitPrice: "", isNew: false, name: "", categoryId: "", subcategoryId: "", unit: "" });
 
 export const parseInt0 = (v: string) => (/^\d+$/.test(v.trim()) ? Number(v) : 0);
 
 /**
  * Item lines for incoming stock, outgoing stock and loan requests.
  * mode "in" shows unit price and line total; "out" and "loan" show how many are available;
- * "purchase" lets each line be an existing item or a new one (name, category, unit).
+ * "purchase" lets each line be an existing item or a new one (name, category, subcategory, unit).
  */
 export function LinesEditor({
-  mode, lines, onChange, errors, items, categories = [], addLabel = t.stock.addLine,
+  mode, lines, onChange, errors, items, categories = [], subcategories = [], addLabel = t.stock.addLine,
 }: {
   mode: "in" | "out" | "loan" | "purchase";
   lines: LineDraft[];
@@ -45,6 +46,8 @@ export function LinesEditor({
   items: ItemDto[];
   /** Active categories to choose from for a new item (purchase mode). */
   categories?: CategoryOption[];
+  /** Active subcategories for a new item (purchase mode, v12). */
+  subcategories?: CategoryOption[];
   addLabel?: string;
 }) {
   const update = (key: number, patch: Partial<LineDraft>) =>
@@ -109,11 +112,15 @@ export function LinesEditor({
               </Field>
               {line.isNew && (
                 <>
-                  <Field label={t.fields.category} required error={errors[`lines.${i}.categoryId`]} className="sm:col-span-6">
+                  <Field label={t.fields.category} required error={errors[`lines.${i}.categoryId`]} className="sm:col-span-4">
                     {(p) => <SelectField {...p} value={line.categoryId} placeholder={t.purchases.pickCategory} onChange={(v) => update(line.key, { categoryId: v })}
                       options={categories.map((c) => ({ value: String(c.id), label: c.name }))} />}
                   </Field>
-                  <Field label={t.fields.unit} required error={errors[`lines.${i}.unit`]} className="sm:col-span-6">
+                  <Field label={t.fields.subcategory} required error={errors[`lines.${i}.subcategoryId`]} className="sm:col-span-4">
+                    {(p) => <SelectField {...p} value={line.subcategoryId} placeholder={t.purchases.pickSubcategory} onChange={(v) => update(line.key, { subcategoryId: v })}
+                      options={subcategories.map((c) => ({ value: String(c.id), label: c.name }))} />}
+                  </Field>
+                  <Field label={t.fields.unit} required error={errors[`lines.${i}.unit`]} className="sm:col-span-4">
                     {(p) => <SelectField {...p} value={line.unit} placeholder={t.purchases.pickUnit} onChange={(v) => update(line.key, { unit: v })}
                       options={UNITS.map((u) => ({ value: u, label: u }))} />}
                   </Field>

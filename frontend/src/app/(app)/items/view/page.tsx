@@ -65,6 +65,7 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
           <h2 className="px-5 text-lg font-semibold">{t.items.detailsCard}</h2>
           <dl className="grid gap-x-6 gap-y-4 px-5 sm:grid-cols-2">
             <Detail label={t.fields.category}>{item.categoryName}</Detail>
+            <Detail label={t.fields.subcategory}>{item.subcategoryName}</Detail>
             <Detail label={t.fields.unit}>{item.unit}</Detail>
             {isAdmin && (
               <>

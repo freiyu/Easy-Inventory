@@ -96,12 +96,13 @@ export async function expenseSummary(c: Ctx, q: Query) {
 
 export async function stockReport(c: Ctx, q: Query) {
   const categoryId = filterId(q, "categoryId");
-  let rows = await itemRows(c.tx, { status: "Active", ...(categoryId ? { categoryId } : {}) }, true);
+  const subcategoryId = filterId(q, "subcategoryId");
+  let rows = await itemRows(c.tx, { status: "Active", ...(categoryId ? { categoryId } : {}), ...(subcategoryId ? { subcategoryId } : {}) }, true);
   const status = filterValue(q, "stockStatus");
   if (status) rows = rows.filter((i) => i.stockStatus === status);
   rows = searchRows(rows, q, (i) => [i.name, i.code]);
   return paged(rows, q, {
-    code: (r) => r.code ?? "", name: (r) => r.name, category: (r) => r.categoryName, unit: (r) => r.unit,
+    code: (r) => r.code ?? "", name: (r) => r.name, category: (r) => r.categoryName, subcategory: (r) => r.subcategoryName, unit: (r) => r.unit,
     stock: (r) => r.currentStock ?? 0, minimum: (r) => r.minimumStock ?? 0, status: (r) => STOCK_ORDER[r.stockStatus],
   }, "code:asc");
 }
@@ -158,9 +159,9 @@ const logExport = (c: Ctx, what: string) => log(c, "Excel exported", "Reports", 
 export async function exportItems(c: Ctx, q: Query) {
   const rows = await allRows((p) => listItems(c, p), q);
   await logExport(c, "items");
-  return workbook(t.nav.items, [ic.colCode, ic.colName, ic.colCategory, ic.colUnit, ic.colStock, ic.colMinimum, ic.stockStatusFilter, t.fields.lastPrice, ic.colSupplier, ic.colLocation, t.fields.status],
+  return workbook(t.nav.items, [ic.colCode, ic.colName, ic.colCategory, t.fields.subcategory, ic.colUnit, ic.colStock, ic.colMinimum, ic.stockStatusFilter, t.fields.lastPrice, ic.colSupplier, ic.colLocation, t.fields.status],
     rows.map((r) => [
-      r.code, r.name, r.categoryName, r.unit, r.currentStock, r.minimumStock, r.stockStatus, r.lastPurchasePrice,
+      r.code, r.name, r.categoryName, r.subcategoryName, r.unit, r.currentStock, r.minimumStock, r.stockStatus, r.lastPurchasePrice,
       r.supplierId ? r.supplierName : "", r.location, r.status,
     ]));
 }
@@ -169,8 +170,8 @@ export async function exportReport(c: Ctx, type: string, q: Query) {
   if (["stock", "movements", "loans"].includes(type)) await logExport(c, `report ${type}`);
   if (type === "stock") {
     const rows = await allRows((p) => stockReport(c, p), q);
-    return workbook(rc.stockCaption, [rc.colCode, rc.colItem, rc.colCategory, rc.colUnit, rc.colStock, rc.colMinimum, rc.colStatus],
-      rows.map((r) => [r.code, r.name, r.categoryName, r.unit, r.currentStock, r.minimumStock, r.stockStatus]));
+    return workbook(rc.stockCaption, [rc.colCode, rc.colItem, rc.colCategory, t.fields.subcategory, rc.colUnit, rc.colStock, rc.colMinimum, rc.colStatus],
+      rows.map((r) => [r.code, r.name, r.categoryName, r.subcategoryName, r.unit, r.currentStock, r.minimumStock, r.stockStatus]));
   }
   if (type === "movements") {
     const rows = await allRows((p) => movementsReport(c, p), q);

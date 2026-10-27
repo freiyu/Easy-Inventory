@@ -17,7 +17,7 @@ import { formatNumber } from "@/lib/format";
 import { t } from "@/lib/strings";
 
 const c = t.itemImport;
-const COLUMNS = "name,category,unit,opening_stock,minimum_stock,price,supplier,location,notes";
+const COLUMNS = "name,category,subcategory,unit,opening_stock,minimum_stock,price,supplier,location,notes";
 
 /** The one official template: the header row only, so an unchanged file can never create an item (PRD 4.10). */
 function downloadTemplate() {

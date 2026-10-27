@@ -88,18 +88,19 @@ export async function addUser(admin: Client, base: string, name: string, email: 
   return { client, id: created.user.id as number };
 }
 
-/** A category, a supplier and items with opening stock (posted as ADJUSTMENT, PRD 4.2). */
+/** A category, a subcategory (v12), a supplier and items with opening stock (posted as ADJUSTMENT, PRD 4.2). */
 export async function masterData(admin: Client, items: { name: string; stock: number }[]) {
   const category = await admin.ok("POST", "/categories", { name: "Office", code: "OFF" });
+  const subcategory = await admin.ok("POST", "/subcategories", { name: "Elektronik", code: "ELK" });
   const supplier = await admin.ok("POST", "/suppliers", { name: "Toko Test" });
   const ids: number[] = [];
   for (const i of items) {
     const item = await admin.ok("POST", "/items", {
-      name: i.name, categoryId: category.id, unit: "pcs", openingStock: i.stock, minimumStock: 1, lastPurchasePrice: 1000, supplierId: supplier.id,
+      name: i.name, categoryId: category.id, subcategoryId: subcategory.id, unit: "pcs", openingStock: i.stock, minimumStock: 1, lastPurchasePrice: 1000, supplierId: supplier.id,
     });
     ids.push(item.id);
   }
-  return { categoryId: category.id as number, supplierId: supplier.id as number, itemIds: ids };
+  return { categoryId: category.id as number, subcategoryId: subcategory.id as number, supplierId: supplier.id as number, itemIds: ids };
 }
 
 /** PRD 7.4: every item's maintained balance equals the sum of its ledger lines and is never negative. */

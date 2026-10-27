@@ -15,15 +15,15 @@ import type { CategoryDto, ItemDto, SupplierDto } from "@/lib/api/master";
 import { itemSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
-type Values = Record<"name" | "categoryId" | "unit" | "openingStock" | "minimumStock" | "lastPurchasePrice" | "supplierId" | "location" | "status" | "notes", string>;
+type Values = Record<"name" | "categoryId" | "subcategoryId" | "unit" | "openingStock" | "minimumStock" | "lastPurchasePrice" | "supplierId" | "location" | "status" | "notes", string>;
 
 const blank: Values = {
-  name: "", categoryId: "", unit: "", openingStock: "0", minimumStock: "0",
+  name: "", categoryId: "", subcategoryId: "", unit: "", openingStock: "0", minimumStock: "0",
   lastPurchasePrice: "0", supplierId: "", location: "", status: "Active", notes: "",
 };
 
 const fromItem = (i: ItemDto): Values => ({
-  name: i.name, categoryId: String(i.categoryId), unit: i.unit, openingStock: "0",
+  name: i.name, categoryId: String(i.categoryId), subcategoryId: i.subcategoryId ? String(i.subcategoryId) : "", unit: i.unit, openingStock: "0",
   minimumStock: String(i.minimumStock ?? 0), lastPurchasePrice: String(i.lastPurchasePrice ?? 0),
   supplierId: i.supplierId ? String(i.supplierId) : "", location: i.location ?? "", status: i.status, notes: i.notes ?? "",
 });
@@ -31,6 +31,7 @@ const fromItem = (i: ItemDto): Values => ({
 export function ItemForm({ item }: { item?: ItemDto }) {
   const router = useRouter();
   const categoryList = useGet<CategoryDto[]>("/categories", { pageSize: 500, sort: "name:asc" });
+  const subcategoryList = useGet<CategoryDto[]>("/subcategories", { pageSize: 500, sort: "name:asc" });
   const supplierList = useGet<SupplierDto[]>("/suppliers", { pageSize: 500, sort: "name:asc" });
   const [values, setValues] = useState<Values>(item ? fromItem(item) : blank);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -54,8 +55,9 @@ export function ItemForm({ item }: { item?: ItemDto }) {
     router.push(`/items/view?id=${r.data.id}`);
   };
 
-  // Inactive categories and suppliers are offered only when this item already uses them.
+  // Inactive categories, subcategories and suppliers are offered only when this item already uses them.
   const categories = (categoryList.data ?? []).filter((c) => c.status === "Active" || String(c.id) === values.categoryId);
+  const subcategories = (subcategoryList.data ?? []).filter((c) => c.status === "Active" || String(c.id) === values.subcategoryId);
   const suppliers = (supplierList.data ?? []).filter((s) => s.status === "Active" || String(s.id) === values.supplierId);
 
   return (
@@ -72,6 +74,9 @@ export function ItemForm({ item }: { item?: ItemDto }) {
             </Field>
             <Field label={t.fields.category} required error={errors.categoryId}>
               {(p) => <SelectField {...p} value={values.categoryId} onChange={set("categoryId")} placeholder={t.validation.selectCategory} options={categories.map((c) => ({ value: String(c.id), label: c.name }))} />}
+            </Field>
+            <Field label={t.fields.subcategory} required error={errors.subcategoryId}>
+              {(p) => <SelectField {...p} value={values.subcategoryId} onChange={set("subcategoryId")} placeholder={t.validation.selectSubcategory} options={subcategories.map((c) => ({ value: String(c.id), label: c.name }))} />}
             </Field>
             <Field label={t.fields.unit} required error={errors.unit}>
               {(p) => <SelectField {...p} value={values.unit} onChange={set("unit")} placeholder={t.validation.selectUnit} options={UNITS.map((u) => ({ value: u, label: u }))} />}

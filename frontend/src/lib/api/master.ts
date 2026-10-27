@@ -33,6 +33,9 @@ export interface ItemDto {
   name: string;
   categoryId: number;
   categoryName: string;
+  /** v12: null (shown as "-") only for items created before subcategories existed. */
+  subcategoryId: number | null;
+  subcategoryName: string;
   unit: string;
   status: ActiveStatus;
   stockStatus: StockStatus;
@@ -53,15 +56,18 @@ export interface ItemDto {
   movements?: Movement[];
 }
 
-export const categories = {
-  list: (q: Query) => get<CategoryDto[]>("/categories", clean(q)),
-  /** Active categories for pickers (Admin and Staff). */
-  options: () => get<CategoryOption[]>("/categories", { status: "Active", pageSize: 500, sort: "name:asc" }),
-  create: (v: CategoryInput) => post<CategoryDto>("/categories", v),
-  update: (id: number, v: CategoryInput) => put<CategoryDto>(`/categories/${id}`, v),
-  remove: (id: number) => del<null>(`/categories/${id}`),
-  setStatus: (id: number, kind: "deactivate" | "activate") => post<null>(`/categories/${id}/${kind}`),
-};
+/** Categories (areas) and subcategories (kinds of item, v12) have the same endpoints and shapes. */
+const group = (path: "/categories" | "/subcategories") => ({
+  list: (q: Query) => get<CategoryDto[]>(path, clean(q)),
+  /** Active entries for pickers (Admin and Staff). */
+  options: () => get<CategoryOption[]>(path, { status: "Active", pageSize: 500, sort: "name:asc" }),
+  create: (v: CategoryInput) => post<CategoryDto>(path, v),
+  update: (id: number, v: CategoryInput) => put<CategoryDto>(`${path}/${id}`, v),
+  remove: (id: number) => del<null>(`${path}/${id}`),
+  setStatus: (id: number, kind: "deactivate" | "activate") => post<null>(`${path}/${id}/${kind}`),
+});
+export const categories = group("/categories");
+export const subcategories = group("/subcategories");
 
 export const suppliers = {
   list: (q: Query) => get<SupplierDto[]>("/suppliers", clean(q)),

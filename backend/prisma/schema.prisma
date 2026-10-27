@@ -78,6 +78,24 @@ model Category {
   @@map("categories")
 }
 
+/// PRD 4.3A, BR-34 (v12): the kind of item, one shared list used in every category.
+model Subcategory {
+  id             Int      @id @default(autoincrement())
+  name           String   @unique @db.VarChar(100)
+  code           String   @unique @db.Char(3)
+  /// Counts item codes issued with this subcategory; above 1 means the code is locked (the number itself comes from the pair counter).
+  nextItemNumber Int      @default(1) @map("next_item_number")
+  description    String   @db.Text
+  status         String   @default("Active") @db.VarChar(10)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  items         Item[]
+  purchaseLines PurchaseRequestItem[]
+
+  @@map("subcategories")
+}
+
 model Supplier {
   id            Int      @id @default(autoincrement())
   name          String   @db.VarChar(150)
@@ -102,6 +120,8 @@ model Item {
   code              String   @unique @db.VarChar(20)
   name              String   @db.VarChar(150)
   categoryId        Int      @map("category_id")
+  /// v12 (BR-34): required for new items; null only for items created before v12.
+  subcategoryId     Int?     @map("subcategory_id")
   unit              String   @db.VarChar(20)
   /// Maintained balance: always the sum of this item's ledger lines, never negative (CHECK in the migration).
   currentStock      Int      @default(0) @map("current_stock")
@@ -115,6 +135,7 @@ model Item {
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   category      Category               @relation(fields: [categoryId], references: [id])
+  subcategory   Subcategory?           @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
   supplier      Supplier?              @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   ledger        StockTransactionItem[]
   loanLines     LoanItem[]
@@ -122,6 +143,7 @@ model Item {
 
   @@index([name])
   @@index([categoryId])
+  @@index([subcategoryId])
   @@index([supplierId])
   @@index([status])
   @@map("items")
@@ -263,21 +285,24 @@ model PurchaseRequest {
 
 /// An existing item (itemId) or a new item (new_item_* columns); on receipt itemId is set and new_item_* stay as history (BR-31).
 model PurchaseRequestItem {
-  id                Int     @id @default(autoincrement())
-  purchaseRequestId Int     @map("purchase_request_id")
-  itemId            Int?    @map("item_id")
-  quantity          Int
-  newItemName       String? @map("new_item_name") @db.VarChar(150)
-  newItemCategoryId Int?    @map("new_item_category_id")
-  newItemUnit       String? @map("new_item_unit") @db.VarChar(20)
+  id                   Int     @id @default(autoincrement())
+  purchaseRequestId    Int     @map("purchase_request_id")
+  itemId               Int?    @map("item_id")
+  quantity             Int
+  newItemName          String? @map("new_item_name") @db.VarChar(150)
+  newItemCategoryId    Int?    @map("new_item_category_id")
+  newItemSubcategoryId Int?    @map("new_item_subcategory_id")
+  newItemUnit          String? @map("new_item_unit") @db.VarChar(20)
 
-  purchaseRequest PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
-  item            Item?           @relation(fields: [itemId], references: [id], onDelete: Restrict)
-  newItemCategory Category?       @relation(fields: [newItemCategoryId], references: [id], onDelete: Restrict)
+  purchaseRequest    PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  item               Item?           @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  newItemCategory    Category?       @relation(fields: [newItemCategoryId], references: [id], onDelete: Restrict)
+  newItemSubcategory Subcategory?    @relation(fields: [newItemSubcategoryId], references: [id], onDelete: Restrict)
 
   @@index([purchaseRequestId])
   @@index([itemId])
   @@index([newItemCategoryId])
+  @@index([newItemSubcategoryId])
   @@map("purchase_request_items")
 }
 

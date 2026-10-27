@@ -53,12 +53,16 @@ const dayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", y
 /** The calendar day of a timestamp in the application time zone (PRD 2.7), "YYYY-MM-DD". */
 export const localDay = (d: Date) => dayFormat.format(d);
 
-/** BR-23: the counter row stays locked until commit, so two requests never get the same number. */
-export async function nextNumber(tx: Tx, prefix: string, date: string): Promise<string> {
-  const key = sequenceKey(prefix, date);
+/** BR-23: the counter row stays locked until commit, so two requests never get the same number. Returns 1, 2, 3, ... */
+export async function counter(tx: Tx, key: string): Promise<number> {
   await tx.$executeRaw`INSERT INTO number_sequences (\`key\`, value) VALUES (${key}, 1) ON DUPLICATE KEY UPDATE value = value + 1`;
   const [row] = await tx.$queryRaw<{ value: number }[]>`SELECT value FROM number_sequences WHERE \`key\` = ${key}`;
-  return formatSequence(key, Number(row.value));
+  return Number(row.value);
+}
+
+export async function nextNumber(tx: Tx, prefix: string, date: string): Promise<string> {
+  const key = sequenceKey(prefix, date);
+  return formatSequence(key, await counter(tx, key));
 }
 
 // ------------------------------------------------------------------------ locks

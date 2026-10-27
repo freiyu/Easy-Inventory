@@ -25,15 +25,15 @@ const out = (itemId: number, quantity: number, clientRequestId?: string) =>
   ({ date: TODAY, destination: "Ruang rapat", lines: [{ itemId, quantity }], notes: "", clientRequestId });
 
 describe("master data", () => {
-  it("generates item codes per category and posts opening stock as an ADJUSTMENT", async () => {
+  it("generates item codes per category and subcategory and posts opening stock as an ADJUSTMENT", async () => {
     const items = await prisma.item.findMany({ orderBy: { id: "asc" } });
-    expect(items.map((i) => i.code)).toEqual(["OFF-0001", "OFF-0002"]);
+    expect(items.map((i) => i.code)).toEqual(["OFF-ELK-0001", "OFF-ELK-0002"]);
     const tx = await prisma.stockTransaction.findMany({ where: { type: "ADJUSTMENT" } });
     expect(tx).toHaveLength(2);
   });
 
   it("refuses an unknown unit and an inactive category or supplier, but lets an item keep its own", async () => {
-    const base = { name: "Map", categoryId: data.categoryId, unit: "pcs", minimumStock: 0, lastPurchasePrice: 0, supplierId: data.supplierId };
+    const base = { name: "Map", categoryId: data.categoryId, subcategoryId: data.subcategoryId, unit: "pcs", minimumStock: 0, lastPurchasePrice: 0, supplierId: data.supplierId };
     const unit = await admin.post("/items", { ...base, unit: "lusin" });
     expect(unit.status).toBe(422);
     expect(unit.body.error.fields.unit).toBeTruthy();
