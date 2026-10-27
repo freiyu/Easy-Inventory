@@ -49,3 +49,5 @@ Thumbs.db
 # personal proof of work (private)
 proof-of-work/
 /frontend/e2e/.auth/
+# human checklists (private, filled in by the human)
+/human-checklist/
