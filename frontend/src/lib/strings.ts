@@ -248,7 +248,7 @@ export const t = {
     signingIn: "Signing in...",
     signInTitle: "Sign in",
     signInIntro: "Use your work email and password.",
-    keepSignedIn: "Keep me signed in for 7 days",
+    keepSignedIn: "Keep me signed in for 14 days",
     setupEyebrow: "First-run setup",
     setupTitle: "Create the first Admin account",
     setupInfo: "This account has full access. It is created only once. Later users are added in User management.",

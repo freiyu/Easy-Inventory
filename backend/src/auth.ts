@@ -10,7 +10,7 @@ import { t, type Role } from "./shared";
 
 export const COOKIE = "ezi_session";
 const SHORT_MS = 8 * 60 * 60 * 1000; // 8 hours
-const LONG_MS = 7 * 24 * 60 * 60 * 1000; // "Keep me signed in": 7 days
+const LONG_MS = 14 * 24 * 60 * 60 * 1000; // "Keep me signed in": 14 days (PRD v12, 3.4)
 const MAX_FAILED = 5;
 const WINDOW_MS = 10 * 60 * 1000; // 5 failures within 10 minutes lock the account/IP pair for 10 minutes
 

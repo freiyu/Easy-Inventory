@@ -117,6 +117,17 @@ describe("sessions and authorization", () => {
     expect(missing.body.error.code).toBe("NOT_FOUND"); // the API answers JSON, not the static 404 page
   });
 
+  it("keeps a session for 14 days with keep me signed in, otherwise 8 hours", async () => {
+    const days = async (keepSignedIn: boolean) => {
+      const c = new Client(server.base);
+      await c.ok("POST", "/auth/login", { email: adminEmail, password: PASSWORD, keepSignedIn });
+      const s = await prisma.session.findFirstOrThrow({ orderBy: { createdAt: "desc" } });
+      return Math.round((s.expiresAt.getTime() - Date.now()) / 3_600_000);
+    };
+    expect(await days(true)).toBe(14 * 24);
+    expect(await days(false)).toBe(8);
+  });
+
   it("logs out cleanly, also when the session has already expired", async () => {
     const c = new Client(server.base);
     await c.ok("POST", "/auth/login", { email: adminEmail, password: PASSWORD });
