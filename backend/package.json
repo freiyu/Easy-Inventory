@@ -8,6 +8,7 @@
     "start": "tsx src/main.ts",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "e2e:server": "tsx src/integration/e2e-server.ts",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev"

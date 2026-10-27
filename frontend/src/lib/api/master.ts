@@ -84,6 +84,7 @@ export interface ImportRowDto {
   message: string;
   name: string;
   category: string;
+  subcategory: string;
   unit: string;
   openingStock: number;
   minimumStock: number;

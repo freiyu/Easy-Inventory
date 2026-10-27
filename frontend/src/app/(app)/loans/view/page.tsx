@@ -104,7 +104,7 @@ function LoanDetail({ loan, userId, userName, isAdmin }: { loan: LoanDto; userId
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="flex flex-col gap-6 lg:col-span-2">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
           <Card className="gap-4">
             <h2 className="px-5 text-lg font-semibold">{t.loans.detailTitle}</h2>
             <dl className="grid gap-x-6 gap-y-4 px-5 sm:grid-cols-2">

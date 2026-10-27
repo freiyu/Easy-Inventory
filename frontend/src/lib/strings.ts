@@ -343,6 +343,7 @@ export const t = {
     colLine: "Line",
     colName: "Name",
     colCategory: "Category",
+    colSubcategory: "Subcategory",
     colUnit: "Unit",
     colStock: "Opening stock",
     colResult: "Result",

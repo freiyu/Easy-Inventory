@@ -118,6 +118,7 @@ export default function ImportItemsPage() {
                     <TableHead>{c.colLine}</TableHead>
                     <TableHead>{c.colName}</TableHead>
                     <TableHead>{c.colCategory}</TableHead>
+                    <TableHead>{c.colSubcategory}</TableHead>
                     <TableHead>{c.colUnit}</TableHead>
                     <TableHead className="text-right">{c.colStock}</TableHead>
                     <TableHead>{c.colResult}</TableHead>
@@ -131,6 +132,7 @@ export default function ImportItemsPage() {
                         <TableCell className="tabular">{r.line}</TableCell>
                         <TableCell className="font-medium">{r.name || "-"}</TableCell>
                         <TableCell>{r.category || "-"}</TableCell>
+                        <TableCell>{r.subcategory || "-"}</TableCell>
                         <TableCell>{r.unit || "-"}</TableCell>
                         <TableCell className="tabular text-right">{formatNumber(r.openingStock)}</TableCell>
                         <TableCell>
