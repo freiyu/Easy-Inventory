@@ -19,7 +19,7 @@ import { EmptyState, LoadGate } from "@/components/shared/states";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, tableProps, useGet, useListParams } from "@/lib/api";
 import type { CategoryDto } from "@/lib/api/master";
-import { categorySchema, validate, type FieldErrors } from "@/lib/schemas";
+import { categorySchema, serverErrors, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
 const blank = { name: "", code: "", description: "", status: "Active" };
@@ -68,7 +68,7 @@ function GroupList({ group, tabs }: { group: Group; tabs: ReactNode }) {
     setPending(true);
     const r = editing === "new" || !editing ? await api[group].create(v.data) : await api[group].update(editing.id, v.data);
     setPending(false);
-    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors(serverErrors(r.error));
     toast.success(copy.saved);
     setEditing(null);
   };

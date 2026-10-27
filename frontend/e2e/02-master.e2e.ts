@@ -17,7 +17,8 @@ test("categories and subcategories: create, duplicate code rejected", async ({ p
   await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Gudang Lain");
   await dialog.getByRole("textbox", { name: "Code", exact: true }).fill("RRP");
   await dialog.getByRole("button", { name: "Save category" }).click();
-  await expect(dialog.getByText(/already|used|exists/i).first()).toBeVisible();
+  // Shown once, under the field (S5-01).
+  await expect(dialog.getByText("This category code is already used.")).toHaveCount(1);
   await dialog.getByRole("button", { name: "Cancel" }).click();
 
   await page.getByRole("tab", { name: "Subcategories" }).click();

@@ -17,7 +17,7 @@ import { ActiveBadge } from "@/components/shared/status-badge";
 import { EmptyState, LoadGate } from "@/components/shared/states";
 import { api, tableProps, useGet, useListParams } from "@/lib/api";
 import type { SupplierDto } from "@/lib/api/master";
-import { supplierSchema, validate, type FieldErrors } from "@/lib/schemas";
+import { supplierSchema, serverErrors, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
 const blank = { name: "", contactPerson: "", phone: "", email: "", address: "", notes: "", status: "Active" };
@@ -46,7 +46,7 @@ export default function SuppliersPage() {
     setPending(true);
     const r = editing === "new" || !editing ? await api.suppliers.create(v.data) : await api.suppliers.update(editing.id, v.data);
     setPending(false);
-    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors(serverErrors(r.error));
     toast.success(t.suppliers.saved);
     setEditing(null);
   };

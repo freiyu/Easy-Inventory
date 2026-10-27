@@ -16,7 +16,7 @@ import { ActiveBadge, RoleBadge, StatusBadge } from "@/components/shared/status-
 import { EmptyState, LoadGate } from "@/components/shared/states";
 import { api, tableProps, useCurrentUser, useGet, useListParams, type Envelope } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
-import { userSchema, validate, type FieldErrors } from "@/lib/schemas";
+import { userSchema, serverErrors, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 import type { User } from "@/lib/types";
 
@@ -49,7 +49,7 @@ export default function UsersPage() {
     const creating = editing === "new";
     const r = creating ? await api.users.create(v.data) : await api.users.update((editing as User).id, v.data);
     setSaving(false);
-    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors(serverErrors(r.error));
     toast.success(t.users.saved);
     setEditing(null);
     if (creating && "tempPassword" in r.data) setTemp({ name: r.data.user.name, password: r.data.tempPassword });

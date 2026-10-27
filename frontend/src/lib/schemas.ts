@@ -2,7 +2,7 @@
 // every business rule (backend/src/schemas.ts and services).
 import { z } from "zod";
 import { t } from "./strings";
-import type { PurchaseLine } from "./types";
+import type { ApiError, PurchaseLine } from "./types";
 
 const v = t.validation;
 const f = t.fields;
@@ -208,6 +208,13 @@ export type ReturnInput = z.output<typeof returnSchema>;
 export type FieldErrors = Record<string, string>;
 
 /** Runs a schema and returns the first message per field path ("lines.0.quantity"). */
+/** A server refusal as form errors. Use only where every field the server can name is shown in the form:
+ *  the general message is dropped when it repeats a field message, so it does not appear twice. */
+export function serverErrors(error: ApiError): FieldErrors {
+  const fields = error.fields ?? {};
+  return Object.values(fields).includes(error.message) ? fields : { ...fields, _form: error.message };
+}
+
 export function validate<S extends z.ZodType>(
   schema: S,
   raw: unknown,
