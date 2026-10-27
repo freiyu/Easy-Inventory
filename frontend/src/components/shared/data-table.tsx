@@ -1,9 +1,12 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ChevronsUpDown, EllipsisVertical, type LucideIcon } from "lucide-react";
+import { useMemo, useSyncExternalStore } from "react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Columns3, EllipsisVertical, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SelectField } from "@/components/shared/select-field";
 import type { ListMeta } from "@/lib/api";
@@ -21,6 +24,8 @@ export interface Column<T> {
   hideOnMobile?: boolean;
   /** Used as the card title on mobile; defaults to the first column. */
   primary?: boolean;
+  /** Always shown; the column picker cannot hide it. */
+  required?: boolean;
   className?: string;
 }
 
@@ -42,7 +47,7 @@ const PAGE_SIZES = [10, 25, 50, 100];
  * buttons, the pager and the mobile card layout, and reports clicks through the on* callbacks.
  */
 export function DataTable<T>({
-  rows, meta, sort, onSortChange, onPageChange, onPageSizeChange, columns, rowKey, rowLabel, actions, empty, caption, minWidth, busy,
+  rows, meta, sort, onSortChange, onPageChange, onPageSizeChange, columns: allColumns, rowKey, rowLabel, actions, empty, caption, minWidth, busy, columnsKey,
 }: {
   rows: T[];
   meta: ListMeta;
@@ -60,8 +65,12 @@ export function DataTable<T>({
   minWidth?: string;
   /** A newer query is loading; the rows shown belong to the previous one. */
   busy?: boolean;
+  /** Turns on the column picker; the viewer's choice is remembered in this browser under this key. */
+  columnsKey?: string;
 }) {
+  const [hidden, setHidden] = useHiddenColumns(columnsKey);
   if (meta.total === 0) return <>{empty}</>;
+  const columns = allColumns.filter((c) => c.required || !hidden.includes(c.id));
 
   const [sortField, sortDir] = sort.split(":");
   const { pageSize, total } = meta;
@@ -77,6 +86,11 @@ export function DataTable<T>({
 
   return (
     <div className={cn("flex flex-col gap-3", busy && "opacity-60 transition-opacity")} aria-busy={busy}>
+      {columnsKey && (
+        <div className="flex justify-end">
+          <ColumnPicker columns={allColumns} hidden={hidden} onChange={setHidden} />
+        </div>
+      )}
       <Card className="hidden gap-0 overflow-hidden p-0 md:flex">
         <Table style={minWidth ? { minWidth } : undefined}>
           <caption className="sr-only">{caption}</caption>
@@ -177,6 +191,79 @@ export function DataTable<T>({
         </div>
       </div>
     </div>
+  );
+}
+
+// Per-viewer convenience kept in browser storage. Storage may be blocked (private window), so every access is
+// guarded and an in-memory copy keeps the choice until the page reloads.
+const memory = new Map<string, string>();
+const listeners = new Set<() => void>();
+const readHidden = (k: string) => {
+  try {
+    return localStorage.getItem(k) ?? memory.get(k) ?? "[]";
+  } catch {
+    return memory.get(k) ?? "[]";
+  }
+};
+
+function useHiddenColumns(key?: string): [string[], (ids: string[]) => void] {
+  const storageKey = key ? `ezi-columns:${key}` : "";
+  const raw = useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    () => (storageKey ? readHidden(storageKey) : "[]"),
+    () => "[]",
+  );
+  const hidden = useMemo(() => {
+    try {
+      const v: unknown = JSON.parse(raw);
+      return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+    } catch {
+      return [];
+    }
+  }, [raw]);
+  const save = (ids: string[]) => {
+    const v = JSON.stringify(ids);
+    memory.set(storageKey, v);
+    try {
+      localStorage.setItem(storageKey, v);
+    } catch {
+      // storage blocked: the in-memory copy is used
+    }
+    listeners.forEach((l) => l());
+  };
+  return [hidden, save];
+}
+
+function ColumnPicker<T>({ columns, hidden, onChange }: { columns: Column<T>[]; hidden: string[]; onChange: (ids: string[]) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+        <Columns3 className="size-4" aria-hidden="true" />
+        {t.common.columns}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-52">
+        {columns.map((c) => (
+          <DropdownMenuCheckboxItem
+            key={c.id}
+            checked={c.required || !hidden.includes(c.id)}
+            disabled={c.required}
+            closeOnClick={false}
+            onCheckedChange={(on) => onChange(on ? hidden.filter((id) => id !== c.id) : [...hidden, c.id])}
+          >
+            {c.header}
+          </DropdownMenuCheckboxItem>
+        ))}
+        {hidden.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onChange([])}>{t.common.showAllColumns}</DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

@@ -47,22 +47,22 @@ export default function ItemsPage() {
 
   const stock = (i: ItemDto) => <StockBadge status={i.stockStatus} role={user.role} />;
   const adminColumns: Column<ItemDto>[] = [
-    { id: "code", header: t.items.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortable: true, hideOnMobile: true },
-    { id: "name", header: t.items.colName, cell: nameCell, sortable: true, primary: true },
+    { id: "code", header: t.items.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortable: true, hideOnMobile: true, required: true },
+    { id: "name", header: t.items.colName, cell: nameCell, sortable: true, primary: true, required: true },
     { id: "category", header: t.items.colCategory, cell: (i) => i.categoryName, sortable: true },
     { id: "subcategory", header: t.items.colSubcategory, cell: (i) => i.subcategoryName, sortable: true, hideOnMobile: true },
-    { id: "stock", header: t.items.colStock, cell: (i) => <>{formatNumber(i.currentStock ?? 0)} <span className="text-muted-foreground">{i.unit}</span></>, numeric: true, sortable: true },
+    { id: "stock", header: t.items.colStock, cell: (i) => <>{formatNumber(i.currentStock ?? 0)} <span className="text-muted-foreground">{i.unit}</span></>, numeric: true, sortable: true, required: true },
     { id: "minimum", header: t.items.colMinimum, cell: (i) => formatNumber(i.minimumStock ?? 0), numeric: true, sortable: true, hideOnMobile: true },
     { id: "supplier", header: t.items.colSupplier, cell: (i) => <span className="block max-w-44 truncate" title={i.supplierName}>{i.supplierName}</span>, sortable: true, hideOnMobile: true },
     { id: "location", header: t.items.colLocation, cell: (i) => i.location || "-", sortable: true, hideOnMobile: true },
-    { id: "status", header: t.items.colStatus, cell: stock, sortable: true },
+    { id: "status", header: t.items.colStatus, cell: stock, sortable: true, required: true },
   ];
   const staffColumns: Column<ItemDto>[] = [
-    { id: "name", header: t.items.colName, cell: nameCell, sortable: true },
+    { id: "name", header: t.items.colName, cell: nameCell, sortable: true, required: true },
     { id: "category", header: t.items.colCategory, cell: (i) => i.categoryName, sortable: true },
     { id: "subcategory", header: t.items.colSubcategory, cell: (i) => i.subcategoryName, sortable: true, hideOnMobile: true },
     { id: "unit", header: t.items.colUnit, cell: (i) => i.unit },
-    { id: "availability", header: t.items.colAvailability, cell: stock, sortable: true },
+    { id: "availability", header: t.items.colAvailability, cell: stock, sortable: true, required: true },
   ];
 
   const actions = (i: ItemDto): RowAction[] => [
@@ -114,6 +114,7 @@ export default function ItemsPage() {
       </FilterBar>
       <LoadGate load={list}>
         <DataTable
+          columnsKey={isAdmin ? "items-admin" : "items-staff"}
           caption={t.items.caption}
           {...tableProps(list, lp)}
           columns={isAdmin ? adminColumns : staffColumns}

@@ -28,6 +28,8 @@ export const t = {
     none: "None",
     required: "Required",
     actions: "Actions",
+    columns: "Columns",
+    showAllColumns: "Show all columns",
     retry: "Try again",
     loading: "Loading...",
     optional: "Optional",

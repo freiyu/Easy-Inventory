@@ -60,14 +60,14 @@ function StockReport() {
   const subcategories = useGet<CategoryOption[]>("/subcategories", { status: "Active", pageSize: 500, sort: "name:asc" });
   const clear = () => clearTab(lp, ["categoryId", "subcategoryId", "stockStatus"]);
   const columns: Column<StockReportRow>[] = [
-    { id: "code", header: t.reports.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortable: true },
-    { id: "name", header: t.reports.colItem, cell: (i) => <Link href={`/items/view?id=${i.id}`} className="font-medium hover:text-link hover:underline">{i.name}</Link>, sortable: true },
+    { id: "code", header: t.reports.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortable: true, required: true },
+    { id: "name", header: t.reports.colItem, cell: (i) => <Link href={`/items/view?id=${i.id}`} className="font-medium hover:text-link hover:underline">{i.name}</Link>, sortable: true, required: true },
     { id: "category", header: t.reports.colCategory, cell: (i) => i.categoryName, sortable: true, hideOnMobile: true },
     { id: "subcategory", header: t.fields.subcategory, cell: (i) => i.subcategoryName, sortable: true, hideOnMobile: true },
     { id: "unit", header: t.reports.colUnit, cell: (i) => i.unit, hideOnMobile: true },
-    { id: "stock", header: t.reports.colStock, cell: (i) => formatNumber(i.currentStock ?? 0), numeric: true, sortable: true },
+    { id: "stock", header: t.reports.colStock, cell: (i) => formatNumber(i.currentStock ?? 0), numeric: true, sortable: true, required: true },
     { id: "minimum", header: t.reports.colMinimum, cell: (i) => formatNumber(i.minimumStock ?? 0), numeric: true, sortable: true, hideOnMobile: true },
-    { id: "status", header: t.reports.colStatus, cell: (i) => <StockBadge status={i.stockStatus} />, sortable: true },
+    { id: "status", header: t.reports.colStatus, cell: (i) => <StockBadge status={i.stockStatus} />, sortable: true, required: true },
   ];
   return (
     <>
@@ -79,7 +79,7 @@ function StockReport() {
       </FilterBar>
       <LoadGate load={list}>
         <ReportHeader count={list.meta?.total ?? 0} type="stock" lp={lp} />
-        <DataTable caption={t.reports.stockCaption} {...tableProps(list, lp)} columns={columns} rowKey={(i) => i.id} rowLabel={(i) => i.name} empty={<NoRows onClear={clear} />} />
+        <DataTable columnsKey="report-stock" caption={t.reports.stockCaption} {...tableProps(list, lp)} columns={columns} rowKey={(i) => i.id} rowLabel={(i) => i.name} empty={<NoRows onClear={clear} />} />
       </LoadGate>
     </>
   );
