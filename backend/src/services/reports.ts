@@ -2,7 +2,7 @@
 import XLSX from "xlsx";
 import { daysOverdue, loanDisplayStatus, monthsBetween, safeCell, stockStatus } from "../domain/rules";
 import { fail } from "../http";
-import { filterId, filterValue, MAX_PAGE_SIZE, paged, searchRows, type Query } from "../list";
+import { ALL_ROWS, filterId, filterValue, paged, searchRows, type Query } from "../list";
 import { monthKey, t, type LoanStatus } from "../shared";
 import { isAdmin, log, num, reservedByItem, toDate, ymd, ymdOrNull, type Ctx } from "./core";
 import { itemRows, listItems } from "./master";
@@ -131,14 +131,9 @@ export async function loansReport(c: Ctx, q: Query) {
 
 // --------------------------------------------------------------- Excel export
 
-/** Collects every page of a list with the same filters and sort (PRD 7.5: exports respect the active filters). */
-async function allRows<T>(list: (q: Query) => Promise<{ rows: T[]; meta: { total: number } }>, q: Query): Promise<T[]> {
-  const out: T[] = [];
-  for (let page = 1; ; page++) {
-    const r = await list({ ...q, page, pageSize: MAX_PAGE_SIZE });
-    out.push(...r.rows);
-    if (r.rows.length < MAX_PAGE_SIZE || out.length >= r.meta.total) return out;
-  }
+/** Every row of a list in one query, with the same filters and sort (PRD 7.5: exports respect the active filters). */
+async function allRows<T>(list: (q: Query) => Promise<{ rows: T[] }>, q: Query): Promise<T[]> {
+  return (await list({ ...q, page: 1, pageSize: ALL_ROWS })).rows;
 }
 
 /** PRD 4.9: dates are real date cells, not text. "YYYY-MM-DD" is a calendar day, so it is kept as UTC midnight. */
@@ -148,7 +143,7 @@ function workbook(sheet: string, header: string[], rows: unknown[][]): Buffer {
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows.map((r) => r.map(safeCell))], { cellDates: true, UTC: true, dateNF: "yyyy-mm-dd" });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheet.slice(0, 31));
-  return XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+  return XLSX.write(wb, { type: "buffer", bookType: "xlsx", compression: true });
 }
 
 const ic = t.items, rc = t.reports;

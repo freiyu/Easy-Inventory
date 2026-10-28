@@ -22,6 +22,20 @@ async function voidRow(page: Page, row: RegExp, reason: string) {
   return dialog;
 }
 
+test("the item field finds items by typing part of a name or code", async ({ page }) => {
+  await page.goto("/stock/in");
+  const field = page.getByRole("combobox", { name: "Item" });
+  await field.fill("kabel");
+  const kabel = page.getByRole("option", { name: /Kabel HDMI Uji/ });
+  await expect(kabel).toBeVisible();
+  await expect(page.getByRole("option", { name: /Speaker Uji/ })).toHaveCount(0);
+  const code = (await kabel.innerText()).match(/[A-Z]{3}-[A-Z]{3}-\d{4}/)![0];
+  await field.fill(code.slice(-8));
+  await expect(page.getByRole("option")).toHaveCount(1);
+  await page.getByRole("option", { name: /Kabel HDMI Uji/ }).click();
+  await expect(field).toHaveValue(`Kabel HDMI Uji (${code})`);
+});
+
 test("incoming stock needs a supplier, then adds every line", async ({ page }) => {
   await page.goto("/stock/in");
   await choose(page, "Item", /Speaker Uji/);

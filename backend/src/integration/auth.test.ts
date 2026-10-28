@@ -2,7 +2,7 @@
 import http from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "../db";
-import { addUser, Client, PASSWORD, resetData, startServer } from "./helpers";
+import { addUser, Client, masterData, PASSWORD, resetData, startServer } from "./helpers";
 
 let server: Awaited<ReturnType<typeof startServer>>;
 beforeAll(async () => {
@@ -93,18 +93,29 @@ describe("sessions and authorization", () => {
 
   it("keeps Staff out of Admin endpoints (403) and hides Admin fields", async () => {
     const { client: staff } = await addUser(admin, server.base, "Field Staff", "field.staff@test.example", "Staff");
-    for (const path of ["/stock/transactions", "/suppliers", "/users", "/activity-log", "/backup/database", "/expenses/summary?from=2026-01-01&to=2026-12-31", "/export/items"]) {
+    for (const path of ["/stock/transactions", "/suppliers", "/users", "/activity-log", "/backup/database", "/expenses/summary?from=2026-01-01&to=2026-12-31", "/export/items", "/reports/stock/export"]) {
       const r = await staff.get(path);
       expect(r.status, path).toBe(403);
       expect(r.body.error.code).toBe("FORBIDDEN");
     }
     expect((await staff.post("/items", {})).status).toBe(403);
+    expect((await staff.post("/backup/database", {})).status).toBe(403);
   });
 
   it("refuses a cross-site write (CSRF) but accepts a same-origin one", async () => {
     expect((await admin.call("POST", "/categories", { name: "X", code: "XXX" }, { "Sec-Fetch-Site": "cross-site" })).status).toBe(403);
     expect((await admin.call("POST", "/categories", { name: "X", code: "XXX" }, { Origin: "http://evil.example" })).status).toBe(403);
     expect((await admin.call("POST", "/categories", { name: "X", code: "XXX" }, { "Sec-Fetch-Site": "same-origin" })).status).toBe(201);
+  });
+
+  it("treats SQL injection and script text as plain data (PRD 10.3)", async () => {
+    const xss = `<img src=x onerror="alert(1)">`;
+    const sqli = `x' OR '1'='1'; DROP TABLE items; --`;
+    const data = await masterData(admin, [{ name: xss, stock: 1 }, { name: sqli, stock: 1 }]);
+    expect((await admin.ok("GET", `/items/${data.itemIds[0]}`)).name).toBe(xss);
+    expect((await admin.get(`/items?search=${encodeURIComponent("' OR '1'='1")}`)).body.data.map((i: { id: number }) => i.id)).toEqual([data.itemIds[1]]);
+    expect((await admin.get(`/items?search=${encodeURIComponent("zz' OR '1'='1")}`)).body.data).toEqual([]);
+    expect(await prisma.item.count()).toBe(2);
   });
 
   it("returns field errors as 422 VALIDATION_ERROR and a duplicate as 409 CONFLICT", async () => {

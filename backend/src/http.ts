@@ -73,6 +73,14 @@ export async function logError(context: string, err: unknown) {
   }
 }
 
+/** A deadlock or write conflict: MySQL rolled the transaction back. Raw queries (row locks) report it as P2010
+ *  with the driver's kind, model queries as P2034. */
+export function isWriteConflict(err: unknown): boolean {
+  if (!(err instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  const kind = (err.meta as { driverAdapterError?: { cause?: { kind?: string } } } | undefined)?.driverAdapterError?.cause?.kind;
+  return err.code === "P2034" || kind === "TransactionWriteConflict";
+}
+
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   let e: AppError;
   if (err instanceof AppError) e = err;
@@ -81,7 +89,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: t.errors.fix } });
   } else if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
     e = fail("CONFLICT", t.errors.nameTaken); // a database unique constraint caught a duplicate (BR-01)
-  } else if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034") {
+  } else if (isWriteConflict(err)) {
     e = fail("CONFLICT", t.errors.server); // deadlock or write conflict: nothing was saved, the user can retry
   } else {
     void logError(`${req.method} ${req.path}`, err);

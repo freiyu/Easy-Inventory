@@ -2,6 +2,7 @@
 // new-item receipt (PRD 4.6, 4.6A, BR-07, BR-08, BR-27..BR-31).
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "../db";
+import { write, type SessionUser } from "../services/core";
 import { addUser, Client, ledgerMismatches, masterData, resetData, setupAccounts, startServer, TODAY } from "./helpers";
 
 let server: Awaited<ReturnType<typeof startServer>>;
@@ -108,5 +109,25 @@ describe("purchase requests", () => {
     expect(r.body.error.code).toBe("BUSINESS_RULE_VIOLATION");
     await admin.ok("POST", `/items/${data.itemIds[0]}/activate`);
     expect(await ledgerMismatches()).toEqual([]);
+  });
+});
+
+describe("write()", () => {
+  it("runs a transaction again when MySQL picks it as a deadlock victim", async () => {
+    const actor = (await prisma.user.findUniqueOrThrow({ where: { id: adminId }, include: { role: true } })) as unknown as SessionUser;
+    let runs = 0;
+    let holding = 0;
+    let release!: () => void;
+    const bothHoldOne = new Promise<void>((r) => (release = r));
+    // Each side locks one role row, waits until the other holds its row, then asks for the other one.
+    const lockBoth = (first: string, second: string) => write(actor, async ({ tx }) => {
+      runs++;
+      await tx.$queryRaw`SELECT id FROM roles WHERE name = ${first} FOR UPDATE`;
+      if (++holding === 2) release();
+      await bothHoldOne;
+      await tx.$queryRaw`SELECT id FROM roles WHERE name = ${second} FOR UPDATE`;
+    });
+    await Promise.all([lockBoth("Admin", "Staff"), lockBoth("Staff", "Admin")]);
+    expect(runs).toBe(3);
   });
 });

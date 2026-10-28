@@ -3,7 +3,7 @@
 import type { Prisma } from "../db";
 import { totalsByItem } from "../domain/rules";
 import { fail, notFound } from "../http";
-import { clampPage, filterId, filterValue, pageParams, sortParam, type Query } from "../list";
+import { ALL_ROWS, clampPage, filterId, filterValue, pageParams, sortParam, type Query } from "../list";
 import { t, type StockTxType } from "../shared";
 import {
   assertActive, iso, lockItems, lockRow, log, num, once, postTransaction, reader, requestKey, reservedByItem, toDate, write, ymd, type Ctx, type SessionUser,
@@ -128,7 +128,7 @@ export async function ledger(c: Ctx, q: Query, opts: { report: boolean }) {
   const total = await c.tx.stockTransactionItem.count({ where });
   const page = clampPage(want, pageSize, total);
   const lines = await c.tx.stockTransactionItem.findMany({
-    where, orderBy, skip: (page - 1) * pageSize, take: pageSize,
+    where, orderBy, ...(pageSize === ALL_ROWS ? {} : { skip: (page - 1) * pageSize, take: pageSize }),
     include: { item: { select: { name: true } }, transaction: { select: { id: true, number: true, type: true, date: true, user: { select: { name: true } } } } },
   });
   const rows = lines.map((l) => {

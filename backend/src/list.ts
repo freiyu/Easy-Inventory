@@ -32,7 +32,11 @@ export const searchRows = <T>(rows: T[], q: Query, fields: (row: T) => (string |
   return s ? rows.filter((r) => matches(s, ...fields(r))) : rows;
 };
 
+/** Exports ask for every row in one page with this pageSize. A URL cannot send it: every query value is a string. */
+export const ALL_ROWS = Infinity;
+
 export function pageParams(q: Query) {
+  if (q.pageSize === ALL_ROWS) return { page: 1, pageSize: ALL_ROWS };
   const pageSize = Math.min(posInt(q.pageSize, DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
   return { page: posInt(q.page, 1), pageSize };
 }

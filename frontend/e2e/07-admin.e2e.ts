@@ -96,3 +96,14 @@ test("activity log records the import summary and filters by module", async ({ p
   await expect(rows.nth(1)).toContainText("Loans");
   await expect(rows.filter({ hasText: "Items imported" })).toHaveCount(0);
 });
+
+test("script text in a name is shown as text, never run (XSS, PRD 10.3)", async ({ page, baseURL }) => {
+  const api = await apiAs(baseURL!, ADMIN);
+  const [base] = await ok(api, "get", "/items?search=Proyektor Uji");
+  const name = `<img src=x onerror="window.__xss=1"> Uji`;
+  await ok(api, "post", "/items", { name, categoryId: base.categoryId, subcategoryId: base.subcategoryId, unit: "pcs", openingStock: 0, minimumStock: 0, lastPurchasePrice: 0 });
+  await page.goto("/items?search=onerror");
+  await expect(page.getByText(name).first()).toBeVisible();
+  await expect(page.locator("img[src=x]")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as { __xss?: number }).__xss)).toBeUndefined();
+});

@@ -11,14 +11,12 @@ import { Field } from "@/components/shared/form-field";
 import { LinesEditor, newLine, type LineDraft } from "@/components/shared/lines-editor";
 import { PageHeader } from "@/components/shared/page-header";
 import { today } from "@/lib/format";
-import { api, useGet, useRequestId } from "@/lib/api";
-import type { ItemDto } from "@/lib/api/master";
-import { outgoingSchema, validate, type FieldErrors } from "@/lib/schemas";
+import { api, useRequestId } from "@/lib/api";
+import { outgoingSchema, serverErrors, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
 export default function OutgoingStockPage() {
   const router = useRouter();
-  const items = useGet<ItemDto[]>("/items", { status: "Active", pageSize: 500, sort: "name:asc" });
   const requestId = useRequestId();
   const [date, setDate] = useState(today);
   const [destination, setDestination] = useState("");
@@ -35,7 +33,7 @@ export default function OutgoingStockPage() {
     setPending(true);
     const r = await api.stock.out(v.data, requestId.id);
     setPending(false);
-    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors(serverErrors(r.error));
     requestId.renew();
     toast.success(t.stock.savedOut(r.data.number));
     router.push("/stock");
@@ -56,8 +54,7 @@ export default function OutgoingStockPage() {
           </div>
           <section className="flex flex-col gap-3 border-t px-5 pt-5">
             <h2 className="text-lg font-semibold">{t.stock.outItemsSection}</h2>
-            <LinesEditor mode="out" lines={lines} onChange={setLines} errors={errors}
-              items={items.data ?? []} />
+            <LinesEditor mode="out" lines={lines} onChange={setLines} errors={errors} />
           </section>
           <div className="px-5">
             <Field label={t.stock.noteField}>{(p) => <Textarea {...p} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />}</Field>

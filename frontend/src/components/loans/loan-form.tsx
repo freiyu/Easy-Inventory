@@ -13,8 +13,7 @@ import { SelectField } from "@/components/shared/select-field";
 import { daysFromToday, today } from "@/lib/format";
 import { api, useCurrentUser, useGet, useRequestId } from "@/lib/api";
 import type { LoanDto } from "@/lib/api/loans";
-import type { ItemDto } from "@/lib/api/master";
-import { loanSchema, validate, type FieldErrors } from "@/lib/schemas";
+import { loanSchema, serverErrors, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
 export function LoanForm({ loan }: { loan?: LoanDto }) {
@@ -22,7 +21,6 @@ export function LoanForm({ loan }: { loan?: LoanDto }) {
   const user = useCurrentUser()!;
   const isAdmin = user.role === "Admin";
   const requestId = useRequestId();
-  const itemList = useGet<ItemDto[]>("/items", { status: "Active", pageSize: 500, sort: "name:asc" });
   // Admin books on behalf of anyone active; Staff always borrow for themselves.
   const userList = useGet<{ id: number; name: string; role: string }[]>(isAdmin ? "/users" : null, { status: "Active", pageSize: 500, sort: "name:asc" });
   const [borrowerId, setBorrowerId] = useState(String(loan?.borrowerId ?? user.id));
@@ -42,7 +40,7 @@ export function LoanForm({ loan }: { loan?: LoanDto }) {
     setPending(submit ? "submit" : "draft");
     const r = loan ? await api.loans.update(loan.id, v.data, submit) : await api.loans.create(v.data, submit, requestId.id);
     setPending(null);
-    if (!r.success) return setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+    if (!r.success) return setErrors(serverErrors(r.error));
     toast.success(submit ? t.loans.submitted : t.loans.draftSaved);
     router.push(`/loans/view?id=${r.data.id}`);
   };
@@ -63,7 +61,7 @@ export function LoanForm({ loan }: { loan?: LoanDto }) {
           <section className="flex flex-col gap-3 px-5">
             <h2 className="text-lg font-semibold">{t.loans.sectionItems}</h2>
             <LinesEditor mode="loan" lines={lines} onChange={setLines} errors={errors}
-              items={itemList.data ?? []} addLabel={t.loans.addLine} />
+              addLabel={t.loans.addLine} />
           </section>
           <section className="flex flex-col gap-3 border-t px-5 pt-5">
             <h2 className="text-lg font-semibold">{t.loans.sectionWhen}</h2>

@@ -7,7 +7,7 @@ export function SearchBox({
   value, onChange, placeholder, label = placeholder,
 }: { value: string; onChange: (v: string) => void; placeholder: string; label?: string }) {
   return (
-    <div className="relative w-full sm:w-80">
+    <div className="relative col-span-2 w-full sm:w-80">
       <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
       <Input
         type="search"
@@ -25,7 +25,8 @@ export function FilterBar({
   children, dirty, onClear,
 }: { children: React.ReactNode; dirty: boolean; onClear: () => void }) {
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3">
+    // Phones: two filters per row under a full-width search, so the bar stays short.
+    <div className="mb-4 grid grid-cols-2 items-end gap-2 max-sm:*:w-full! sm:flex sm:flex-wrap sm:gap-3">
       {children}
       {dirty && (
         <Button variant="ghost" onClick={onClear}>

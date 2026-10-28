@@ -13,13 +13,12 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SelectField } from "@/components/shared/select-field";
 import { formatIDR, today } from "@/lib/format";
 import { api, useGet, useRequestId } from "@/lib/api";
-import type { ItemDto, SupplierDto } from "@/lib/api/master";
+import type { SupplierDto } from "@/lib/api/master";
 import { incomingSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
 export default function IncomingStockPage() {
   const router = useRouter();
-  const items = useGet<ItemDto[]>("/items", { status: "Active", pageSize: 500, sort: "name:asc" });
   const suppliers = useGet<SupplierDto[]>("/suppliers", { status: "Active", pageSize: 500, sort: "name:asc" });
   const requestId = useRequestId();
   const [date, setDate] = useState(today);
@@ -61,7 +60,7 @@ export default function IncomingStockPage() {
           </div>
           <section className="flex flex-col gap-3 border-t px-5 pt-5">
             <h2 className="text-lg font-semibold">{t.stock.itemsSection}</h2>
-            <LinesEditor mode="in" lines={lines} onChange={setLines} errors={errors} items={items.data ?? []} />
+            <LinesEditor mode="in" lines={lines} onChange={setLines} errors={errors} />
             <p className="flex justify-end gap-3 text-base">
               <span className="text-muted-foreground">{t.stock.totalPurchase}</span>
               <span className="tabular font-semibold">{formatIDR(total)}</span>

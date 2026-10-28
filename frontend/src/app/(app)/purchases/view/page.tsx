@@ -131,6 +131,11 @@ function PurchaseDetail({ request, userId, isAdmin }: { request: PurchaseDto; us
                     <TableCell className="font-medium">
                       {l.itemName}
                       {l.itemId === null && <span className="ml-2 text-sm font-normal text-muted-foreground">{t.purchases.newItemTag}</span>}
+                      {l.newItem && (
+                        <span className="block text-sm font-normal text-muted-foreground">
+                          {l.newItem.categoryName}{l.newItem.subcategoryName && ` · ${l.newItem.subcategoryName}`}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="tabular text-right">{formatNumber(l.quantity)} {l.unit}</TableCell>
                     {isAdmin && <TableCell className="tabular text-right">{l.currentStock !== undefined ? formatNumber(l.currentStock) : "-"}</TableCell>}

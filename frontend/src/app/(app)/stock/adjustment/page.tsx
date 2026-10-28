@@ -9,25 +9,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/shared/form-field";
 import { PageHeader } from "@/components/shared/page-header";
-import { SelectField } from "@/components/shared/select-field";
+import { ItemPicker } from "@/components/shared/item-picker";
 import { formatNumber, today } from "@/lib/format";
-import { api, useGet, useRequestId } from "@/lib/api";
+import { api, useRequestId } from "@/lib/api";
 import type { ItemDto } from "@/lib/api/master";
 import { adjustmentSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
 
 export default function AdjustmentPage() {
   const router = useRouter();
-  const items = useGet<ItemDto[]>("/items", { status: "Active", pageSize: 500, sort: "name:asc" });
   const requestId = useRequestId();
   const [date, setDate] = useState(today);
-  const [itemId, setItemId] = useState("");
+  const [item, setItem] = useState<ItemDto>();
+  const itemId = item ? String(item.id) : "";
   const [physical, setPhysical] = useState("");
   const [reason, setReason] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState(false);
 
-  const item = items.data?.find((i) => String(i.id) === itemId);
   const systemStock = item?.currentStock ?? 0;
   const diff = item && /^\d+$/.test(physical.trim()) ? Number(physical) - systemStock : null;
 
@@ -54,8 +53,7 @@ export default function AdjustmentPage() {
         <Card className="max-w-3xl gap-6">
           <div className="grid gap-4 px-5 sm:grid-cols-2">
             <Field label={t.fields.item} required error={errors.itemId} hint={t.stock.adjItemHint}>
-              {(p) => <SelectField {...p} value={itemId} onChange={(v) => { setItemId(v); setPhysical(""); }} placeholder={t.stock.selectItem}
-                options={(items.data ?? []).map((i) => ({ value: String(i.id), label: `${i.name} (${i.code})` }))} />}
+              {(p) => <ItemPicker {...p} value={itemId} item={item} onChange={(x) => { setItem(x ?? undefined); setPhysical(""); }} />}
             </Field>
             <Field label={t.fields.date} required error={errors.date}>
               {(p) => <Input {...p} type="date" value={date} onChange={(e) => setDate(e.target.value)} />}

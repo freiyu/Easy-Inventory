@@ -32,6 +32,16 @@ test("item pages show availability only: no code, price, supplier or stock numbe
   await expect(main).not.toContainText(/GDU-|Rp|Toko Contoh|Current stock|Last purchase price/);
 });
 
+test("the item field on a loan request searches names and shows no codes", async ({ page }) => {
+  await page.goto("/loans/new");
+  await page.getByRole("combobox", { name: "Item" }).fill("proyektor");
+  const option = page.getByRole("option", { name: /Proyektor Uji/ });
+  await expect(option).toBeVisible();
+  await expect(option).not.toContainText(/[A-Z]{3}-[A-Z]{3}-\d{4}/);
+  await page.getByRole("combobox", { name: "Item" }).fill("GDU-");
+  await expect(page.getByText("No active item matches.")).toBeVisible();
+});
+
 test("the item API gives Staff no price, supplier, code or stock fields", async ({ page }) => {
   const body = await (await page.request.get("/api/items")).json();
   expect(body.success).toBe(true);

@@ -2,7 +2,7 @@
 // the activity log and the single function that changes stock (BR-02, BR-03, PRD 7.4).
 import { prisma, Prisma, type Tx } from "../db";
 import { formatSequence, sequenceKey } from "../domain/rules";
-import { fail, notFound } from "../http";
+import { fail, isWriteConflict, notFound } from "../http";
 import { t, today, type Role, type StockTxType } from "../shared";
 
 export interface SessionUser {
@@ -32,14 +32,23 @@ export const reader = (actor: SessionUser): Ctx => ({ tx: prisma, actor, now: ne
 /**
  * Runs a write in one transaction (PRD 7.2, 7.4). READ COMMITTED so every read after a row lock sees the
  * latest committed data; with MySQL's default REPEATABLE READ a snapshot taken before the lock could be stale.
+ * A deadlock rolls the whole transaction back, so it is safe to run it again; `run` must not have
+ * side effects outside the transaction.
  */
-export function write<T>(actor: SessionUser, run: (c: Ctx) => Promise<T>): Promise<T> {
-  return prisma.$transaction((tx) => run({ tx, actor, now: new Date(), today: today() }), {
-    isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
-    maxWait: 10_000,
-    timeout: 30_000,
-  });
+export async function write<T>(actor: SessionUser, run: (c: Ctx) => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await prisma.$transaction((tx) => run({ tx, actor, now: new Date(), today: today() }), {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        maxWait: 10_000,
+        timeout: 30_000,
+      });
+    } catch (err) {
+      if (!isWriteConflict(err) || attempt >= WRITE_ATTEMPTS) throw err;
+    }
+  }
 }
+const WRITE_ATTEMPTS = 3;
 
 // ------------------------------------------------------------------ dates and numbers
 

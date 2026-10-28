@@ -12,7 +12,7 @@ import { LinesEditor, newLine, type LineDraft } from "@/components/shared/lines-
 import { SelectField } from "@/components/shared/select-field";
 import { daysFromToday } from "@/lib/format";
 import { api, useCurrentUser, useGet, useRequestId } from "@/lib/api";
-import type { CategoryOption, ItemDto } from "@/lib/api/master";
+import type { CategoryOption } from "@/lib/api/master";
 import type { PurchaseDto } from "@/lib/api/purchases";
 import { purchaseSchema, validate, type FieldErrors } from "@/lib/schemas";
 import { t } from "@/lib/strings";
@@ -20,7 +20,6 @@ import { t } from "@/lib/strings";
 export function PurchaseForm({ request }: { request?: PurchaseDto }) {
   const router = useRouter();
   const user = useCurrentUser()!;
-  const items = useGet<ItemDto[]>("/items", { status: "Active", pageSize: 500, sort: "name:asc" });
   const categories = useGet<CategoryOption[]>("/categories", { status: "Active", pageSize: 500, sort: "name:asc" });
   const subcategories = useGet<CategoryOption[]>("/subcategories", { status: "Active", pageSize: 500, sort: "name:asc" });
   // Only an Admin may file a request for someone else (PRD 3.2); the list is Admin only.
@@ -71,7 +70,7 @@ export function PurchaseForm({ request }: { request?: PurchaseDto }) {
             <h2 className="text-lg font-semibold">{t.purchases.sectionItems}</h2>
             <p className="text-sm text-muted-foreground">{t.purchases.howNew}</p>
             <LinesEditor mode="purchase" lines={lines} onChange={setLines} errors={errors}
-              items={items.data ?? []} categories={categories.data ?? []} subcategories={subcategories.data ?? []} addLabel={t.purchases.addLine} />
+              categories={categories.data ?? []} subcategories={subcategories.data ?? []} addLabel={t.purchases.addLine} />
           </section>
           <section className="flex flex-col gap-3 border-t px-5 pt-5">
             <h2 className="text-lg font-semibold">{t.purchases.sectionWhen}</h2>

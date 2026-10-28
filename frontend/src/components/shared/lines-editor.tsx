@@ -4,6 +4,7 @@ import { Check, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/shared/form-field";
+import { ItemPicker } from "@/components/shared/item-picker";
 import { SelectField } from "@/components/shared/select-field";
 import { UNITS } from "@/lib/constants";
 import { formatIDR } from "@/lib/format";
@@ -15,6 +16,8 @@ import type { CategoryOption, ItemDto } from "@/lib/api/master";
 export interface LineDraft {
   key: number;
   itemId: string;
+  /** The picked item, for its label and stock hints (loaded by ItemPicker when only itemId is known). */
+  item?: ItemDto;
   quantity: string;
   unitPrice: string;
   /** Purchase requests only: the line describes a new item instead of picking an existing one. */
@@ -36,14 +39,12 @@ export const parseInt0 = (v: string) => (/^\d+$/.test(v.trim()) ? Number(v) : 0)
  * "purchase" lets each line be an existing item or a new one (name, category, subcategory, unit).
  */
 export function LinesEditor({
-  mode, lines, onChange, errors, items, categories = [], subcategories = [], addLabel = t.stock.addLine,
+  mode, lines, onChange, errors, categories = [], subcategories = [], addLabel = t.stock.addLine,
 }: {
   mode: "in" | "out" | "loan" | "purchase";
   lines: LineDraft[];
   onChange: (lines: LineDraft[]) => void;
   errors: FieldErrors;
-  /** Items to pick from (from the API). "out" and "loan" lines show the item's `availableForLoan`. */
-  items: ItemDto[];
   /** Active categories to choose from for a new item (purchase mode). */
   categories?: CategoryOption[];
   /** Active subcategories for a new item (purchase mode, v12). */
@@ -58,9 +59,8 @@ export function LinesEditor({
     <div className="flex flex-col gap-3">
       {errors.lines && <p role="alert" className="text-sm font-medium text-danger-icon">{errors.lines}</p>}
       {lines.map((line, i) => {
-        const item = items.find((x) => String(x.id) === line.itemId);
+        const item = line.item;
         const total = parseInt0(line.quantity) * parseInt0(line.unitPrice);
-        const options = items.filter((x) => !taken(line.key).has(String(x.id))).map((x) => ({ value: String(x.id), label: x.code && (mode === "in" || mode === "out") ? `${x.name} (${x.code})` : x.name }));
         const remove = (
           <div className="flex sm:col-span-1 sm:mt-[1.625rem] sm:justify-end">
             <Button type="button" variant="outline" size="icon" aria-label={`${t.stock.removeLine} ${i + 1}`} disabled={lines.length === 1}
@@ -104,7 +104,7 @@ export function LinesEditor({
                 </Field>
               ) : (
                 <Field label={t.fields.item} required error={errors[`lines.${i}.itemId`]} className="sm:col-span-8">
-                  {(p) => <SelectField {...p} value={line.itemId} placeholder={t.stock.selectItem} options={options} onChange={(v) => update(line.key, { itemId: v })} />}
+                  {(p) => <ItemPicker {...p} value={line.itemId} item={item} exclude={taken(line.key)} onChange={(x) => update(line.key, { itemId: x ? String(x.id) : "", item: x ?? undefined })} />}
                 </Field>
               )}
               <Field label={t.fields.quantity} required error={errors[`lines.${i}.quantity`]} className="sm:col-span-4">
@@ -131,13 +131,13 @@ export function LinesEditor({
         }
         return (
           <div key={line.key} className="grid gap-3 rounded-lg border bg-muted/40 p-3 sm:grid-cols-12 sm:items-start">
-            <Field label={t.fields.item} required error={errors[`lines.${i}.itemId`]} className="sm:col-span-5">
+            <Field label={t.fields.item} required error={errors[`lines.${i}.itemId`]} className={mode === "in" ? "sm:col-span-5" : "sm:col-span-7"}>
               {(p) => (
-                <SelectField {...p} value={line.itemId} placeholder={t.stock.selectItem} options={options}
-                  onChange={(v) => {
-                    const picked = items.find((x) => String(x.id) === v);
-                    update(line.key, { itemId: v, ...(mode === "in" && picked && !line.unitPrice ? { unitPrice: String(picked.lastPurchasePrice ?? 0) } : {}) });
-                  }} />
+                <ItemPicker {...p} value={line.itemId} item={item} exclude={taken(line.key)}
+                  onChange={(x) => update(line.key, {
+                    itemId: x ? String(x.id) : "", item: x ?? undefined,
+                    ...(mode === "in" && x && !line.unitPrice ? { unitPrice: String(x.lastPurchasePrice ?? 0) } : {}),
+                  })} />
               )}
             </Field>
             <Field
