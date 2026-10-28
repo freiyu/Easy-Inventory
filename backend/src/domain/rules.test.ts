@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseCsv, UNCLOSED_QUOTE } from "./csv";
 import {
   availableForLoan, daysOverdue, formatSequence, itemCode, loanActions, loanDisplayStatus, monthsBetween, purchaseActions, returnFloor,
-  safeCell, sequenceKey, stockStatus, totalsByItem,
+  safeCell, sequenceKey, stockStatus, suggestCode, totalsByItem,
 } from "./rules";
 
 const admin = { id: 1, role: "Admin" as const };
@@ -135,5 +135,23 @@ describe("CSV reader (PRD 4.10)", () => {
   });
   it("refuses an unclosed quote", () => {
     expect(() => parseCsv('name\n"Pen')).toThrow(UNCLOSED_QUOTE);
+  });
+});
+
+describe("suggestCode (BR-33 import creates a category or subcategory)", () => {
+  const none = new Set<string>();
+  it("takes the first letter and the next two consonants", () => {
+    expect(suggestCode("Elektronik", none)).toBe("ELK");
+    expect(suggestCode("Ibadah", none)).toBe("IBD");
+    expect(suggestCode("Gedung Serba Guna", none)).toBe("GDN");
+  });
+  it("tries other letters of the name when the code is taken, and ignores accents and digits", () => {
+    expect(suggestCode("Elektronik", new Set(["ELK"]))).toBe("ELE");
+    expect(suggestCode("Café 2", none)).toBe("CAF");
+  });
+  it("falls back to any free code for a short or letterless name", () => {
+    expect(suggestCode("TV", none)).toBe("TAA");
+    expect(suggestCode("123", none)).toBe("AAA");
+    expect(suggestCode("Ab", new Set(["AAA"]))).toBe("AAB");
   });
 });

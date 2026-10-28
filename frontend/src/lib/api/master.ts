@@ -101,6 +101,9 @@ export interface ImportReportDto {
   errors: number;
   /** Items created by a confirmed import; 0 in a preview. */
   created: number;
+  /** Categories and subcategories the import adds (v13), with their generated codes. */
+  newCategories: { name: string; code: string }[];
+  newSubcategories: { name: string; code: string }[];
 }
 
 export const items = {

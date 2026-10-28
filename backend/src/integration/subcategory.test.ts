@@ -83,6 +83,51 @@ describe("item codes and names (BR-31 to BR-33)", () => {
     const report = await admin.ok("POST", "/items/import/preview", { csv });
     expect(report.rows.map((r: { status: string }) => r.status)).toEqual(["skipped", "ready"]);
   });
+
+  it("adds a missing category and subcategory with generated codes, only for ready rows (v13)", async () => {
+    const csv = [
+      "name,category,subcategory,unit",
+      "Sound System,Gedung Serba Guna,Audio Visual,unit",
+      "Mixer,gedung serba guna,AUDIO VISUAL,unit",
+      "Kabel,Gudang Baru,ELK,kardus",
+      "Lampu,AUL,ELK,pcs",
+    ].join("\n");
+    const [cats, subs] = [await prisma.category.count(), await prisma.subcategory.count()];
+    const preview = await admin.ok("POST", "/items/import/preview", { csv });
+    expect(preview.rows.map((r: { status: string }) => r.status)).toEqual(["ready", "ready", "error", "ready"]);
+    expect(preview.newCategories).toEqual([{ name: "Gedung Serba Guna", code: "GDN" }]);
+    expect(preview.newSubcategories).toEqual([{ name: "Audio Visual", code: "ADV" }]);
+    expect(preview.rows[0].message).toContain("GDN");
+    expect([await prisma.category.count(), await prisma.subcategory.count()]).toEqual([cats, subs]);
+
+    const done = await admin.ok("POST", "/items/import", { csv });
+    expect(done).toMatchObject({ created: 3 });
+    const code = async (name: string) => (await prisma.item.findFirstOrThrow({ where: { name } })).code;
+    expect([await code("Sound System"), await code("Mixer")]).toEqual(["GDN-ADV-0001", "GDN-ADV-0002"]);
+    expect(await code("Lampu")).toMatch(/^AUL-ELK-\d{4}$/);
+    expect(await prisma.category.findFirst({ where: { name: "Gudang Baru" } })).toBeNull();
+    expect(await prisma.activityLog.count({ where: { action: "Category created", reference: "Gedung Serba Guna" } })).toBe(1);
+    expect(await prisma.activityLog.count({ where: { action: "Subcategory created", reference: "Audio Visual" } })).toBe(1);
+  });
+
+  it("keeps an inactive category or subcategory an error, and reads a code planned earlier in the file as the same new area", async () => {
+    const off = await admin.ok("POST", "/categories", { name: "Gudang Lama", code: "GDL" });
+    await admin.ok("POST", `/categories/${off.id}/deactivate`);
+    const csv = [
+      "name,category,subcategory,unit",
+      "Rak,GDL,ELK,pcs", // inactive category, by code
+      "Map,Office,Arsip,pcs", // inactive subcategory, by name
+      "Kursi Lipat,Ruang Café,ELK,pcs",
+      "Meja Lipat,RNG,ELK,pcs", // the code just planned for "Ruang Café"
+      "Kursi Lipat,ruang cafe,ELK,pcs", // same new area without case and accent
+    ].join("\n");
+    const preview = await admin.ok("POST", "/items/import/preview", { csv });
+    expect(preview.rows.map((r: { status: string }) => r.status)).toEqual(["error", "error", "ready", "ready", "skipped"]);
+    expect(preview.newCategories).toEqual([{ name: "Ruang Café", code: "RNG" }]);
+    await admin.ok("POST", "/items/import", { csv });
+    expect((await prisma.item.findFirstOrThrow({ where: { name: "Meja Lipat" } })).code).toMatch(/^RNG-ELK-/);
+    expect(await prisma.category.count({ where: { code: { in: ["RNG", "RAA"] } } })).toBe(1);
+  });
 });
 
 describe("data from before v12", () => {

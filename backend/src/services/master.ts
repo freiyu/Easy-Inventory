@@ -1,7 +1,7 @@
 // Categories, subcategories, suppliers and items (PRD 4.2 to 4.4, 4.10, BR-01, BR-14, BR-24, BR-32 to BR-34).
 import { prisma, Prisma, type Tx } from "../db";
 import { parseCsv, UNCLOSED_QUOTE } from "../domain/csv";
-import { availableForLoan, itemCode, stockStatus } from "../domain/rules";
+import { availableForLoan, itemCode, stockStatus, suggestCode } from "../domain/rules";
 import { fail, notFound, type Paged } from "../http";
 import { filterId, filterValue, paged, searchRows, type Query } from "../list";
 import type { ItemInput } from "../schemas";
@@ -310,12 +310,14 @@ export function deleteItem(actor: SessionUser, id: number) {
 
 // ------------------------------------------------------------- item CSV import
 // PRD 4.10, BR-33: Admin only, insert-only, validated per row, previewed, then one transaction after a backup.
+// A category or subcategory that does not exist yet is created by the import (v13), with a generated code.
 
 export const IMPORT_MAX_ROWS = 500;
 export const IMPORT_MAX_BYTES = 1_000_000;
 const IMPORT_REQUIRED = ["name", "category", "subcategory", "unit"] as const;
 type ImportColumn = "name" | "category" | "subcategory" | "unit" | "opening_stock" | "minimum_stock" | "price" | "supplier" | "location" | "notes";
-const lc = (s: string) => s.trim().toLowerCase();
+// Case- and accent-insensitive, as the database collation compares names ("Cafe" = "Café").
+const lc = (s: string) => s.trim().normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 const wholeOrNull = (v: string): number | null => (v.trim() === "" ? 0 : /^\d+$/.test(v.trim()) && Number(v) <= 1_000_000_000 ? Number(v.trim()) : null);
 
 export interface ImportRow {
@@ -332,11 +334,16 @@ export interface ImportRow {
   supplier: string;
   location: string;
   notes: string;
-  /** Resolved ids for a ready row (not sent to the client). */
+  /** Resolved ids for a ready row, or the key of a category or subcategory the import creates (not sent to the client). */
   categoryId?: number;
   subcategoryId?: number;
   supplierId?: number | null;
+  newCategory?: string;
+  newSubcategory?: string;
 }
+
+/** A category or subcategory that a confirmed import creates. */
+export interface NewGroupEntry { name: string; code: string; key?: string }
 
 /** Validates the file and every row against the current data. Saves nothing. */
 export async function previewImport(tx: Tx, csv: string) {
@@ -358,7 +365,7 @@ export async function previewImport(tx: Tx, csv: string) {
   if (data.length > IMPORT_MAX_ROWS) throw bad(e.importTooManyRows(IMPORT_MAX_ROWS));
 
   const [cats, subs, sups, names] = await Promise.all([
-    tx.category.findMany({ select: { id: true, name: true, status: true } }),
+    tx.category.findMany({ select: { id: true, name: true, code: true, status: true } }),
     tx.subcategory.findMany({ select: { id: true, name: true, code: true, status: true } }),
     tx.supplier.findMany({ select: { id: true, name: true, status: true } }),
     tx.item.findMany({ select: { name: true, categoryId: true } }),
@@ -368,8 +375,25 @@ export async function previewImport(tx: Tx, csv: string) {
     return i < 0 ? "" : (cells[i] ?? "").trim();
   };
   // v12 (BR-33): a name is a duplicate only within the same category.
-  const nameKey = (categoryId: number, name: string) => `${categoryId}:${lc(name)}`;
+  const nameKey = (category: number | string, name: string) => `${category}:${lc(name)}`;
   const seen = new Set(names.map((i) => nameKey(i.categoryId, i.name)));
+  // Entries this file adds (v13), planned in file order when their first ready row is reached. A later row may name
+  // one by the code planned for it, so "GDN" after "Gedung Serba Guna" is the same new area, not a second one.
+  const planner = (existing: { code: string }[]) => ({
+    taken: new Set(existing.map((x) => x.code.toUpperCase())),
+    byKey: new Map<string, NewGroupEntry>(),
+    byCode: new Map<string, string>(),
+  });
+  const newCats = planner(cats);
+  const newSubs = planner(subs);
+  const pendingKey = (p: ReturnType<typeof planner>, value: string) => p.byCode.get(value.toUpperCase()) ?? lc(value);
+  const addPending = (p: ReturnType<typeof planner>, key: string, name: string) => {
+    if (p.byKey.has(key)) return;
+    const code = /^[A-Za-z]{3}$/.test(name) && !p.taken.has(name.toUpperCase()) ? name.toUpperCase() : suggestCode(name, p.taken);
+    p.taken.add(code);
+    p.byKey.set(key, { name, code, key });
+    p.byCode.set(code, key);
+  };
   const rows: ImportRow[] = data.map((cells, idx) => {
     const row: ImportRow = {
       line: idx + 2, status: "ready", message: "",
@@ -380,14 +404,15 @@ export async function previewImport(tx: Tx, csv: string) {
     if (!row.name) return problem(t.validation.required(t.fields.name));
     if (row.name.length > 150) return problem(t.validation.tooLong(t.fields.name, 150));
     if (!row.category) return problem(t.validation.required(t.fields.category));
-    const cat = cats.find((x) => lc(x.name) === lc(row.category));
-    if (!cat) return problem(e.importUnknownCategory(row.category));
-    if (cat.status !== "Active") return problem(e.categoryInactive(cat.name));
+    // Code first, then name, the same as the subcategory below (v13: so "GSG" never creates a second area).
+    const cat = cats.find((x) => lc(x.code) === lc(row.category)) ?? cats.find((x) => lc(x.name) === lc(row.category));
+    if (!cat && row.category.length > 100) return problem(t.validation.tooLong(t.fields.category, 100));
+    if (cat && cat.status !== "Active") return problem(e.categoryInactive(cat.name));
     if (!row.subcategory) return problem(t.validation.required(t.fields.subcategory));
     // Code first, then name, so a name that looks like another entry's code can never pick the wrong one.
     const sub = subs.find((x) => lc(x.code) === lc(row.subcategory)) ?? subs.find((x) => lc(x.name) === lc(row.subcategory));
-    if (!sub) return problem(e.importUnknownSubcategory(row.subcategory));
-    if (sub.status !== "Active") return problem(e.subcategoryInactive(sub.name));
+    if (!sub && row.subcategory.length > 100) return problem(t.validation.tooLong(t.fields.subcategory, 100));
+    if (sub && sub.status !== "Active") return problem(e.subcategoryInactive(sub.name));
     if (!row.unit) return problem(t.validation.required(t.fields.unit));
     const unit = UNITS.find((u) => lc(u) === lc(row.unit));
     if (!unit) return problem(e.importUnknownUnit(row.unit));
@@ -409,19 +434,33 @@ export async function previewImport(tx: Tx, csv: string) {
       supplierId = sup.id;
     }
     if (row.location.length > 100) return problem(t.validation.tooLong(t.fields.location, 100));
-    if (seen.has(nameKey(cat.id, row.name))) { row.status = "skipped"; row.message = e.importDuplicate; return row; }
-    seen.add(nameKey(cat.id, row.name));
-    row.categoryId = cat.id;
-    row.subcategoryId = sub.id;
+    const newCat = cat ? undefined : pendingKey(newCats, row.category);
+    const catKey = cat ? cat.id : `new:${newCat}`;
+    if (seen.has(nameKey(catKey, row.name))) { row.status = "skipped"; row.message = e.importDuplicate; return row; }
+    seen.add(nameKey(catKey, row.name));
+    // Only a ready row adds an entry, so a row with errors never creates a category or subcategory.
+    if (cat) row.categoryId = cat.id; else addPending(newCats, (row.newCategory = newCat!), row.category);
+    if (sub) row.subcategoryId = sub.id; else addPending(newSubs, (row.newSubcategory = pendingKey(newSubs, row.subcategory)), row.subcategory);
     row.supplierId = supplierId;
     return row;
   });
+
+  for (const row of rows) {
+    const c = row.newCategory ? newCats.byKey.get(row.newCategory)! : null;
+    const sc = row.newSubcategory ? newSubs.byKey.get(row.newSubcategory)! : null;
+    const notes = [row.message, c && e.importNewCategory(c.name, c.code), sc && e.importNewSubcategory(sc.name, sc.code)].filter(Boolean);
+    row.message = notes.join(" ");
+  }
   const count = (s: ImportRow["status"]) => rows.filter((r) => r.status === s).length;
-  return { rows, total: rows.length, ready: count("ready"), skipped: count("skipped"), errors: count("error"), created: 0 };
+  return {
+    rows, total: rows.length, ready: count("ready"), skipped: count("skipped"), errors: count("error"), created: 0,
+    newCategories: [...newCats.byKey.values()], newSubcategories: [...newSubs.byKey.values()],
+  };
 }
 
 const publicReport = (r: Awaited<ReturnType<typeof previewImport>>) => ({
-  ...r, rows: r.rows.map(({ categoryId: _c, subcategoryId: _sc, supplierId: _s, ...row }) => row),
+  ...r, rows: r.rows.map(({ categoryId: _c, subcategoryId: _sc, supplierId: _s, newCategory: _nc, newSubcategory: _ns, ...row }) => row),
+  newCategories: r.newCategories.map(({ key: _k, ...g }) => g), newSubcategories: r.newSubcategories.map(({ key: _k, ...g }) => g),
 });
 
 export async function importPreview(c: Ctx, csv: string) {
@@ -438,6 +477,23 @@ export async function importConfirm(actor: SessionUser, csv: string) {
     const pre = await previewImport(c.tx, csv); // the data may have changed since the check above
     if (pre.ready === 0) throw fail("BUSINESS_RULE_VIOLATION", e.importNothing);
     const ready = pre.rows.filter((r) => r.status === "ready");
+    // Create the missing categories and subcategories first. shortcut: a category created by hand at the same moment
+    // fails the whole import on its unique name or code; the Admin simply imports again.
+    const madeIds = { category: new Map<string, number>(), subcategory: new Map<string, number>() };
+    for (const [g, list] of [["category", pre.newCategories], ["subcategory", pre.newSubcategories]] as const) {
+      for (const n of list) {
+        const made = await table(c.tx, g).create({ data: { name: n.name, code: n.code, description: "", status: "Active" } }).catch((err) => {
+          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") throw fail("CONFLICT", e.importGroupClash(n.name, n.code));
+          throw err;
+        });
+        madeIds[g].set(n.key!, made.id);
+        await log(c, `${GROUP[g].label} created`, GROUP[g].module, made.name);
+      }
+    }
+    for (const r of ready) {
+      r.categoryId ??= madeIds.category.get(r.newCategory!);
+      r.subcategoryId ??= madeIds.subcategory.get(r.newSubcategory!);
+    }
     await lockCategories(c.tx, ready.map((r) => r.categoryId!), ready.map((r) => r.subcategoryId!));
     for (const row of pre.rows) {
       if (row.status !== "ready") continue;
@@ -447,7 +503,9 @@ export async function importConfirm(actor: SessionUser, csv: string) {
       });
       row.status = "imported";
     }
-    await log(c, "Items imported", "Items", `${pre.ready} created, ${pre.skipped} skipped, ${pre.errors} rejected`);
+    const [nc, ns] = [pre.newCategories.length, pre.newSubcategories.length];
+    const groups = nc + ns ? `, ${nc} ${nc === 1 ? "category" : "categories"} and ${ns} ${ns === 1 ? "subcategory" : "subcategories"} added` : "";
+    await log(c, "Items imported", "Items", `${pre.ready} created, ${pre.skipped} skipped, ${pre.errors} rejected${groups}`);
     return { ...pre, created: pre.ready, ready: 0 };
   });
   return publicReport(report);

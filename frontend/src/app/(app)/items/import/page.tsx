@@ -2,16 +2,17 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { CircleCheck, CircleX, Download, SkipForward } from "lucide-react";
+import { CircleCheck, CircleX, Download, FolderPlus, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable, type Column } from "@/components/shared/data-table";
 import { Field } from "@/components/shared/form-field";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { api } from "@/lib/api";
+import { DEFAULT_PAGE_SIZE } from "@/lib/api/types";
 import type { ImportReportDto, ImportRowDto } from "@/lib/api/master";
 import { formatNumber } from "@/lib/format";
 import { t } from "@/lib/strings";
@@ -37,6 +38,26 @@ const badge: Record<ImportRowDto["status"], { tone: "success" | "neutral" | "dan
   error: { tone: "danger", icon: CircleX, label: c.statusError },
 };
 
+const columns: Column<ImportRowDto>[] = [
+  { id: "line", header: c.colLine, numeric: true, cell: (r) => r.line },
+  { id: "name", header: c.colName, primary: true, cell: (r) => <span className="font-medium">{r.name || "-"}</span> },
+  { id: "category", header: c.colCategory, cell: (r) => r.category || "-" },
+  { id: "subcategory", header: c.colSubcategory, cell: (r) => r.subcategory || "-" },
+  { id: "unit", header: c.colUnit, cell: (r) => r.unit || "-" },
+  { id: "stock", header: c.colStock, numeric: true, cell: (r) => formatNumber(r.openingStock) },
+  {
+    id: "result", header: c.colResult, cell: (r) => {
+      const b = badge[r.status];
+      return (
+        <div className="flex flex-col items-start gap-1">
+          <StatusBadge tone={b.tone} icon={b.icon}>{b.label}</StatusBadge>
+          {r.message && <span className="text-sm text-muted-foreground">{r.message}</span>}
+        </div>
+      );
+    },
+  },
+];
+
 export default function ImportItemsPage() {
   const input = useRef<HTMLInputElement>(null);
   const [csv, setCsv] = useState("");
@@ -44,16 +65,19 @@ export default function ImportItemsPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<"reading" | "importing" | null>(null);
   const [done, setDone] = useState(false);
+  // The preview is paged in the browser like the Items list, so a 500-row file needs no long scroll.
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const reset = () => {
-    setCsv(""); setReport(null); setError(""); setDone(false);
+    setCsv(""); setReport(null); setError(""); setDone(false); setPage(1);
     if (input.current) input.current.value = "";
   };
 
   const choose = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setReport(null); setError(""); setDone(false); setBusy("reading");
+    setReport(null); setError(""); setDone(false); setPage(1); setBusy("reading");
     const text = await file.text();
     const r = await api.items.importPreview(text);
     setBusy(null);
@@ -65,7 +89,7 @@ export default function ImportItemsPage() {
     const r = await api.items.importConfirm(csv);
     setBusy(null);
     if (!r.success) return setError(r.error.fields?.csv ?? r.error.message);
-    setReport(r.data); setDone(true);
+    setReport(r.data); setDone(true); setPage(1);
     toast.success(c.done(r.data.created));
   };
 
@@ -108,44 +132,32 @@ export default function ImportItemsPage() {
                 <StatusBadge tone="neutral" icon={SkipForward}>{c.summarySkipped(report.skipped)}</StatusBadge>
                 <StatusBadge tone="danger" icon={CircleX}>{c.summaryErrors(report.errors)}</StatusBadge>
               </p>
+              {report.newCategories.length + report.newSubcategories.length > 0 && (
+                <div className="flex flex-col gap-1 text-sm">
+                  <StatusBadge tone="neutral" icon={FolderPlus}>{c.newGroups(report.newCategories.length, report.newSubcategories.length)}</StatusBadge>
+                  <p className="text-muted-foreground">
+                    {c.newGroupsList(done)}{" "}
+                    {[...report.newCategories, ...report.newSubcategories].map((g) => `${g.name} (${g.code})`).join(", ")}
+                  </p>
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">{c.backupNote}</p>
             </div>
-            <div className="overflow-x-auto border-y">
-              <Table style={{ minWidth: "720px" }}>
-                <caption className="sr-only">{c.caption}</caption>
-                <TableHeader>
-                  <TableRow className="hover:bg-muted">
-                    <TableHead>{c.colLine}</TableHead>
-                    <TableHead>{c.colName}</TableHead>
-                    <TableHead>{c.colCategory}</TableHead>
-                    <TableHead>{c.colSubcategory}</TableHead>
-                    <TableHead>{c.colUnit}</TableHead>
-                    <TableHead className="text-right">{c.colStock}</TableHead>
-                    <TableHead>{c.colResult}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {report.rows.map((r) => {
-                    const b = badge[r.status];
-                    return (
-                      <TableRow key={r.line}>
-                        <TableCell className="tabular">{r.line}</TableCell>
-                        <TableCell className="font-medium">{r.name || "-"}</TableCell>
-                        <TableCell>{r.category || "-"}</TableCell>
-                        <TableCell>{r.subcategory || "-"}</TableCell>
-                        <TableCell>{r.unit || "-"}</TableCell>
-                        <TableCell className="tabular text-right">{formatNumber(r.openingStock)}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col items-start gap-1">
-                            <StatusBadge tone={b.tone} icon={b.icon}>{b.label}</StatusBadge>
-                            {r.message && <span className="text-sm text-muted-foreground">{r.message}</span>}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+            <div className="px-5">
+              <DataTable
+                rows={report.rows.slice((page - 1) * pageSize, page * pageSize)}
+                meta={{ page, pageSize, total: report.rows.length }}
+                sort="line:asc"
+                onSortChange={() => {}}
+                onPageChange={setPage}
+                onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+                columns={columns}
+                rowKey={(r) => r.line}
+                rowLabel={(r) => r.name}
+                empty={null}
+                caption={c.caption}
+                minWidth="720px"
+              />
             </div>
             <div className="flex flex-wrap justify-end gap-2 px-5">
               {done ? (

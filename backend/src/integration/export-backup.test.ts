@@ -58,11 +58,12 @@ describe("Excel export", () => {
 
 describe("CSV item import (BR-33)", () => {
   it("previews without saving, then backs up and creates only the ready rows", async () => {
-    const csv = "name,category,subcategory,unit,opening_stock\nKertas HVS,Office,ELK,ream,10\nStapler,Office,Elektronik,pcs,1\nPenggaris,Gudang,ELK,pcs,1\n";
+    const csv = "name,category,subcategory,unit,opening_stock\nKertas HVS,Office,ELK,ream,10\nStapler,Office,Elektronik,pcs,1\nPenggaris,Gudang,ELK,kardus,1\n";
     const before = await prisma.item.count();
     const preview = await admin.ok("POST", "/items/import/preview", { csv });
     expect(preview).toMatchObject({ ready: 1, skipped: 1, errors: 1 });
     expect(await prisma.item.count()).toBe(before);
+    expect(preview.newCategories).toEqual([]); // the unknown category of a row with errors is never added
     const done = await admin.ok("POST", "/items/import", { csv });
     expect(done).toMatchObject({ created: 1 });
     expect(await prisma.item.findFirstOrThrow({ where: { name: "Kertas HVS" } })).toMatchObject({ currentStock: 10 });

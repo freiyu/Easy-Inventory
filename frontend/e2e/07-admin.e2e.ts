@@ -89,7 +89,7 @@ test("users: add shows a one-time temporary password; deactivate blocks sign-in"
 
 test("activity log records the import summary and filters by module", async ({ page }) => {
   await page.goto("/activity-log");
-  await expect(page.getByRole("row", { name: /Items imported .*1 created, 1 skipped, 1 rejected/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Items imported .*2 created, 1 skipped, 1 rejected, 1 category and 0 subcategories added/ })).toBeVisible();
   await page.getByRole("combobox", { name: "Module" }).click();
   await page.getByRole("option", { name: "Loans" }).click();
   const rows = page.getByRole("table", { name: "Activity log" }).getByRole("row");

@@ -77,6 +77,34 @@ export const formatSequence = (key: string, n: number) => `${key}-${String(n).pa
 /** BR-32: `<category code>-<number>`, 4 digits (more after 9999). */
 export const itemCode = (categoryCode: string, n: number) => `${categoryCode}-${String(n).padStart(4, "0")}`;
 
+/**
+ * A free 3-letter code for a category or subcategory that a CSV import creates (BR-33): the first letter plus the next
+ * two consonants ("Elektronik" -> ELK, "Ibadah" -> IBD), then other letters of the name, then any free code.
+ * `taken` holds the codes already used, in upper case.
+ */
+export function suggestCode(name: string, taken: ReadonlySet<string>): string {
+  const letters = name.normalize("NFD").toUpperCase().replace(/[^A-Z]/g, "");
+  const free = (c: string) => c.length === 3 && !taken.has(c);
+  if (letters) {
+    const first = letters[0];
+    const consonants = letters.slice(1).replace(/[AEIOU]/g, "");
+    const rest = letters.slice(1);
+    const tries = [first + consonants.slice(0, 2), letters.slice(0, 3)];
+    for (let i = 0; i < rest.length; i++) for (let j = i + 1; j < rest.length; j++) tries.push(first + rest[i] + rest[j]);
+    const hit = tries.find(free);
+    if (hit) return hit;
+  }
+  const A = "A".charCodeAt(0);
+  const firsts = letters ? [letters.charCodeAt(0) - A] : [];
+  for (const a of [...firsts, ...Array.from({ length: 26 }, (_, i) => i)]) {
+    for (let b = 0; b < 26; b++) for (let c = 0; c < 26; c++) {
+      const code = String.fromCharCode(A + a, A + b, A + c);
+      if (free(code)) return code;
+    }
+  }
+  throw new Error("No free 3-letter code"); // 17,576 codes; a real office never gets here
+}
+
 /** "2026-01" .. "2026-03" -> ["2026-01", "2026-02", "2026-03"]. */
 export function monthsBetween(from: string, to: string): string[] {
   const out: string[] = [];
