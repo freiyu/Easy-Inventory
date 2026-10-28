@@ -29,7 +29,7 @@ export function LoanForm({ loan }: { loan?: LoanDto }) {
   const [purpose, setPurpose] = useState(loan?.purpose ?? "");
   const [notes, setNotes] = useState(loan?.notes ?? "");
   const [lines, setLines] = useState<LineDraft[]>(() =>
-    loan ? loan.lines.map((l) => ({ ...newLine(), itemId: String(l.itemId), quantity: String(l.quantity) })) : [newLine()]);
+    loan ? loan.lines.map((l) => ({ ...newLine(), itemId: String(l.itemId), itemName: l.itemName, quantity: String(l.quantity) })) : [newLine()]);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState<"draft" | "submit" | null>(null);
 

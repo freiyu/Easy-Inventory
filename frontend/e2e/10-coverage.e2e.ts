@@ -1,7 +1,7 @@
 // Stage 6: flows Stage 5 did not cover (PRD 10.1): editing drafts, cancelling a purchase request, the KPI numbers,
 // a report filter, tablet width, visible keyboard focus, and the empty and error states.
 import { expect, test, type Browser } from "@playwright/test";
-import { ADMIN, ADMIN_STATE, STAFF_STATE, apiAs, choose, ok, textbox } from "./helpers";
+import { ADMIN, ADMIN_STATE, STAFF, STAFF_STATE, apiAs, choose, inDays, ok, textbox } from "./helpers";
 
 const as = async (browser: Browser, state: string) => (await browser.newContext({ storageState: state })).newPage();
 
@@ -94,4 +94,23 @@ test("empty and error states", async ({ browser, baseURL }) => {
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByRole("table", { name: "Items" }).getByRole("row").nth(1)).toBeVisible();
   expect(await ok(await apiAs(baseURL!, ADMIN), "get", "/items?pageSize=1")).toHaveLength(1);
+});
+
+test("a Staff draft whose item was deactivated shows the item and a warning (S6-09)", async ({ browser, baseURL }) => {
+  const admin = await apiAs(baseURL!, ADMIN), staff = await apiAs(baseURL!, STAFF);
+  const [item] = await ok(admin, "get", "/items?search=Kursi Lipat Uji");
+  const me = await ok(staff, "get", "/auth/me");
+  const draft = await ok(staff, "post", "/loans", {
+    borrowerId: me.id, lines: [{ itemId: item.id, quantity: 1 }], loanDate: inDays(0), expectedReturnDate: inDays(2),
+    purpose: "Cek barang nonaktif", notes: "", submit: false, clientRequestId: crypto.randomUUID(),
+  });
+  await ok(admin, "post", `/items/${item.id}/deactivate`);
+  try {
+    const page = await as(browser, STAFF_STATE);
+    await page.goto(`/loans/edit?id=${draft.id}`);
+    await expect(page.getByRole("combobox", { name: "Item" })).toHaveValue("Kursi Lipat Uji");
+    await expect(page.getByRole("alert").filter({ hasText: "Kursi Lipat Uji is no longer active. Choose another item." })).toBeVisible();
+  } finally {
+    await ok(admin, "post", `/items/${item.id}/activate`);
+  }
 });

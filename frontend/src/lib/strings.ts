@@ -579,6 +579,7 @@ export const t = {
     savedAdj: (n: string) => `Adjustment ${n} saved.`,
     availableHint: (n: number, unit: string) => `Available: ${n} ${unit}`,
     showItems: "Show items",
+    itemUnavailable: (name: string) => `${name} is no longer active. Choose another item.`,
     searchItem: "Type an item name or code",
     searchItemByName: "Type an item name",
     searchingItems: "Searching...",

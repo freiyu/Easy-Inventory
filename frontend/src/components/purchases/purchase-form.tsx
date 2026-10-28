@@ -33,7 +33,7 @@ export function PurchaseForm({ request }: { request?: PurchaseDto }) {
   const [lines, setLines] = useState<LineDraft[]>(() =>
     request
       ? request.lines.map((l) => ({
-          ...newLine(), itemId: l.itemId === null ? "" : String(l.itemId), quantity: String(l.quantity),
+          ...newLine(), itemId: l.itemId === null ? "" : String(l.itemId), itemName: l.itemName, quantity: String(l.quantity),
           isNew: l.itemId === null, name: l.newItem?.name ?? "", categoryId: String(l.newItem?.categoryId ?? ""), subcategoryId: String(l.newItem?.subcategoryId ?? ""), unit: l.newItem?.unit ?? "",
         }))
       : [newLine()]);

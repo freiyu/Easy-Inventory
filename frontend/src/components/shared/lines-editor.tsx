@@ -18,6 +18,8 @@ export interface LineDraft {
   itemId: string;
   /** The picked item, for its label and stock hints (loaded by ItemPicker when only itemId is known). */
   item?: ItemDto;
+  /** Item name saved on a draft line, shown if the item can no longer be loaded. */
+  itemName?: string;
   quantity: string;
   unitPrice: string;
   /** Purchase requests only: the line describes a new item instead of picking an existing one. */
@@ -104,7 +106,7 @@ export function LinesEditor({
                 </Field>
               ) : (
                 <Field label={t.fields.item} required error={errors[`lines.${i}.itemId`]} className="sm:col-span-8">
-                  {(p) => <ItemPicker {...p} value={line.itemId} item={item} exclude={taken(line.key)} onChange={(x) => update(line.key, { itemId: x ? String(x.id) : "", item: x ?? undefined })} />}
+                  {(p) => <ItemPicker {...p} value={line.itemId} item={item} savedName={line.itemName} exclude={taken(line.key)} onChange={(x) => update(line.key, { itemId: x ? String(x.id) : "", item: x ?? undefined })} />}
                 </Field>
               )}
               <Field label={t.fields.quantity} required error={errors[`lines.${i}.quantity`]} className="sm:col-span-4">
@@ -133,7 +135,7 @@ export function LinesEditor({
           <div key={line.key} className="grid gap-3 rounded-lg border bg-muted/40 p-3 sm:grid-cols-12 sm:items-start">
             <Field label={t.fields.item} required error={errors[`lines.${i}.itemId`]} className={mode === "in" ? "sm:col-span-5" : "sm:col-span-7"}>
               {(p) => (
-                <ItemPicker {...p} value={line.itemId} item={item} exclude={taken(line.key)}
+                <ItemPicker {...p} value={line.itemId} item={item} savedName={line.itemName} exclude={taken(line.key)}
                   onChange={(x) => update(line.key, {
                     itemId: x ? String(x.id) : "", item: x ?? undefined,
                     ...(mode === "in" && x && !line.unitPrice ? { unitPrice: String(x.lastPurchasePrice ?? 0) } : {}),

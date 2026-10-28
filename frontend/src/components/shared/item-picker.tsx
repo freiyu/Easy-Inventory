@@ -18,10 +18,12 @@ const RESULTS = 20;
  * handed back through `onChange`.
  */
 export function ItemPicker({
-  value, item, onChange, exclude, className, ...aria
+  value, item, savedName, onChange, exclude, className, ...aria
 }: {
   value: string;
   item?: ItemDto;
+  /** Name saved on a draft line, shown when that item can no longer be loaded (inactive items are hidden from Staff). */
+  savedName?: string;
   onChange: (item: ItemDto | null) => void;
   /** Ids already used on other lines. */
   exclude?: Set<string>;
@@ -50,12 +52,16 @@ export function ItemPicker({
   // Items on other lines are left out of both numbers.
   const total = (found.meta?.total ?? 0) - ((found.data?.length ?? 0) - results.length);
   const label = (i: ItemDto) => (i.code ? `${i.name} (${i.code})` : i.name);
+  // A saved line whose item was deactivated: Staff get no record (404), Admin get it with status Inactive.
+  const missing = !!value && !item && known.status === "error";
+  const unavailable = missing || item?.status === "Inactive";
+  const shown = item && String(item.id) === value ? item : missing && savedName ? ({ id: Number(value), name: savedName } as ItemDto) : null;
 
   return (
     <Combobox.Root<ItemDto>
       items={results}
       filter={null}
-      value={item && String(item.id) === value ? item : null}
+      value={shown}
       onValueChange={(v) => onChange(v ?? null)}
       itemToStringLabel={label}
       isItemEqualToValue={(a, b) => a.id === b.id}
@@ -70,6 +76,9 @@ export function ItemPicker({
           <ChevronDownIcon className="size-4" aria-hidden="true" />
         </Combobox.Trigger>
       </div>
+      {unavailable && (
+        <p role="alert" className="mt-1.5 text-sm font-medium text-danger-icon">{t.stock.itemUnavailable(item?.name ?? savedName ?? value)}</p>
+      )}
       <Combobox.Portal>
         <Combobox.Positioner sideOffset={4} className="isolate z-50">
           <Combobox.Popup className="max-h-[min(var(--available-height),20rem)] w-(--anchor-width) min-w-56 overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
