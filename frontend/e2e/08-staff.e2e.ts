@@ -1,6 +1,6 @@
 // PRD 3.2 and 10.2 Staff: only Dashboard, Items, Loans, Purchase requests and My profile; no prices, suppliers,
 // stock numbers or item codes; every Admin page is closed even by direct URL.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { STAFF_STATE } from "./helpers";
 
 test.use({ storageState: STAFF_STATE });

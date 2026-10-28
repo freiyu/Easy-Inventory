@@ -6,7 +6,7 @@ import type { ErrorRequestHandler, Response } from "express";
 import { z } from "zod";
 import { env } from "./env";
 import { Prisma } from "./generated/prisma/client";
-import { t, type ApiError } from "./shared";
+import { LANGS, langOf, t, type ApiError } from "./shared";
 
 export type ErrorCode = ApiError["code"];
 
@@ -86,7 +86,8 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof AppError) e = err;
   else if (err?.type === "entity.parse.failed" || err?.type === "entity.too.large") {
     // Malformed or oversized JSON body.
-    return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: t.errors.fix } });
+    // Raised before the language middleware runs, so the header is read here.
+    return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: LANGS[langOf(req.get("x-ezi-lang"))].t.errors.fix } });
   } else if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
     e = fail("CONFLICT", t.errors.nameTaken); // a database unique constraint caught a duplicate (BR-01)
   } else if (isWriteConflict(err)) {

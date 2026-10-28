@@ -1,7 +1,8 @@
-// All UI text lives here (PRD 2.7, 7.1) so another language can be added later.
-// English only for now. Sections are filled as screens are built.
+// All UI text lives here (PRD 2.7, 7.1). English below; Bahasa Indonesia in strings.id.ts with the same keys.
+// The language is chosen per browser in the user menu (PRD 4.13); the page reloads, so `t` is picked once.
+import { id } from "./strings.id";
 
-export const t = {
+export const en = {
   app: {
     name: "EZI",
     product: "Inventory",
@@ -82,6 +83,7 @@ export const t = {
     themeDark: "Dark",
     themeSystem: "System",
     accountMenu: "Account menu",
+    language: "Language",
   },
 
   validation: {
@@ -358,7 +360,7 @@ export const t = {
     another: "Choose another file",
     backupNote: "A backup is taken before the import. Skipped rows and rows with errors are not imported.",
     newGroups: (cats: number, subs: number) => `${cats} new ${cats === 1 ? "category" : "categories"}, ${subs} new ${subs === 1 ? "subcategory" : "subcategories"}`,
-    newGroupsList: (done: boolean) => (done ? "Added:" : "Will be added:"),
+    newGroupsList: (done: boolean): string => (done ? "Added:" : "Will be added:"),
     done: (n: number) => `${n} ${n === 1 ? "item" : "items"} imported.`,
     backToItems: "Back to items",
   },
@@ -975,3 +977,25 @@ export const t = {
     recordNotFoundBody: "It may have been removed. Go back to the list and try again.",
   },
 };
+
+export type Strings = typeof en;
+export type Lang = "en" | "id";
+export const LANGS: Record<Lang, { label: string; t: Strings }> = {
+  id: { label: "Bahasa Indonesia", t: id },
+  en: { label: "English", t: en },
+};
+export const LANG_KEY = "ezi-lang";
+
+// This file is shared with the backend (no DOM types), so the browser storage is reached through globalThis.
+const storage = () => (globalThis as { localStorage?: { getItem(key: string): string | null } }).localStorage;
+
+/** The browser's chosen language; Indonesian until someone picks English, and on the server. */
+export function storedLang(): Lang {
+  try {
+    return storage()?.getItem(LANG_KEY) === "en" ? "en" : "id";
+  } catch {
+    return "id";
+  }
+}
+
+export const t: Strings = LANGS[storedLang()].t;

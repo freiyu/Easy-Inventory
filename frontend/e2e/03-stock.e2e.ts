@@ -1,5 +1,5 @@
 // PRD 10.1 Stock: incoming (supplier required), outgoing (never negative), adjustment with reason, void as reversal.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 import { ADMIN_STATE, choose, textbox } from "./helpers";
 
 test.use({ storageState: ADMIN_STATE });

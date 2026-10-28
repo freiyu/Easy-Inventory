@@ -19,7 +19,7 @@ import { initials } from "@/lib/format";
 import { canAccess, isActivePath, navGroups } from "@/lib/nav";
 import { api, useGet, useSession } from "@/lib/api";
 import type { Badges } from "@/lib/api/admin";
-import { t } from "@/lib/strings";
+import { LANG_KEY, LANGS, storedLang, t, type Lang } from "@/lib/strings";
 import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -169,6 +169,16 @@ function UserMenu({ user }: { user: User }) {
               <DropdownMenuRadioItem value="light"><Sun className="size-4" aria-hidden="true" />{t.user.themeLight}</DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="dark"><Moon className="size-4" aria-hidden="true" />{t.user.themeDark}</DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="system"><Monitor className="size-4" aria-hidden="true" />{t.user.themeSystem}</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{t.user.language}</DropdownMenuLabel>
+            {/* Every text is read once at load, so a new language takes effect after a reload. */}
+            <DropdownMenuRadioGroup value={storedLang()} onValueChange={(lang) => { localStorage.setItem(LANG_KEY, lang as Lang); window.location.reload(); }}>
+              {(Object.keys(LANGS) as Lang[]).map((lang) => (
+                <DropdownMenuRadioItem key={lang} value={lang} lang={lang}>{LANGS[lang].label}</DropdownMenuRadioItem>
+              ))}
             </DropdownMenuRadioGroup>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

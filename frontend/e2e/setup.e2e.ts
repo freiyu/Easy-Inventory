@@ -1,6 +1,6 @@
 // Runs first on an empty ezi_test: first-run setup through the UI (PRD 3.3), then fake master data through the API,
 // and one saved session per role for the other files.
-import { expect, test } from "@playwright/test";
+import { english, expect, test } from "./fixtures";
 import { ADMIN, ADMIN_STATE, STAFF, STAFF_STATE, apiAs, ok, signIn, textbox } from "./helpers";
 
 test("first-run setup creates the Admin once, then seeds fake data", async ({ page, baseURL, browser }) => {
@@ -36,7 +36,9 @@ test("first-run setup creates the Admin once, then seeds fake data", async ({ pa
   await expect(page).toHaveURL(/\/dashboard/);
   await page.context().storageState({ path: ADMIN_STATE });
 
-  const staffPage = await (await browser.newContext()).newPage();
+  const staffContext = await browser.newContext();
+  await english(staffContext);
+  const staffPage = await staffContext.newPage();
   await signIn(staffPage, STAFF);
   await expect(staffPage).toHaveURL(/\/dashboard/);
   await staffPage.context().storageState({ path: STAFF_STATE });

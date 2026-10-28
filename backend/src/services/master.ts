@@ -16,10 +16,11 @@ const STOCK_ORDER = { Out: 0, Low: 1, Safe: 2 };
 // Categories (areas, PRD 4.3) and subcategories (kinds of item, 4.3A, BR-34) have the same columns and rules.
 
 export type Group = "category" | "subcategory";
+// Messages are read when thrown, so they follow the request language (getters, not values fixed at load).
 const GROUP = {
-  category: { module: "Categories", label: "Category", codeTaken: e.categoryCodeTaken, inUse: e.categoryInUse },
-  subcategory: { module: "Subcategories", label: "Subcategory", codeTaken: e.subcategoryCodeTaken, inUse: e.subcategoryInUse },
-} as const;
+  category: { module: "Categories", label: "Category", get codeTaken() { return e.categoryCodeTaken; }, get inUse() { return e.categoryInUse; } },
+  subcategory: { module: "Subcategories", label: "Subcategory", get codeTaken() { return e.subcategoryCodeTaken; }, get inUse() { return e.subcategoryInUse; } },
+};
 const table = (tx: Tx, g: Group) => tx[g] as unknown as Tx["category"]; // same columns, so one delegate type serves both
 
 export async function listCategories(c: Ctx, q: Query, g: Group = "category"): Promise<Paged<unknown>> {

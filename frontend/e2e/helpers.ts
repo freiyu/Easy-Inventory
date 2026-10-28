@@ -38,3 +38,7 @@ export async function signIn(page: Page, user: { email: string; password: string
   await textbox(page, "Password").fill(user.password);
   await page.getByRole("button", { name: "Sign in" }).click();
 }
+
+/** Every page per role, for the UI sweeps (09-ui in English, 11-language in Bahasa Indonesia). */
+export const STAFF_PAGES = ["/dashboard", "/items", "/items/view?id=1", "/loans", "/loans/new", "/loans/view?id=1", "/purchases", "/purchases/new", "/purchases/view?id=1", "/profile"];
+export const ADMIN_PAGES = [...STAFF_PAGES, "/items/new", "/items/edit?id=1", "/items/import", "/categories", "/categories?tab=subcategories", "/suppliers", "/stock", "/stock/in", "/stock/out", "/stock/adjustment", "/expenses", "/reports", "/backup", "/users", "/activity-log"];

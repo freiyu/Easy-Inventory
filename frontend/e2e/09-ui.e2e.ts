@@ -1,10 +1,8 @@
 // PRD 10.1 UX and 5.6: every page per role on desktop and a 390 px phone, light and dark: it renders, has no
 // console errors and never scrolls sideways.
-import { expect, test } from "@playwright/test";
-import { ADMIN_STATE, STAFF_STATE } from "./helpers";
+import { expect, test } from "./fixtures";
+import { ADMIN_PAGES, ADMIN_STATE, STAFF_PAGES, STAFF_STATE } from "./helpers";
 
-const STAFF_PAGES = ["/dashboard", "/items", "/items/view?id=1", "/loans", "/loans/new", "/loans/view?id=1", "/purchases", "/purchases/new", "/purchases/view?id=1", "/profile"];
-const ADMIN_PAGES = [...STAFF_PAGES, "/items/new", "/items/edit?id=1", "/items/import", "/categories", "/categories?tab=subcategories", "/suppliers", "/stock", "/stock/in", "/stock/out", "/stock/adjustment", "/expenses", "/reports", "/backup", "/users", "/activity-log"];
 
 const roles = [
   { role: "Admin", state: ADMIN_STATE, pages: ADMIN_PAGES },

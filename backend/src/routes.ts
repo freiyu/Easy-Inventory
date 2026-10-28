@@ -2,7 +2,7 @@
 import { Router, type Request, type Response } from "express";
 import { changePassword, createFirstAdmin, login, logout, requireAdmin as admin, requireAuth, setupStatus } from "./auth";
 import { notFound, parse, send, sendList } from "./http";
-import * as s from "./schemas";
+import { s } from "./schemas";
 import { activityModules, createUser, listActivity, listUsers, oneUser, resetUserPassword, setUserStatus, updateUser } from "./services/admin";
 import { backupPath, createBackup, listBackups } from "./services/backup";
 import { reader } from "./services/core";

@@ -2,6 +2,7 @@
 import http from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "../db";
+import { LANGS } from "../shared";
 import { addUser, Client, masterData, PASSWORD, resetData, startServer } from "./helpers";
 
 let server: Awaited<ReturnType<typeof startServer>>;
@@ -64,6 +65,25 @@ describe("sessions and authorization", () => {
     const r = await new Client(server.base).get("/items");
     expect(r.status).toBe(401);
     expect(r.body).toEqual({ success: false, error: { code: "UNAUTHENTICATED", message: expect.any(String) } });
+  });
+
+  it("answers in the language the client asks for, English by default (PRD 4.13 v14)", async () => {
+    const id = LANGS.id.t, en = LANGS.en.t;
+    const anon = new Client(server.base);
+    expect((await anon.call("POST", "/auth/login", { email: "nobody@test.example", password: "wrong-pass" }, { "X-EZI-Lang": "id" })).body.error.message).toBe(id.errors.invalidLogin);
+    expect((await anon.call("POST", "/auth/login", { email: "nobody@test.example", password: "wrong-pass" })).body.error.message).toBe(en.errors.invalidLogin);
+    // Validation messages come from the schema built for that language.
+    const bad = await admin.call("POST", "/categories", { name: "", code: "AB" }, { "X-EZI-Lang": "id" });
+    expect(bad.body.error.fields).toMatchObject({ name: id.validation.required(id.fields.name), code: id.validation.categoryCode });
+    // A message thrown inside a database transaction (the request language survives Prisma's $transaction).
+    await admin.ok("POST", "/categories", { name: "Bahasa A", code: "BHA" });
+    const taken = await admin.call("POST", "/categories", { name: "Bahasa B", code: "BHA" }, { "X-EZI-Lang": "id" });
+    expect(taken.body.error.message).toBe(id.errors.categoryCodeTaken);
+    // A malformed body fails before the language middleware and is still answered in that language.
+    const raw = await fetch(`${server.base}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json", "X-EZI-Lang": "id" }, body: "{" });
+    expect(((await raw.json()) as { error: { message: string } }).error.message).toBe(id.errors.fix);
+    // Anything else falls back to English.
+    expect((await anon.call("POST", "/auth/login", { email: "nobody@test.example", password: "x" }, { "X-EZI-Lang": "fr" })).body.error.message).toBe(en.errors.invalidLogin);
   });
 
   it("uses one message for a wrong password and an unknown email, and logs failed sign-ins", async () => {

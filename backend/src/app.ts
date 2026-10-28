@@ -6,6 +6,7 @@ import express, { type RequestHandler } from "express";
 import { loadSession, sameOrigin } from "./auth";
 import { env } from "./env";
 import { errorHandler } from "./http";
+import { langOf, runInLang } from "./shared";
 import { api } from "./routes";
 
 // Basic security headers (PRD 6.7). The static export uses small inline scripts, hence 'unsafe-inline'.
@@ -29,7 +30,9 @@ export function createApp() {
   const app = express();
   app.disable("x-powered-by");
   app.use(securityHeaders);
-  app.use("/api", noStore, express.json({ limit: "2mb" }), cookieParser(env.sessionSecret), sameOrigin, loadSession, api);
+  // The language starts after body parsing: the parser's stream callbacks would not keep the request context.
+  app.use("/api", noStore, express.json({ limit: "2mb" }), cookieParser(env.sessionSecret),
+    (req, _res, next) => runInLang(langOf(req.get("x-ezi-lang")), next), sameOrigin, loadSession, api);
   if (existsSync(env.staticDir)) {
     // Next exports /login as login.html next to a login/ folder; serve the page instead of redirecting into the folder.
     app.use((req, res, next) => {

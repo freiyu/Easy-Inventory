@@ -1,5 +1,5 @@
 // PRD 10.1 CRUD for categories, subcategories (4.3A), suppliers and items, as Admin through the UI.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { ADMIN_STATE, choose, textbox } from "./helpers";
 
 test.use({ storageState: ADMIN_STATE });

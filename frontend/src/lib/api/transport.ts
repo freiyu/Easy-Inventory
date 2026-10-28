@@ -1,6 +1,6 @@
 // The only place that knows how a request reaches the server: fetch to /api on the same origin, with the
 // session cookie (PRD 0.2, 3.4). In development Next forwards /api to the backend (next.config.ts).
-import { t } from "../strings";
+import { storedLang, t } from "../strings";
 import type { ApiRequest, Envelope, Query } from "./types";
 
 export function apiUrl(path: string, query?: Query) {
@@ -18,12 +18,15 @@ async function errorOf(res: Response): Promise<Envelope<never>> {
   return json?.success === false && json.error ? { success: false, status: res.status, error: json.error } : failure(res.status, t.errors.server);
 }
 
+/** The server answers errors and Excel headers in this language (PRD 4.13 v14). */
+const LANG_HEADER = "X-EZI-Lang";
+
 export async function send(req: ApiRequest): Promise<Envelope<unknown>> {
   const hasBody = req.body !== undefined;
   const res = await fetch(apiUrl(req.path, req.query), {
     method: req.method,
     credentials: "same-origin",
-    headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+    headers: { ...(hasBody ? { "Content-Type": "application/json" } : {}), [LANG_HEADER]: storedLang() },
     body: hasBody ? JSON.stringify(req.body) : undefined,
   }).catch(() => null);
   if (!res) return failure(0, t.errors.network);
@@ -34,7 +37,7 @@ export async function send(req: ApiRequest): Promise<Envelope<unknown>> {
 
 /** GET a file (Excel export, backup) and hand it to the browser as a download. */
 export async function download(path: string, query?: Query): Promise<Envelope<null>> {
-  const res = await fetch(apiUrl(path, query), { credentials: "same-origin" }).catch(() => null);
+  const res = await fetch(apiUrl(path, query), { credentials: "same-origin", headers: { [LANG_HEADER]: storedLang() } }).catch(() => null);
   if (!res) return failure(0, t.errors.network);
   if (!res.ok) return errorOf(res);
   // Express quotes the name for attachment() but not for download(), so accept both.

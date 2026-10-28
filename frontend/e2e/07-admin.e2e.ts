@@ -1,6 +1,6 @@
 // PRD 10.1 Dashboard, expense summary, reports, Excel export, backup, users and activity log (Admin).
 // Formula escaping, retention and restore are covered by the backend integration tests (export-backup.test.ts).
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { ADMIN, ADMIN_STATE, apiAs, ok } from "./helpers";
 
 test.use({ storageState: ADMIN_STATE });

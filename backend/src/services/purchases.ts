@@ -146,7 +146,7 @@ async function load(c: Ctx, id: number, action: PurchaseAction) {
     if (action === "cancel" && status === "Received") throw fail("BUSINESS_RULE_VIOLATION", e.cancelReceived);
     const [verb, need] = VERB[action];
     const stateOk = action === "cancel" ? ["Draft", "Pending Approval", "Approved"].includes(status) : status === need;
-    throw stateOk ? forbidden() : fail("BUSINESS_RULE_VIOLATION", e.purchaseState(verb, need));
+    throw stateOk ? forbidden() : fail("BUSINESS_RULE_VIOLATION", e.purchaseState(verb, t.status.purchase[need]));
   }
   return p;
 }

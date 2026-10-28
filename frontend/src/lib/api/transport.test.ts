@@ -24,7 +24,7 @@ describe("transport", () => {
     vi.stubGlobal("fetch", fetch);
     expect(await send({ method: "POST", path: "/loans", body: { a: 1 } })).toEqual({ success: true, data: [1], meta: { page: 1, pageSize: 25, total: 1 } });
     expect(fetch).toHaveBeenCalledWith("/api/loans", expect.objectContaining({
-      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: '{"a":1}',
+      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-EZI-Lang": "id" }, body: '{"a":1}',
     }));
   });
 

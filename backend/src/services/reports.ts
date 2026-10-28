@@ -156,8 +156,8 @@ export async function exportItems(c: Ctx, q: Query) {
   await logExport(c, "items");
   return workbook(t.nav.items, [ic.colCode, ic.colName, ic.colCategory, t.fields.subcategory, ic.colUnit, ic.colStock, ic.colMinimum, ic.stockStatusFilter, t.fields.lastPrice, ic.colSupplier, ic.colLocation, t.fields.status],
     rows.map((r) => [
-      r.code, r.name, r.categoryName, r.subcategoryName, r.unit, r.currentStock, r.minimumStock, r.stockStatus, r.lastPurchasePrice,
-      r.supplierId ? r.supplierName : "", r.location, r.status,
+      r.code, r.name, r.categoryName, r.subcategoryName, r.unit, r.currentStock, r.minimumStock, t.status.stockAdmin[r.stockStatus], r.lastPurchasePrice,
+      r.supplierId ? r.supplierName : "", r.location, t.status.active[r.status as "Active" | "Inactive"],
     ]));
 }
 
@@ -166,17 +166,17 @@ export async function exportReport(c: Ctx, type: string, q: Query) {
   if (type === "stock") {
     const rows = await allRows((p) => stockReport(c, p), q);
     return workbook(rc.stockCaption, [rc.colCode, rc.colItem, rc.colCategory, t.fields.subcategory, rc.colUnit, rc.colStock, rc.colMinimum, rc.colStatus],
-      rows.map((r) => [r.code, r.name, r.categoryName, r.subcategoryName, r.unit, r.currentStock, r.minimumStock, r.stockStatus]));
+      rows.map((r) => [r.code, r.name, r.categoryName, r.subcategoryName, r.unit, r.currentStock, r.minimumStock, t.status.stockAdmin[r.stockStatus]]));
   }
   if (type === "movements") {
     const rows = await allRows((p) => movementsReport(c, p), q);
     return workbook(rc.movementsCaption, [rc.colDate, rc.colItem, rc.colType, rc.colChange, rc.colBalance, rc.colUser, rc.colRef],
-      rows.map((r) => [day(r.date), r.itemName, r.type, r.quantityChange, r.balanceAfter, r.userName, r.number]));
+      rows.map((r) => [day(r.date), r.itemName, t.status.txType[r.type], r.quantityChange, r.balanceAfter, r.userName, r.number]));
   }
   if (type === "loans") {
     const rows = await allRows((p) => loansReport(c, p), q);
     return workbook(rc.loansCaption, [rc.colLoan, rc.colBorrower, rc.colItem, rc.colLoanDate, rc.colExpected, rc.colReturned, rc.colStatus],
-      rows.map((r) => [r.number, r.borrowerName, r.summary, day(r.loanDate), day(r.expectedReturnDate), day(r.returnedAt), r.status]));
+      rows.map((r) => [r.number, r.borrowerName, r.summary, day(r.loanDate), day(r.expectedReturnDate), day(r.returnedAt), t.status.loan[r.status]]));
   }
   throw fail("NOT_FOUND", t.errors.notFound);
 }

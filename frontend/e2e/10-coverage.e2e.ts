@@ -1,6 +1,6 @@
 // Stage 6: flows Stage 5 did not cover (PRD 10.1): editing drafts, cancelling a purchase request, the KPI numbers,
 // a report filter, tablet width, visible keyboard focus, and the empty and error states.
-import { expect, test, type Browser } from "@playwright/test";
+import { expect, test, type Browser } from "./fixtures";
 import { ADMIN, ADMIN_STATE, STAFF, STAFF_STATE, apiAs, choose, inDays, ok, textbox } from "./helpers";
 
 const as = async (browser: Browser, state: string) => (await browser.newContext({ storageState: state })).newPage();

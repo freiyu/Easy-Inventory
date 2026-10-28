@@ -1,6 +1,6 @@
 // PRD 10.1 Loans (4.6, 6.2): Staff request, Admin approve (reserves), issue (deducts), full return (restores),
 // reject with reason, cancel releases the reservation, self-approval blocked, Staff see only their own loans.
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "./fixtures";
 import { ADMIN, ADMIN_STATE, STAFF_STATE, apiAs, choose, inDays, ok, textbox } from "./helpers";
 
 test.describe.configure({ mode: "serial" });

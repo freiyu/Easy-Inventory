@@ -113,7 +113,7 @@ async function load(c: Ctx, id: number, action: LoanAction) {
     if (action === "cancel" && status === "Borrowed") throw fail("BUSINESS_RULE_VIOLATION", e.cancelBorrowed);
     const [verb, need] = VERB[action];
     const stateOk = action === "cancel" ? ["Draft", "Pending Approval", "Approved"].includes(status) : status === need;
-    throw stateOk ? forbidden() : fail("BUSINESS_RULE_VIOLATION", e.loanState(verb, need));
+    throw stateOk ? forbidden() : fail("BUSINESS_RULE_VIOLATION", e.loanState(verb, t.status.loan[need]));
   }
   return loan;
 }

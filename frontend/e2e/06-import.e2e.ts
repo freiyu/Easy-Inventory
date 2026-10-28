@@ -1,6 +1,6 @@
 // PRD 4.10 (BR-33) CSV item import: preview saves nothing, duplicates are skipped, a bad unit is rejected, a missing
 // category is added with a generated code (v13), confirm takes a "Before import" backup and creates only the ready rows.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { ADMIN, ADMIN_STATE, apiAs, ok } from "./helpers";
 
 test.use({ storageState: ADMIN_STATE });

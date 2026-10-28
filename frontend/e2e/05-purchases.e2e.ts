@@ -1,6 +1,6 @@
 // PRD 10.1 Purchase requests (4.6A, 6.2A, BR-27..BR-31): approval reserves nothing, receive posts one IN and
 // creates new items with a generated code, receiving twice is impossible, Staff never see price or supplier.
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "./fixtures";
 import { ADMIN, ADMIN_STATE, STAFF_STATE, apiAs, choose, inDays, ok, textbox } from "./helpers";
 
 test.describe.configure({ mode: "serial" });

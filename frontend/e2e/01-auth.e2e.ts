@@ -1,5 +1,5 @@
 // PRD 10.1 Authentication and 10.3 security checks that a browser can see.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { ADMIN, STAFF, apiAs, ok, signIn, textbox } from "./helpers";
 
 test("invalid login is refused and stays on the sign-in page", async ({ page }) => {
