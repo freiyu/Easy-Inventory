@@ -51,3 +51,6 @@ proof-of-work/
 /frontend/e2e/.auth/
 # human checklists (private, filled in by the human)
 /human-checklist/
+
+# Demo video project: personal use only, never commit or push (human request P131-P132)
+/video/
