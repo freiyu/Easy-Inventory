@@ -70,3 +70,5 @@ proof-of-work/
 /docs/TESTING-PRD.md
 /docs/TESTING-DOCUMENTATION.md
 /docs/UML.md
+/scripts/worktime.py
+/frontend/AGENTS.md
