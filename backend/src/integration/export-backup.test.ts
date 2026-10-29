@@ -1,13 +1,11 @@
 // Excel export and database backup with a tested restore on a real MySQL (PRD 2.6, 4.9, 7.5, 8.3).
-import { execFileSync } from "node:child_process";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { gunzipSync } from "node:zlib";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 import { prisma } from "../db";
-import { env } from "../env";
-import { backupDir, startDailyBackup } from "../services/backup";
+import { backupDir, restoreDump, startDailyBackup } from "../services/backup";
 import { clientFor, dropAllTables } from "./global-setup";
 import { Client, ledgerMismatches, masterData, resetData, setupAccounts, startServer, TODAY } from "./helpers";
 
@@ -89,18 +87,10 @@ describe("database backup and restore", () => {
     const sql = gunzipSync(Buffer.from(dl.raw!));
     expect(sql.equals(gunzipSync(readFileSync(path.join(backupDir(), made.fileName))))).toBe(true);
 
-    // Restore the way the host tool will: load the dump into an empty database with the mysql client.
+    // Restore with the same function the host restore tool uses (drops and re-creates the database first).
     const restoreUrl = process.env.RESTORE_DATABASE_URL!;
-    await dropAllTables(restoreUrl);
-    const u = new URL(restoreUrl);
-    const cnf = path.join(env.dataDir, "restore-test.cnf");
-    const q = (s: string) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`; // same quoting as services/backup.ts
-    writeFileSync(cnf, `[client]\nhost=${q(u.hostname)}\nport=${u.port || 3306}\nuser=${q(decodeURIComponent(u.username))}\npassword=${q(decodeURIComponent(u.password))}\n`, { mode: 0o600 });
-    try {
-      execFileSync("mysql", [`--defaults-extra-file=${cnf}`, u.pathname.slice(1)], { input: sql });
-    } finally {
-      rmSync(cnf, { force: true });
-    }
+    await dropAllTables(restoreUrl); // also checks that the target is a test database
+    await restoreDump(path.join(backupDir(), made.fileName), restoreUrl);
 
     const restored = clientFor(restoreUrl);
     try {

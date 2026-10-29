@@ -905,7 +905,7 @@ export const en = {
     restoreNote: "To restore a backup, use the EZI Restore tool on the host PC (Start Menu). It cannot be done from this page.",
     emptyTitle: "No backups yet",
     emptyBody: "Create the first backup now.",
-    kinds: { Automatic: "Automatic", Manual: "Manual", "Before update": "Before update", "Before import": "Before import" },
+    kinds: { Automatic: "Automatic", Manual: "Manual", "Before update": "Before update", "Before import": "Before import", "Before restore": "Before restore" },
   },
 
   users: {

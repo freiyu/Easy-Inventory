@@ -11,7 +11,8 @@
     "e2e:server": "tsx src/integration/e2e-server.ts",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev"
+    "db:migrate": "prisma migrate dev",
+    "bundle": "esbuild src/main.ts src/tools/cli.ts --bundle --platform=node --format=esm --target=node22 --outdir=dist --entry-names=[name] --out-extension:.js=.mjs --external:argon2 --external:mariadb --log-level=warning \"--banner:js=import{createRequire}from'module';const require=createRequire(import.meta.url);\""
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.10.1",
@@ -19,6 +20,7 @@
     "argon2": "^0.45.1",
     "cookie-parser": "^1.4.7",
     "express": "^5.3.0",
+    "mariadb": "3.5.4",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.6.7"
   },
@@ -26,6 +28,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/node": "^22.20.5",
+    "esbuild": "0.28.2",
     "prisma": "^7.10.1",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",

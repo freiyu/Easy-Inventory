@@ -906,7 +906,7 @@ export const id: Strings = {
     restoreNote: "Untuk memulihkan cadangan, pakai alat EZI Restore di PC server (Start Menu). Tidak bisa dari halaman ini.",
     emptyTitle: "Belum ada cadangan",
     emptyBody: "Buat cadangan pertama sekarang.",
-    kinds: { Automatic: "Otomatis", Manual: "Manual", "Before update": "Sebelum pembaruan", "Before import": "Sebelum impor" },
+    kinds: { Automatic: "Otomatis", Manual: "Manual", "Before update": "Sebelum pembaruan", "Before import": "Sebelum impor", "Before restore": "Sebelum pemulihan" },
   },
 
   users: {

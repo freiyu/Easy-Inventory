@@ -1,11 +1,13 @@
 // Database backups (PRD 2.6): mysqldump into gzip files in the data folder, latest 14 kept, one automatic
-// backup per day while EZI runs. Backups are files, not rows (PRD 6.1). Restore is not an API (it is a host tool).
+// backup per day while EZI runs. Backups are files, not rows (PRD 6.1). Restore is not an API: the host tool
+// (tools/cli.ts) calls restoreDump.
 import { spawn } from "node:child_process";
-import { createWriteStream } from "node:fs";
+import { createReadStream, createWriteStream } from "node:fs";
 import { chmod, mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { createGzip } from "node:zlib";
+import { createGunzip, createGzip } from "node:zlib";
 import { dbConfig, prisma } from "../db";
 import { env } from "../env";
 import { fail, logError, notFound } from "../http";
@@ -14,7 +16,9 @@ import { BACKUP_RETENTION, t, type BackupFile } from "../shared";
 import type { SessionUser } from "./core";
 
 type Kind = BackupFile["kind"];
-const SLUG: Record<Kind, string> = { Automatic: "automatic", Manual: "manual", "Before update": "before-update", "Before import": "before-import" };
+const SLUG: Record<Kind, string> = {
+  Automatic: "automatic", Manual: "manual", "Before update": "before-update", "Before import": "before-import", "Before restore": "before-restore",
+};
 const KIND = Object.fromEntries(Object.entries(SLUG).map(([k, s]) => [s, k])) as Record<string, Kind>;
 const NAME = /^ezi-backup-(\d{14})-([a-z-]+)\.sql\.gz$/;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -53,20 +57,37 @@ export async function backupPath(id: number) {
   return f;
 }
 
-function dump(target: string, optionsFile: string): Promise<void> {
+type Connection = Pick<typeof dbConfig, "host" | "port" | "user" | "password">;
+
+/** Runs `use` with a private options file holding the password, never on the command line where other processes can see it. */
+async function withOptions<T>(dir: string, c: Connection, use: (file: string) => Promise<T>): Promise<T> {
+  const file = path.join(dir, `.db-${process.pid}.cnf`);
+  const q = (s: string | number) => `"${String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  await writeFile(file, `[client]\nhost=${q(c.host)}\nport=${c.port}\nuser=${q(c.user)}\npassword=${q(c.password)}\n`, { mode: 0o600 });
+  try {
+    return await use(file);
+  } finally {
+    await rm(file, { force: true });
+  }
+}
+
+/** Runs a database client with stdin fed from `input` and stdout handed to `output`; rejects on a non-zero exit. */
+function client(cmd: string, args: string[], input?: Readable, output?: (stdout: Readable) => Promise<unknown>): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(env.mysqldump, [
-      `--defaults-extra-file=${optionsFile}`, "--single-transaction", "--no-tablespaces", "--default-character-set=utf8mb4", dbConfig.database,
-    ]);
+    const child = spawn(cmd, args, { stdio: [input ? "pipe" : "ignore", output ? "pipe" : "ignore", "pipe"] });
     let stderr = "";
-    child.stderr.on("data", (d) => { stderr += d; });
-    const written = pipeline(child.stdout, createGzip(), createWriteStream(target, { mode: 0o600 }));
+    child.stderr!.on("data", (d) => { stderr += d; });
+    const piped = Promise.all([input && pipeline(input, child.stdin!), output?.(child.stdout!)]);
     child.on("error", reject);
     child.on("close", (code) => {
-      written.then(() => (code === 0 ? resolve() : reject(new Error(`mysqldump exited with ${code}: ${stderr.trim()}`))), reject);
+      piped.then(() => (code === 0 ? resolve() : reject(new Error(`${path.basename(cmd)} exited with ${code}: ${stderr.trim()}`))), reject);
     });
   });
 }
+
+const dump = (target: string, optionsFile: string) =>
+  client(env.mysqldump, [`--defaults-extra-file=${optionsFile}`, "--single-transaction", "--no-tablespaces", "--default-character-set=utf8mb4", dbConfig.database],
+    undefined, (out) => pipeline(out, createGzip(), createWriteStream(target, { mode: 0o600 })));
 
 let queue: Promise<unknown> = Promise.resolve();
 
@@ -81,20 +102,14 @@ export function createBackup(actor: SessionUser | null, kind: Kind = "Manual"): 
     const fileName = `ezi-backup-${stampOf(at)}-${SLUG[kind]}.sql.gz`;
     const target = path.join(dir, fileName);
     const partial = `${target}.partial`;
-    // The password goes in a private options file, never on the command line where other processes can see it.
-    const optionsFile = path.join(dir, `.dump-${process.pid}.cnf`);
-    const q = (s: string | number) => `"${String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-    await writeFile(optionsFile, `[client]\nhost=${q(dbConfig.host)}\nport=${dbConfig.port}\nuser=${q(dbConfig.user)}\npassword=${q(dbConfig.password)}\n`, { mode: 0o600 });
     try {
-      await dump(partial, optionsFile);
+      await withOptions(dir, dbConfig, (options) => dump(partial, options));
       await rename(partial, target);
       await chmod(target, 0o600);
     } catch (err) {
       await rm(partial, { force: true });
       await logError(`backup ${kind}`, err);
       throw fail("INTERNAL_ERROR", t.errors.server);
-    } finally {
-      await rm(optionsFile, { force: true });
     }
     const all = await files();
     for (const old of all.slice(BACKUP_RETENTION)) await rm(old.path, { force: true });
@@ -103,6 +118,24 @@ export function createBackup(actor: SessionUser | null, kind: Kind = "Manual"): 
   });
   queue = run.catch(() => undefined);
   return run;
+}
+
+/**
+ * Replaces the database behind `databaseUrl` with a backup file (.sql.gz): drops and re-creates the database, then
+ * loads the dump with the command-line client. The host restore tool takes a "Before restore" backup first (PRD 2.6).
+ */
+export async function restoreDump(file: string, databaseUrl: string) {
+  const u = new URL(databaseUrl);
+  const name = u.pathname.slice(1).replace(/`/g, "``");
+  const c = { host: u.hostname, port: Number(u.port || 3306), user: decodeURIComponent(u.username), password: decodeURIComponent(u.password) };
+  const reset = Readable.from([`DROP DATABASE IF EXISTS \`${name}\`;\nCREATE DATABASE \`${name}\` CHARACTER SET utf8mb4;\nUSE \`${name}\`;\n`]);
+  async function* sql() {
+    yield* reset;
+    yield* createReadStream(file).pipe(createGunzip());
+  }
+  await mkdir(backupDir(), { recursive: true, mode: 0o700 });
+  await withOptions(backupDir(), c, (options) =>
+    client(env.mysql, [`--defaults-extra-file=${options}`, "--default-character-set=utf8mb4"], Readable.from(sql())));
 }
 
 /** One automatic backup per day while EZI runs: checked at start and every hour. */
