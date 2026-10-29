@@ -1,15 +1,14 @@
-# EZI frontend (Stage 1 prototype)
+# EZI frontend
 
-Clickable Next.js prototype (static export) with in-memory mock data. No backend, database, or real authentication.
-All data goes through `src/lib/mock/store.ts`; UI text is in `src/lib/strings.ts`.
+Next.js app (static export). In production the backend serves the built `out/` folder and `/api` on one port.
+All data goes through the typed API client in `src/lib/api/`; UI text is in `src/lib/strings.ts` (English) and `src/lib/strings.id.ts` (Bahasa Indonesia).
 
 ```bash
-npm install
-npm run dev        # http://localhost:3000
-npm test           # Vitest: business rules of the mock
+npm ci
+npm run dev        # http://localhost:3000, /api is proxied to EZI_API_URL (default http://127.0.0.1:4000)
+npm test           # Vitest unit tests
 npm run lint && npm run typecheck && npm run build   # build writes the static site to out/
+npm run e2e        # Playwright end-to-end tests (needs the backend E2E server on ezi_test)
 ```
 
-Prototype sign-in: pick a demo account on the login page (any password works).
-The "Prototype only" button (bottom right) switches role, simulates load errors, and resets data.
-Data resets on a full page reload.
+See the [main README](../README.md) for the full setup.

@@ -15,7 +15,7 @@ build/
 .env.*
 !.env.example
 
-# TestSprite (can contain test credentials, see CLAUDE.md)
+# TestSprite (can contain test credentials)
 testsprite_tests/
 
 # Local Claude Code settings (personal)

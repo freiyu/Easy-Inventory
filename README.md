@@ -65,3 +65,7 @@ The Windows installer (Inno Setup) is prepared in WSL with `installer/stage.sh` 
 - Passwords are hashed with Argon2id. Sessions are server-side, and the cookie is HttpOnly and SameSite=Lax. Cross-origin writes are refused.
 - The bundled database listens only on `127.0.0.1:3307` and has no firewall rule. The app port is opened only for Private networks, and only when LAN access is enabled.
 - Third-party licenses: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## License
+
+EZI is released under the [MIT License](LICENSE). Bundled third-party software keeps its own license (see above).
