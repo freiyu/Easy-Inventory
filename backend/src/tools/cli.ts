@@ -7,7 +7,7 @@
 //   remove                                       uninstaller: services and firewall rule (data stays)
 // Modules that read env.ts are imported only after the config exists (env.ts refuses to load without it).
 import { execFile } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { copyFile } from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
@@ -208,6 +208,9 @@ async function install(args: Map<string, string>) {
       if (!(await portFree(port, host))) throw new Error(`Port ${port} sudah dipakai program lain. Pilih port lain atau tutup program itu.`);
     }
     for (const dir of [L.config, L.backups, L.logs]) mkdirSync(dir, { recursive: true });
+    // Nothing existed before this run (checked above), so a failed new install removes what it made: the next run
+    // starts clean instead of finding a half-made database or an ezi.env that would switch it to update mode.
+    undo.push(async () => { for (const p of [L.mysqlData, L.envFile, L.rootFile]) rmSync(p, { recursive: true, force: true }); });
     undo.push(async () => { await stopService(DB_SERVICE); await sh("sc.exe", ["delete", DB_SERVICE]).catch(() => undefined); });
 
     const root = secret();
@@ -312,6 +315,8 @@ async function restore(file: string | undefined) {
 async function finalBackup(folder: string | undefined) {
   if (!folder) throw new Error("Folder tujuan tidak diisi.");
   startLog("uninstall");
+  // A new install that failed leaves no config and no database: there is nothing to back up.
+  if (!existsSync(L.envFile)) return say("EZI belum pernah selesai terpasang di PC ini, jadi tidak ada data untuk dibackup.");
   const made = await backup("Manual");
   mkdirSync(folder, { recursive: true });
   const target = path.join(folder, path.basename(made));

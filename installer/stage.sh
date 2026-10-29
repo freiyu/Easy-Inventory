@@ -43,6 +43,10 @@ ver() { node -p "require('$ROOT/backend/node_modules/$1/package.json').version";
 echo '{ "private": true, "type": "module" }' > "$STAGE/app/package.json"
 (cd "$STAGE/app" && PRISMA_CLI_BINARY_TARGETS=windows npm install --omit=dev --no-audit --no-fund --no-package-lock \
   "argon2@$(ver argon2)" "mariadb@$(ver mariadb)" "prisma@$(ver prisma)")
+# npm's .bin entries are WSL symlinks that Windows cannot open (ISCC: "The file cannot be accessed by the system").
+# EZI never uses them: the host tool runs node_modules/prisma/build/index.js directly.
+rm -rf "$STAGE/app/node_modules/.bin"
+test -z "$(find "$STAGE" -type l)"
 test -d "$STAGE/app/node_modules/argon2/prebuilds/win32-x64"
 ls "$STAGE/app/node_modules/@prisma/engines/" | grep -q "schema-engine-windows.exe"
 
@@ -53,9 +57,11 @@ unzip -q "$NODE_ZIP" -d "$TMP/node" && mv "$TMP"/node/node-* "$STAGE/node"
 rm -rf "$STAGE/node/node_modules/npm" "$STAGE/node/node_modules/corepack" "$STAGE/node/"{npm,npx,corepack}*
 unzip -q "$DB_ZIP" -d "$TMP/db" && mv "$TMP"/db/mariadb-* "$STAGE/mariadb"
 # Keep only the programs EZI runs (server, client, dump, install, upgrade, check) and their DLLs: no debug symbols,
-# headers, tests or backup tools (keeps the installer small).
+# headers, tests or backup tools (keeps the installer small). mariadb-install-db and mariadb-upgrade still call the
+# old names (mysqld.exe, mysql.exe, mysqlcheck.exe), so those copies stay too.
 find "$STAGE/mariadb/bin" -type f ! -name "*.dll" ! -name mariadbd.exe ! -name mariadb.exe ! -name mariadb-dump.exe \
-  ! -name mariadb-install-db.exe ! -name mariadb-upgrade.exe ! -name mariadb-check.exe -delete
+  ! -name mariadb-install-db.exe ! -name mariadb-upgrade.exe ! -name mariadb-check.exe \
+  ! -name mysqld.exe ! -name mysql.exe ! -name mysqlcheck.exe -delete
 find "$STAGE/mariadb" -name "*.pdb" -delete
 rm -rf "$STAGE/mariadb/include" "$STAGE/mariadb/mysql-test" "$STAGE/mariadb/sql-bench" "$STAGE/mariadb/data"
 cp "$WINSW" "$STAGE/service/ezi-service.exe"
