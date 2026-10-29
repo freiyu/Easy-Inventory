@@ -1,6 +1,6 @@
 # Building and publishing the EZI installer
 
-For the developer. End users read [INSTALLATION.md](INSTALLATION.md). PRD sections 11 and 12 are the source of truth.
+For the developer. End users read [INSTALLATION.md](INSTALLATION.md).
 
 ## 1. What the installer contains
 

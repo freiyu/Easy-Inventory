@@ -57,3 +57,16 @@ proof-of-work/
 
 # Installer downloads (Node, MariaDB, WinSW; installer/stage.sh)
 /installer/cache/
+
+# Internal project files (agent rules, PRD, logs, map, design notes, checklists): kept on this PC only, never pushed (P140-P141)
+/.claude/
+/CLAUDE.md
+/PRD_EZI.md
+/docs/CODEMAP.md
+/docs/DESIGN.md
+/docs/RESEARCH-LOG.md
+/docs/PROGRESS.md
+/docs/PROMPTS.md
+/docs/TESTING-PRD.md
+/docs/TESTING-DOCUMENTATION.md
+/docs/UML.md

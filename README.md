@@ -4,7 +4,6 @@ EZI is a small office inventory system for one Windows host PC on a local networ
 
 - **Using EZI:** [docs/INSTALLATION.md](docs/INSTALLATION.md), [docs/USER-ACCESS.md](docs/USER-ACCESS.md), [docs/ADMIN-GUIDE.md](docs/ADMIN-GUIDE.md), [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) (Bahasa Indonesia).
 - **Building the installer:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-- **Requirements:** [PRD_EZI.md](PRD_EZI.md). Design rules are in [docs/DESIGN.md](docs/DESIGN.md), the code map is [docs/CODEMAP.md](docs/CODEMAP.md), and testing is in [docs/TESTING-DOCUMENTATION.md](docs/TESTING-DOCUMENTATION.md).
 
 ## Stack
 
