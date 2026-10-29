@@ -57,7 +57,7 @@ Integration and E2E tests wipe `ezi_test`. Never point them at a database with r
 
 ## Installer and releases
 
-The Windows installer (Inno Setup) is prepared in WSL with `installer/stage.sh` and compiled on Windows with `installer/build.ps1`. Releases on GitHub include `EZI-Setup-<version>.exe`, `SHA256SUMS.txt`, and release notes. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+The Windows installer (Inno Setup) is prepared in WSL with `installer/stage.sh` and compiled on Windows with `installer/build.ps1`. Public downloads are in [freiyu/Easy-Inventory-Releases](https://github.com/freiyu/Easy-Inventory-Releases/releases). Releases include `EZI-Setup-<version>.exe`, `SHA256SUMS.txt`, and release notes. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Security notes
 

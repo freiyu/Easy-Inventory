@@ -11,7 +11,7 @@ Panduan ini untuk orang yang memasang EZI di **satu PC host** di kantor. PC lain
 
 ## 2. Unduh installer
 
-1. Buka halaman **Releases** proyek EZI di GitHub (tidak perlu akun).
+1. Buka halaman **Releases** EZI di GitHub: https://github.com/freiyu/Easy-Inventory-Releases/releases (tidak perlu akun).
 2. Unduh `EZI-Setup-x.y.z.exe` (x.y.z adalah nomor versi) dan `SHA256SUMS.txt`.
 3. (Disarankan) Cek file tidak rusak atau diubah orang lain. Buka PowerShell di folder Downloads, lalu jalankan:
 

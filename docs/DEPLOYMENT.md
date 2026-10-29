@@ -56,5 +56,6 @@ Only after human approval (push and releases wait for the stage approval):
 
 1. Tag the commit with a semantic version (`v0.1.0`; `v1.0.0` only when the MVP passes acceptance).
 2. Create a GitHub Release for that tag and upload `EZI-Setup-<version>.exe`, `SHA256SUMS.txt`, and release notes, including migration notes.
+3. Publish the same release in the public repository [freiyu/Easy-Inventory-Releases](https://github.com/freiyu/Easy-Inventory-Releases), which holds only the user guides, `LICENSE`, `THIRD-PARTY-NOTICES.md`, and the releases (this source repository is private). Copy the four user guides and the notices there when they change.
 
 No GitHub Actions, code signing, portable ZIP, or VPS/cloud deployment (PRD 1.4, 11.6).

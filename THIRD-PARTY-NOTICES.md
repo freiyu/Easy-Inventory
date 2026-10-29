@@ -1,6 +1,6 @@
 # Third-party notices
 
-The EZI Inventory installer bundles the following third-party software (PRD 9.4). Each component keeps its own
+The EZI Inventory installer bundles the following third-party software. Each component keeps its own
 license. The full license texts ship inside the installed program folder, next to each component.
 
 ## Node.js 22 (runtime)
