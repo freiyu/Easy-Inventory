@@ -55,6 +55,9 @@ proof-of-work/
 # Demo video project: personal use only, never commit or push (human request P131-P132)
 /video/
 
+# Thesis work: private, never commit or push (human request)
+/thesis-work/
+
 # Installer downloads (Node, MariaDB, WinSW; installer/stage.sh)
 /installer/cache/
 
