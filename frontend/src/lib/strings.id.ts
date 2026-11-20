@@ -705,11 +705,6 @@ export const id: Strings = {
     borrowerHint: "Anda bisa membuat peminjaman atas nama orang lain.",
     addLine: "Tambah barang lain",
     saveDraft: "Simpan sebagai draf",
-    howTitle: "Cara pinjam barang",
-    how1: "Ajukan pinjam.",
-    how2: "Admin menyetujui atau menolak. Kalau disetujui, stoknya disiapkan.",
-    how3: "Ambil barangnya ke Admin.",
-    how4: "Kembalikan semua barang sebelum tanggal kembali.",
     notFoundBack: "Kembali ke peminjaman",
   },
 

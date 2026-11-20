@@ -704,11 +704,6 @@ export const en = {
     borrowerHint: "You can create a loan on behalf of another person.",
     addLine: "Add another item",
     saveDraft: "Save as draft",
-    howTitle: "How a loan works",
-    how1: "Submit your request.",
-    how2: "An Admin approves or rejects it. Approving reserves the stock.",
-    how3: "Collect the items from the Admin.",
-    how4: "Return everything by the expected date.",
     notFoundBack: "Back to loans",
   },
 

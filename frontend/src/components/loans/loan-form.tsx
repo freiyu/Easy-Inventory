@@ -47,9 +47,9 @@ export function LoanForm({ loan }: { loan?: LoanDto }) {
 
   const busy = pending !== null;
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <form onSubmit={(e) => { e.preventDefault(); void save(true); }} noValidate className="lg:col-span-2">
-        <Card className="gap-6 [--card-spacing:--spacing(6)]">
+    <div>
+      <form onSubmit={(e) => { e.preventDefault(); void save(true); }} noValidate>
+        <Card className="max-w-3xl gap-6 [--card-spacing:--spacing(6)]">
           {isAdmin && (
             <div className="px-6">
               <Field label={t.fields.borrower} required error={errors.borrowerId} hint={t.loans.borrowerHint}>
@@ -91,13 +91,6 @@ export function LoanForm({ loan }: { loan?: LoanDto }) {
           </div>
         </Card>
       </form>
-
-      <Card className="h-fit gap-3 [--card-spacing:--spacing(6)]">
-        <h2 className="px-6 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.loans.howTitle}</h2>
-        <ol className="flex list-decimal flex-col gap-2 pr-6 pl-10 text-(length:--text-body) text-muted-foreground">
-          {[t.loans.how1, t.loans.how2, t.loans.how3, t.loans.how4].map((s) => <li key={s}>{s}</li>)}
-        </ol>
-      </Card>
     </div>
   );
 }
