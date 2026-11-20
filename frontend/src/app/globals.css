@@ -52,6 +52,8 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* The only shadow (Figma EZI/Elevation/Overlay): menus, dialogs, popovers. */
+  --shadow-overlay: 0 8px 24px 0 rgb(0 0 0 / 0.18);
 }
 
 /* Kanagawa Lotus, variant B (docs/DESIGN.md) */
@@ -158,7 +160,9 @@
   --duration-theme: 150ms;
   --duration-route: 160ms;
   --duration-overlay-enter: 190ms;
+  --duration-popover: 160ms;
   --duration-drawer: 220ms;
+  --duration-toast: 200ms;
   --duration-exit: 120ms;
   --duration-stagger: 40ms;
   --duration-pill: 200ms;
@@ -172,6 +176,7 @@
   --rise-route: 6px;
   --rise-card: 8px;
   --rise-row: 4px;
+  --drawer-travel: 1;
 }
 
 /* Reduced motion: no slide, rise, scale or stagger. Colour and opacity fades stay, shortened to 100 ms.
@@ -183,11 +188,14 @@
     --rise-route: 0px;
     --rise-card: 0px;
     --rise-row: 0px;
+    --drawer-travel: 0;
     --duration-press: var(--duration-reduced);
     --duration-hover: var(--duration-reduced);
     --duration-theme: var(--duration-reduced);
     --duration-route: var(--duration-reduced);
     --duration-overlay-enter: var(--duration-reduced);
+    --duration-popover: var(--duration-reduced);
+    --duration-toast: var(--duration-reduced);
     --duration-drawer: var(--duration-reduced);
     --duration-exit: var(--duration-reduced);
     --duration-stagger: 0ms;
@@ -273,4 +281,89 @@
   .ezi-spinner {
     animation: ezi-spin var(--duration-spinner) linear infinite;
   }
+}
+
+/* Press and hover (PRD_REDESIGN.md 10.4): colours 120 ms, press scale 140 ms, all strong ease-out.
+   box-shadow is left out on purpose: the focus ring appears instantly. */
+@utility ezi-press {
+  transition-property: color, background-color, border-color, translate, scale, opacity;
+  transition-duration: var(--duration-hover);
+  transition-timing-function: var(--ease-out);
+  &:active:not(:disabled, [aria-disabled="true"], [aria-haspopup]) {
+    scale: var(--press-scale);
+    transition-duration: var(--duration-press);
+  }
+}
+
+/* Overlay motion. Base UI keeps the element mounted until the exit animation ends. */
+@layer components {
+  .ezi-backdrop[data-open] {
+    animation: ezi-fade-in var(--duration-overlay-enter) var(--ease-out) both;
+  }
+  .ezi-backdrop[data-closed] {
+    animation: ezi-fade-out var(--duration-exit) var(--ease-out) both;
+  }
+  .ezi-dialog[data-open] {
+    animation: ezi-overlay-in var(--duration-overlay-enter) var(--ease-out) both;
+  }
+  .ezi-dialog[data-closed] {
+    animation: ezi-overlay-out var(--duration-exit) var(--ease-out) both;
+  }
+  /* Dropdown, select and popover grow from their trigger (Base UI sets --transform-origin). */
+  .ezi-popup {
+    transform-origin: var(--transform-origin);
+  }
+  .ezi-popup[data-open] {
+    animation: ezi-overlay-in var(--duration-popover) var(--ease-out) both;
+  }
+  .ezi-popup[data-closed] {
+    animation: ezi-overlay-out var(--duration-exit) var(--ease-out) both;
+  }
+  /* A select that aligns over its trigger opens without scale, only a fade. */
+  .ezi-popup[data-align-trigger="true"][data-open] {
+    animation: ezi-fade-in var(--duration-popover) var(--ease-out) both;
+  }
+  .ezi-popup[data-align-trigger="true"][data-closed] {
+    animation: ezi-fade-out var(--duration-exit) var(--ease-out) both;
+  }
+  /* Drawer slides in 220 ms and leaves in 120 ms. */
+  .ezi-drawer {
+    transition-property: translate, opacity;
+    transition-duration: var(--duration-drawer);
+    transition-timing-function: var(--ease-drawer);
+  }
+  .ezi-drawer[data-ending-style] {
+    transition-duration: var(--duration-exit);
+    transition-timing-function: var(--ease-out);
+  }
+  .ezi-drawer[data-starting-style],
+  .ezi-drawer[data-ending-style] {
+    opacity: 0;
+  }
+  .ezi-drawer[data-side="left"][data-starting-style],
+  .ezi-drawer[data-side="left"][data-ending-style] {
+    translate: calc(-100% * var(--drawer-travel)) 0;
+  }
+  .ezi-drawer[data-side="right"][data-starting-style],
+  .ezi-drawer[data-side="right"][data-ending-style] {
+    translate: calc(100% * var(--drawer-travel)) 0;
+  }
+  .ezi-drawer[data-side="top"][data-starting-style],
+  .ezi-drawer[data-side="top"][data-ending-style] {
+    translate: 0 calc(-100% * var(--drawer-travel));
+  }
+  .ezi-drawer[data-side="bottom"][data-starting-style],
+  .ezi-drawer[data-side="bottom"][data-ending-style] {
+    translate: 0 calc(100% * var(--drawer-travel));
+  }
+}
+
+/* Toast (Sonner): enters from the bottom in 200 ms, leaves in 120 ms. The doubled attribute selector
+   beats the style tag Sonner injects at runtime. */
+[data-sonner-toaster] [data-sonner-toast] {
+  transition-duration: var(--duration-toast);
+  transition-timing-function: var(--ease-out);
+}
+[data-sonner-toaster] [data-sonner-toast][data-removed="true"] {
+  transition-duration: var(--duration-exit);
 }
