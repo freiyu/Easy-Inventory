@@ -49,22 +49,22 @@ export function LoanForm({ loan }: { loan?: LoanDto }) {
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <form onSubmit={(e) => { e.preventDefault(); void save(true); }} noValidate className="lg:col-span-2">
-        <Card className="gap-6">
+        <Card className="gap-6 [--card-spacing:--spacing(6)]">
           {isAdmin && (
-            <div className="px-5">
+            <div className="px-6">
               <Field label={t.fields.borrower} required error={errors.borrowerId} hint={t.loans.borrowerHint}>
                 {(p) => <SelectField {...p} value={borrowerId} onChange={setBorrowerId}
                   options={(userList.data ?? []).map((u) => ({ value: String(u.id), label: `${u.name} (${u.role})` }))} />}
               </Field>
             </div>
           )}
-          <section className="flex flex-col gap-3 px-5">
-            <h2 className="text-lg font-semibold">{t.loans.sectionItems}</h2>
+          <section className="flex flex-col gap-3 px-6">
+            <h2 className="text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.loans.sectionItems}</h2>
             <LinesEditor mode="loan" lines={lines} onChange={setLines} errors={errors}
               addLabel={t.loans.addLine} />
           </section>
-          <section className="flex flex-col gap-3 border-t px-5 pt-5">
-            <h2 className="text-lg font-semibold">{t.loans.sectionWhen}</h2>
+          <section className="flex flex-col gap-3 border-t px-6 pt-6">
+            <h2 className="text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.loans.sectionWhen}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t.fields.loanDate} required error={errors.loanDate}>
                 {(p) => <Input {...p} type="date" value={loanDate} onChange={(e) => setLoanDate(e.target.value)} />}
@@ -74,8 +74,8 @@ export function LoanForm({ loan }: { loan?: LoanDto }) {
               </Field>
             </div>
           </section>
-          <section className="flex flex-col gap-3 border-t px-5 pt-5">
-            <h2 className="text-lg font-semibold">{t.loans.sectionWhy}</h2>
+          <section className="flex flex-col gap-3 border-t px-6 pt-6">
+            <h2 className="text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.loans.sectionWhy}</h2>
             <Field label={t.fields.purpose} required error={errors.purpose}>
               {(p) => <Input {...p} value={purpose} onChange={(e) => setPurpose(e.target.value)} />}
             </Field>
@@ -83,8 +83,8 @@ export function LoanForm({ loan }: { loan?: LoanDto }) {
               {(p) => <Textarea {...p} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />}
             </Field>
           </section>
-          {errors._form && <p role="alert" className="mx-5 rounded-lg bg-danger-soft px-3 py-2 text-sm font-medium text-foreground">{errors._form}</p>}
-          <div className="flex flex-wrap justify-end gap-2 border-t px-5 pt-5">
+          {errors._form && <p role="alert" className="ezi-field-error mx-6 rounded-lg bg-danger-soft px-3 py-2 text-(length:--text-table) font-(weight:--weight-strong) text-foreground">{errors._form}</p>}
+          <div className="flex flex-wrap justify-end gap-2 border-t px-6 pt-6">
             <Button type="button" variant="outline" disabled={busy} onClick={() => router.back()}>{t.common.cancel}</Button>
             <Button type="button" variant="outline" disabled={busy} onClick={() => void save(false)}>{pending === "draft" ? t.common.saving : t.loans.saveDraft}</Button>
             <Button type="submit" disabled={busy}>{pending === "submit" ? t.common.saving : t.loans.submit}</Button>
@@ -92,9 +92,9 @@ export function LoanForm({ loan }: { loan?: LoanDto }) {
         </Card>
       </form>
 
-      <Card className="h-fit gap-3">
-        <h2 className="px-5 text-lg font-semibold">{t.loans.howTitle}</h2>
-        <ol className="flex list-decimal flex-col gap-2 pr-5 pl-10 text-base text-muted-foreground">
+      <Card className="h-fit gap-3 [--card-spacing:--spacing(6)]">
+        <h2 className="px-6 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.loans.howTitle}</h2>
+        <ol className="flex list-decimal flex-col gap-2 pr-6 pl-10 text-(length:--text-body) text-muted-foreground">
           {[t.loans.how1, t.loans.how2, t.loans.how3, t.loans.how4].map((s) => <li key={s}>{s}</li>)}
         </ol>
       </Card>

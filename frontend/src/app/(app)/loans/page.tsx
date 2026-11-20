@@ -35,7 +35,7 @@ export default function LoansPage() {
   const newLink = <Link href="/loans/new" className={buttonVariants()}>{isAdmin ? t.loans.newAdmin : t.loans.newStaff}</Link>;
 
   const columns: Column<LoanDto>[] = [
-    { id: "number", header: t.loans.colNumber, cell: (l) => <Link href={`/loans/view?id=${l.id}`} className="font-medium text-link hover:underline">{l.number}</Link>, sortable: true },
+    { id: "number", header: t.loans.colNumber, cell: (l) => <Link href={`/loans/view?id=${l.id}`} className="font-(weight:--weight-strong) text-link hover:underline">{l.number}</Link>, sortable: true },
     ...(isAdmin ? [{ id: "borrower", header: t.loans.colBorrower, cell: (l: LoanDto) => l.borrowerName, sortable: true }] : []),
     { id: "items", header: t.loans.colItems, cell: (l) => <span className="line-clamp-1 max-w-72 whitespace-normal">{l.itemsSummary}</span>, hideOnMobile: true },
     { id: "loanDate", header: t.loans.colLoanDate, cell: (l) => <span className="tabular">{formatDate(l.loanDate)}</span>, sortable: true, hideOnMobile: true },

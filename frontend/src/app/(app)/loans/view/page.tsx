@@ -26,8 +26,8 @@ import { cn } from "@/lib/utils";
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-base font-medium">{children}</dd>
+      <dt className="text-(length:--text-table) text-muted-foreground">{label}</dt>
+      <dd className="text-(length:--text-body) font-(weight:--weight-strong)">{children}</dd>
     </div>
   );
 }
@@ -91,13 +91,13 @@ function LoanDetail({ loan, userId, userName, isAdmin }: { loan: LoanDto; userId
       />
 
       {isAdmin && loan.status === "Pending Approval" && own && (
-        <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-warning-soft px-4 py-3 text-base text-foreground">
+        <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-warning-soft px-4 py-3 text-(length:--text-body) text-foreground">
           <CircleAlert className="mt-0.5 size-5 shrink-0 text-warning-icon" aria-hidden="true" />
           {t.loans.ownRequest}
         </p>
       )}
       {status === "Overdue" && (
-        <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-danger-soft px-4 py-3 text-base text-foreground">
+        <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-danger-soft px-4 py-3 text-(length:--text-body) text-foreground">
           <CircleAlert className="mt-0.5 size-5 shrink-0 text-danger-icon" aria-hidden="true" />
           {t.loans.overdueNote(loan.daysOverdue)}
         </p>
@@ -105,9 +105,9 @@ function LoanDetail({ loan, userId, userName, isAdmin }: { loan: LoanDto; userId
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
-          <Card className="gap-4">
-            <h2 className="px-5 text-lg font-semibold">{t.loans.detailTitle}</h2>
-            <dl className="grid gap-x-6 gap-y-4 px-5 sm:grid-cols-2">
+          <Card size="sm" className="gap-4">
+            <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.loans.detailTitle}</h2>
+            <dl className="grid gap-x-6 gap-y-4 px-4 sm:grid-cols-2">
               <Detail label={t.loans.borrower}>{loan.borrowerName}</Detail>
               <Detail label={t.loans.requestedOn}>{formatDateTime(loan.createdAt)}</Detail>
               <Detail label={t.loans.loanDate}>{formatDate(loan.loanDate)}</Detail>
@@ -123,8 +123,8 @@ function LoanDetail({ loan, userId, userName, isAdmin }: { loan: LoanDto; userId
             </dl>
           </Card>
 
-          <Card className="gap-0 overflow-hidden p-0">
-            <h2 className="px-5 py-4 text-lg font-semibold">{t.loans.itemsCard}</h2>
+          <Card size="sm" className="gap-0 overflow-hidden p-0">
+            <h2 className="px-4 py-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.loans.itemsCard}</h2>
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-muted">
@@ -137,7 +137,7 @@ function LoanDetail({ loan, userId, userName, isAdmin }: { loan: LoanDto; userId
               <TableBody>
                 {loan.lines.map((l) => (
                   <TableRow key={l.itemId}>
-                    <TableCell className="font-medium">{l.itemName}</TableCell>
+                    <TableCell className="font-(weight:--weight-strong)">{l.itemName}</TableCell>
                     <TableCell className="tabular text-right">{formatNumber(l.quantity)} {l.unit}</TableCell>
                     {isAdmin && <TableCell className="tabular text-right">{l.currentStock !== undefined ? formatNumber(l.currentStock) : "-"}</TableCell>}
                     {isAdmin && <TableCell className="tabular text-right">{l.availableForLoan !== undefined ? formatNumber(l.availableForLoan) : "-"}</TableCell>}
@@ -151,7 +151,7 @@ function LoanDetail({ loan, userId, userName, isAdmin }: { loan: LoanDto; userId
         <div className="flex flex-col gap-6">
           <Progress loan={loan} who={loan.borrowerName} />
           {can("approve") && (
-            <p className="flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-base text-foreground">
+            <p className="flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-(length:--text-body) text-foreground">
               <Info className="mt-0.5 size-5 shrink-0 text-info-icon" aria-hidden="true" />
               {t.loans.approveInfo(totalQty)}
             </p>
@@ -186,7 +186,7 @@ function LoanDetail({ loan, userId, userName, isAdmin }: { loan: LoanDto; userId
             return r;
           }}
         >
-          <ul className="rounded-lg bg-muted px-4 py-3 text-base">
+          <ul className="rounded-lg bg-muted px-4 py-3 text-(length:--text-body)">
             {loan.lines.map((l) => <li key={l.itemId}>{l.itemName} × {l.quantity}</li>)}
           </ul>
         </ConfirmDialog>
@@ -269,9 +269,9 @@ function Progress({ loan, who }: { loan: LoanDto; who: string }) {
   const note = loan.status === "Rejected" ? t.loans.rejectedNote : loan.status === "Cancelled" ? t.loans.cancelledNote : loan.status === "Draft" ? t.loans.draftNote : null;
 
   return (
-    <Card className="gap-4">
-      <h2 className="px-5 text-lg font-semibold">{t.loans.progress}</h2>
-      <ol className="flex flex-col gap-4 px-5">
+    <Card size="sm" className="gap-4">
+      <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.loans.progress}</h2>
+      <ol className="flex flex-col gap-4 px-4">
         {steps.map((s, i) => {
           const isDone = done(i) || (loan.status === "Completed" && i === 3);
           const current = !closed && !isDone && step === i;
@@ -286,17 +286,17 @@ function Progress({ loan, who }: { loan: LoanDto; who: string }) {
                 {isDone ? <Check className="size-3.5" aria-hidden="true" /> : <Circle className="size-2 fill-current" aria-hidden="true" />}
               </span>
               <div>
-                <p className={cn("text-base font-semibold", !isDone && !current && "text-muted-foreground")}>
+                <p className={cn("text-(length:--text-body) font-(weight:--weight-strong)", !isDone && !current && "text-muted-foreground")}>
                   {s.title}
                   <span className="sr-only">{isDone ? t.loans.stepDone : current ? t.loans.stepCurrent : t.loans.stepUpcoming}</span>
                 </p>
-                <p className="text-sm text-muted-foreground">{s.body}</p>
+                <p className="text-(length:--text-table) text-muted-foreground">{s.body}</p>
               </div>
             </li>
           );
         })}
       </ol>
-      {note && <p className="mx-5 rounded-lg bg-muted px-3 py-2 text-sm text-foreground">{note}</p>}
+      {note && <p className="mx-4 rounded-lg bg-muted px-3 py-2 text-(length:--text-table) text-foreground">{note}</p>}
     </Card>
   );
 }
