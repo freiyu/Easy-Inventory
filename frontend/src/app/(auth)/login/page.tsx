@@ -44,12 +44,12 @@ export default function LoginPage() {
   };
 
   return (
-    <Card className="gap-5">
-      <div className="px-5">
-        <h1 className="text-xl font-semibold">{t.auth.signInTitle}</h1>
-        <p className="mt-1 text-base text-muted-foreground">{t.auth.signInIntro}</p>
+    <Card className="gap-6 [--card-spacing:--spacing(6)]">
+      <div className="px-6">
+        <h1 className="text-(length:--text-title) leading-tight font-(weight:--weight-strong)">{t.auth.signInTitle}</h1>
+        <p className="mt-1 text-(length:--text-body) text-muted-foreground">{t.auth.signInIntro}</p>
       </div>
-      <form onSubmit={submit} noValidate className="flex flex-col gap-4 px-5">
+      <form onSubmit={submit} noValidate className="flex flex-col gap-4 px-6">
         <Field label={t.fields.email} required error={errors.email}>
           {(p) => (
             <Input {...p} type="email" autoComplete="username" value={values.email}
@@ -64,12 +64,12 @@ export default function LoginPage() {
         </Field>
         <div className="flex items-center gap-2">
           <Checkbox id="keep" checked={values.keepSignedIn} onCheckedChange={(c) => setValues({ ...values, keepSignedIn: Boolean(c) })} />
-          <Label htmlFor="keep" className="text-base font-normal">{t.auth.keepSignedIn}</Label>
+          <Label htmlFor="keep" className="text-(length:--text-body) font-(weight:--weight-regular)">{t.auth.keepSignedIn}</Label>
         </div>
         {errors._form && (
-          <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm font-medium text-foreground">{errors._form}</p>
+          <p role="alert" className="ezi-field-error rounded-lg bg-danger-soft px-3 py-2 text-(length:--text-table) font-(weight:--weight-strong) text-foreground">{errors._form}</p>
         )}
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
+        <Button type="submit" disabled={pending} className="w-full">
           {pending ? t.auth.signingIn : t.auth.signIn}
         </Button>
       </form>

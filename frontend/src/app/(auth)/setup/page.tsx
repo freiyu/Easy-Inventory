@@ -31,9 +31,9 @@ export default function SetupPage() {
   // The first-run endpoint is closed once a user exists (PRD 3.3).
   if (mounted && setup.data && !setup.data.needsSetup && !created) {
     return (
-      <Card className="items-center gap-3 px-6 py-8 text-center">
-        <h1 className="text-xl font-semibold">{t.auth.setupClosedTitle}</h1>
-        <p className="text-base text-muted-foreground">{t.auth.setupClosedBody}</p>
+      <Card className="items-center gap-3 px-6 py-8 text-center [--card-spacing:--spacing(6)]">
+        <h1 className="text-(length:--text-title) leading-tight font-(weight:--weight-strong)">{t.auth.setupClosedTitle}</h1>
+        <p className="text-(length:--text-body) text-muted-foreground">{t.auth.setupClosedBody}</p>
         <Link href="/login" className={buttonVariants({ variant: "outline" })}>{t.auth.goToSignIn}</Link>
       </Card>
     );
@@ -54,16 +54,16 @@ export default function SetupPage() {
   };
 
   return (
-    <Card className="gap-5">
-      <div className="px-5">
-        <p className="text-sm font-semibold text-muted-foreground">{t.auth.setupEyebrow}</p>
-        <h1 className="mt-1 text-xl font-semibold">{t.auth.setupTitle}</h1>
+    <Card className="gap-6 [--card-spacing:--spacing(6)]">
+      <div className="px-6">
+        <p className="text-(length:--text-table) font-(weight:--weight-strong) text-muted-foreground">{t.auth.setupEyebrow}</p>
+        <h1 className="mt-1 text-(length:--text-title) leading-tight font-(weight:--weight-strong)">{t.auth.setupTitle}</h1>
       </div>
-      <p className="mx-5 flex items-start gap-2 rounded-lg bg-info-soft px-3 py-2.5 text-sm text-foreground">
+      <p className="mx-6 flex items-start gap-2 rounded-lg bg-info-soft px-3 py-2 text-(length:--text-table) text-foreground">
         <Info className="mt-0.5 size-4 shrink-0 text-info-icon" aria-hidden="true" />
         {t.auth.setupInfo}
       </p>
-      <form onSubmit={submit} noValidate className="flex flex-col gap-4 px-5">
+      <form onSubmit={submit} noValidate className="flex flex-col gap-4 px-6">
         <Field label={t.fields.fullName} required error={errors.name}>
           {(p) => <Input {...p} autoComplete="name" value={values.name} onChange={set("name")} />}
         </Field>
@@ -76,8 +76,8 @@ export default function SetupPage() {
         <Field label={t.fields.confirmPassword} required error={errors.confirm}>
           {(p) => <Input {...p} type="password" autoComplete="new-password" value={values.confirm} onChange={set("confirm")} />}
         </Field>
-        {errors._form && <p role="alert" className="text-sm font-medium text-danger-icon">{errors._form}</p>}
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
+        {errors._form && <p role="alert" className="ezi-field-error text-(length:--text-table) font-(weight:--weight-strong) text-danger-icon">{errors._form}</p>}
+        <Button type="submit" disabled={pending} className="w-full">
           {pending ? t.common.saving : t.auth.setupSubmit}
         </Button>
       </form>

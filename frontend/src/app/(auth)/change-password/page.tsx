@@ -22,12 +22,12 @@ export default function ChangePasswordPage() {
 
   if (!mounted || !user?.mustChangePassword) return null;
   return (
-    <Card className="gap-4">
-      <div className="px-5">
-        <h1 className="text-xl font-semibold">{t.auth.changeTitle}</h1>
-        <p className="mt-1 text-base text-muted-foreground">{t.auth.changeForcedBody}</p>
+    <Card className="gap-6 [--card-spacing:--spacing(6)]">
+      <div className="px-6">
+        <h1 className="text-(length:--text-title) leading-tight font-(weight:--weight-strong)">{t.auth.changeTitle}</h1>
+        <p className="mt-1 text-(length:--text-body) text-muted-foreground">{t.auth.changeForcedBody}</p>
       </div>
-      <div className="px-5">
+      <div className="px-6">
         <PasswordForm forced onDone={() => router.replace("/dashboard")} />
       </div>
     </Card>
