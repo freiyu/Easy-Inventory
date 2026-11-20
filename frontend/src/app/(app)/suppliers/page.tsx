@@ -52,7 +52,7 @@ export default function SuppliersPage() {
   };
 
   const columns: Column<SupplierDto>[] = [
-    { id: "name", header: t.suppliers.colName, cell: (s) => <span className="font-medium">{s.name}</span>, sortable: true },
+    { id: "name", header: t.suppliers.colName, cell: (s) => <span className="font-(weight:--weight-strong)">{s.name}</span>, sortable: true },
     { id: "contact", header: t.suppliers.colContact, cell: (s) => s.contactPerson || "-", sortable: true },
     { id: "phone", header: t.suppliers.colPhone, cell: (s) => <span className="tabular">{s.phone || "-"}</span>, sortable: true, hideOnMobile: true },
     { id: "email", header: t.suppliers.colEmail, cell: (s) => s.email || "-", sortable: true, hideOnMobile: true },

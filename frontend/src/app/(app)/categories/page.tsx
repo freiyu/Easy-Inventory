@@ -37,8 +37,8 @@ export default function CategoriesPage() {
   const tabs = (
     <Tabs value={tab} onValueChange={switchTab}>
       <TabsList variant="line" className="mb-4 w-full justify-start overflow-x-auto">
-        <TabsTrigger value="categories" className="h-10 flex-none px-4 text-base">{t.categories.tabCategories}</TabsTrigger>
-        <TabsTrigger value="subcategories" className="h-10 flex-none px-4 text-base">{t.categories.tabSubcategories}</TabsTrigger>
+        <TabsTrigger value="categories" className="flex-none px-4">{t.categories.tabCategories}</TabsTrigger>
+        <TabsTrigger value="subcategories" className="flex-none px-4">{t.categories.tabSubcategories}</TabsTrigger>
       </TabsList>
     </Tabs>
   );
@@ -74,7 +74,7 @@ function GroupList({ group, tabs }: { group: Group; tabs: ReactNode }) {
   };
 
   const columns: Column<CategoryDto>[] = [
-    { id: "name", header: t.categories.colName, cell: (c) => <span className="font-medium">{c.name}</span>, sortable: true },
+    { id: "name", header: t.categories.colName, cell: (c) => <span className="font-(weight:--weight-strong)">{c.name}</span>, sortable: true },
     { id: "code", header: t.categories.colCode, cell: (c) => c.code || "-", sortable: true, hideOnMobile: true },
     { id: "description", header: t.categories.colDescription, cell: (c) => <span className="line-clamp-1 whitespace-normal">{c.description || "-"}</span>, hideOnMobile: true },
     { id: "items", header: t.categories.colItems, cell: (c) => c.itemCount, numeric: true, sortable: true },
