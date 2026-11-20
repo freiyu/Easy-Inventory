@@ -107,7 +107,7 @@ export function DataTable<T>({
                       type="button"
                       onClick={() => toggleSort(c.id)}
                       aria-label={t.common.sortBy(c.header)}
-                      className={cn("inline-flex items-center gap-1 rounded-sm transition-colors duration-(--duration-hover) ease-(--ease-out) hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none", c.numeric && "flex-row-reverse")}
+                      className={cn("inline-flex items-center gap-1 rounded-sm transition-colors duration-(--duration-hover) ease-(--ease-out) hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none", c.numeric && "flex-row-reverse")}
                     >
                       {c.header}
                       {sortField === c.id ? (sortDir === "asc" ? <ArrowUp className="size-4" aria-hidden="true" /> : <ArrowDown className="size-4" aria-hidden="true" />) : <ChevronsUpDown className="size-4 text-muted-foreground" aria-hidden="true" />}

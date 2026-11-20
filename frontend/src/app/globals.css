@@ -25,6 +25,9 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-active: var(--destructive-active);
+  --color-overlay: var(--overlay);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -76,6 +79,8 @@
   --accent-foreground: #545464;
   --destructive: #c84053;
   --destructive-foreground: #ffffff;
+  --destructive-hover: #b93a4c;
+  --destructive-active: #a93445;
   --border: #d3d1c4;
   --input: #83827a;
   --ring: #4d699b;
@@ -94,6 +99,8 @@
   --sidebar-active: #d3d8c4;
   --sidebar-active-icon: #4d5f36;
   --sidebar-border: #d3d1c4;
+  /* Modal backdrop: ink over paper in light mode. */
+  --overlay: color-mix(in srgb, var(--foreground) 30%, transparent);
 }
 
 /* Kanagawa Wave */
@@ -116,6 +123,8 @@
   --accent-foreground: #dcd7ba;
   --destructive: #ff5d62;
   --destructive-foreground: #16161d;
+  --destructive-hover: #ff7378;
+  --destructive-active: #ff898d;
   --border: #363646;
   --input: #7a7a8a;
   --ring: #7fb4ca;
@@ -134,6 +143,8 @@
   --sidebar-active: #2d342b;
   --sidebar-active-icon: #98bb6c;
   --sidebar-border: #363646;
+  /* Wave: the page is dimmed with the darkest surface, never lightened with cream text colour. */
+  --overlay: color-mix(in srgb, var(--sidebar) 70%, transparent);
 }
 
 /* Layout, type and motion tokens. Defined once here; components never use raw values (docs/DESIGN.md). */
@@ -180,7 +191,7 @@
 }
 
 /* Reduced motion: no slide, rise, scale or stagger. Colour and opacity fades stay, shortened to 100 ms.
-   Skeleton stays still, the spinner is replaced by text, the pill jumps and only fades its colour. */
+   Skeleton stays still, the spinner stops turning (a static icon stays), the pill jumps and only fades its colour. */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --press-scale: 1;

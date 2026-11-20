@@ -89,7 +89,7 @@ export function LinesEditor({
                         aria-pressed={on}
                         onClick={() => update(line.key, { isNew })}
                         className={cn(
-                          "inline-flex h-(--control-height) items-center gap-2 rounded-lg border px-3 text-(length:--text-label) font-(weight:--weight-strong) transition-colors duration-(--duration-hover) ease-(--ease-out) focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                          "inline-flex h-(--control-height) items-center gap-2 rounded-lg border px-3 text-(length:--text-label) font-(weight:--weight-strong) transition-colors duration-(--duration-hover) ease-(--ease-out) focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                           on ? "border-primary bg-info-soft text-foreground" : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground",
                         )}
                       >

@@ -2,7 +2,11 @@ import {
   AlarmClock,
   Ban,
   CheckCheck,
-  CircleAlert,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  SlidersHorizontal,
+  Undo2,
+  User,
   CircleCheck,
   CircleX,
   Clock,
@@ -107,7 +111,10 @@ export function TxTypeBadge({ type }: { type: StockTxType }) {
   const tone: Record<StockTxType, Tone> = {
     IN: "success", OUT: "warning", ADJUSTMENT: "info", LOAN_ISSUE: "neutral", LOAN_RETURN: "neutral", REVERSAL: "danger",
   };
-  return <StatusBadge tone={tone[type]} icon={CircleAlert}>{t.status.txType[type]}</StatusBadge>;
+  const icon: Record<StockTxType, LucideIcon> = {
+    IN: ArrowDownToLine, OUT: ArrowUpFromLine, ADJUSTMENT: SlidersHorizontal, LOAN_ISSUE: ArrowUpFromLine, LOAN_RETURN: ArrowDownToLine, REVERSAL: Undo2,
+  };
+  return <StatusBadge tone={tone[type]} icon={icon[type]}>{t.status.txType[type]}</StatusBadge>;
 }
 
 export function TxStatusBadge({ status }: { status: "Posted" | "Voided" }) {
@@ -117,5 +124,5 @@ export function TxStatusBadge({ status }: { status: "Posted" | "Voided" }) {
 }
 
 export function RoleBadge({ role }: { role: Role }) {
-  return <StatusBadge tone="neutral" icon={CircleCheck}>{role}</StatusBadge>;
+  return <StatusBadge tone="neutral" icon={User}>{role}</StatusBadge>;
 }

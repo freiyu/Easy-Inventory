@@ -28,7 +28,9 @@ export function SegmentedControl({
 
   const measure = useCallback(() => {
     const el = root.current?.querySelector<HTMLElement>("[aria-pressed='true']");
+    // Hidden below 640 px (display:none) the box is 0x0; keep the last good measurement until it shows again.
     if (!el) return setBox(null);
+    if (el.offsetWidth === 0) return;
     setBox((b) => (b && b.x === el.offsetLeft && b.y === el.offsetTop && b.w === el.offsetWidth && b.h === el.offsetHeight
       ? b : { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }));
   }, []);
@@ -82,7 +84,7 @@ export function SegmentedControl({
               aria-pressed={on}
               onClick={() => onChange(c.value)}
               className={cn(
-                "relative inline-flex h-8 items-center gap-2 rounded-md px-3 text-(length:--text-label) font-(weight:--weight-strong) transition-colors duration-(--duration-theme) ease-(--ease-out) focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                "relative inline-flex h-8 items-center gap-2 rounded-md px-3 text-(length:--text-label) font-(weight:--weight-strong) transition-colors duration-(--duration-hover) ease-(--ease-out) focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                 on ? "text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >

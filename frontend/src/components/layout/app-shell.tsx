@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="left" className="w-(--sidebar-width) gap-0 bg-sidebar p-0" showCloseButton>
+        <SheetContent side="left" className="data-[side=left]:w-(--sidebar-width) gap-0 bg-sidebar p-0" showCloseButton>
           <SheetTitle className="sr-only">{t.nav.mainNav}</SheetTitle>
           <SheetDescription className="sr-only">{t.nav.mainNav}</SheetDescription>
           <Sidebar user={user} />
@@ -128,7 +128,7 @@ function Sidebar({ user }: { user: User }) {
                         href={e.href}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "ezi-press relative flex h-(--nav-item-height) items-center gap-3 rounded-lg px-3 text-(length:--text-body) hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                          "ezi-press relative flex h-(--nav-item-height) items-center gap-3 rounded-lg px-3 text-(length:--text-body) hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                           active && "bg-sidebar-active hover:bg-sidebar-active",
                         )}
                       >
@@ -169,7 +169,7 @@ function UserMenu({ user }: { user: User }) {
     <div className="shrink-0 border-t border-sidebar-border p-3">
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<button type="button" aria-label={t.user.accountMenu} className="ezi-press flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none" />}
+          render={<button type="button" aria-label={t.user.accountMenu} className="ezi-press flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" />}
         >
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-info-soft text-(length:--text-table) font-(weight:--weight-strong) text-foreground" aria-hidden="true">{initials(user.name)}</span>
           <span className="min-w-0 flex-1">
