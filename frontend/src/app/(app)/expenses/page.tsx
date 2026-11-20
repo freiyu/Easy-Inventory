@@ -51,7 +51,7 @@ export default function ExpensesPage() {
           <Button variant="outline" onClick={() => { setFrom(monthStart()); setTo(today()); }}>{t.expenses.thisMonth}</Button>
           <Button variant="outline" onClick={() => { setFrom(firstDayMonthsBack(11)); setTo(today()); }}>{t.expenses.last12}</Button>
         </div>
-        {error && <p role="alert" className="mb-6 rounded-lg bg-danger-soft px-4 py-3 text-base font-medium text-foreground">{error}</p>}
+        {error && <p role="alert" className="mb-6 rounded-lg bg-danger-soft px-4 py-3 text-(length:--text-body) font-(weight:--weight-strong) text-foreground">{error}</p>}
         {!error && (
           <div className="flex flex-col gap-6">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -61,8 +61,8 @@ export default function ExpensesPage() {
             {count === 0 ? (
               <EmptyState title={t.expenses.emptyTitle} body={t.expenses.emptyBody} action={<Link href="/stock/in" className={buttonVariants()}>{t.expenses.emptyAction}</Link>} />
             ) : (
-              <Card className="gap-0 overflow-hidden p-0">
-                <h2 className="px-5 py-4 text-lg font-semibold">{t.expenses.byMonth}</h2>
+              <Card size="sm" className="gap-0 overflow-hidden p-0">
+                <h2 className="px-4 py-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.expenses.byMonth}</h2>
                 <Table>
                   <caption className="sr-only">{t.expenses.caption}</caption>
                   <TableHeader>
@@ -75,7 +75,7 @@ export default function ExpensesPage() {
                   <TableBody>
                     {rows.map((r) => (
                       <TableRow key={r.month}>
-                        <TableCell className="font-medium">{monthLabel(r.month)}</TableCell>
+                        <TableCell className="font-(weight:--weight-strong)">{monthLabel(r.month)}</TableCell>
                         <TableCell className="tabular text-right">{r.count}</TableCell>
                         <TableCell className="tabular text-right">{formatIDR(r.value)}</TableCell>
                       </TableRow>
@@ -83,9 +83,9 @@ export default function ExpensesPage() {
                   </TableBody>
                   <TableFooter>
                     <TableRow>
-                      <TableCell className="font-semibold">{t.common.total}</TableCell>
-                      <TableCell className="tabular text-right font-semibold">{count}</TableCell>
-                      <TableCell className="tabular text-right font-semibold">{formatIDR(total)}</TableCell>
+                      <TableCell className="font-(weight:--weight-strong)">{t.common.total}</TableCell>
+                      <TableCell className="tabular text-right font-(weight:--weight-strong)">{count}</TableCell>
+                      <TableCell className="tabular text-right font-(weight:--weight-strong)">{formatIDR(total)}</TableCell>
                     </TableRow>
                   </TableFooter>
                 </Table>

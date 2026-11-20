@@ -37,7 +37,7 @@ const NoRows = ({ onClear }: { onClear: () => void }) => (
 function ReportHeader({ count, type, lp }: { count: number; type: "stock" | "movements" | "loans"; lp: ListState }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <p className="text-base text-muted-foreground" aria-live="polite">{t.reports.rows(count)}</p>
+      <p className="text-(length:--text-body) text-muted-foreground" aria-live="polite">{t.reports.rows(count)}</p>
       <DownloadButton variant="outline" run={() => api.reports.export(type, lp.params)} label={t.common.exportExcel} busyLabel={t.common.exporting} />
     </div>
   );
@@ -61,7 +61,7 @@ function StockReport() {
   const clear = () => clearTab(lp, ["categoryId", "subcategoryId", "stockStatus"]);
   const columns: Column<StockReportRow>[] = [
     { id: "code", header: t.reports.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortable: true, required: true },
-    { id: "name", header: t.reports.colItem, cell: (i) => <Link href={`/items/view?id=${i.id}`} className="font-medium hover:text-link hover:underline">{i.name}</Link>, sortable: true, required: true },
+    { id: "name", header: t.reports.colItem, cell: (i) => <Link href={`/items/view?id=${i.id}`} className="font-(weight:--weight-strong) hover:text-link hover:underline">{i.name}</Link>, sortable: true, required: true },
     { id: "category", header: t.reports.colCategory, cell: (i) => i.categoryName, sortable: true, hideOnMobile: true },
     { id: "subcategory", header: t.fields.subcategory, cell: (i) => i.subcategoryName, sortable: true, hideOnMobile: true },
     { id: "unit", header: t.reports.colUnit, cell: (i) => i.unit, hideOnMobile: true },
@@ -91,7 +91,7 @@ function MovementsReport() {
   const clear = () => clearTab(lp, ["type", "from", "to"]);
   const columns: Column<MovementRow>[] = [
     { id: "date", header: t.reports.colDate, cell: (m) => <span className="tabular">{formatDate(m.date)}</span>, sortable: true },
-    { id: "item", header: t.reports.colItem, cell: (m) => <span className="font-medium">{m.itemName}</span>, sortable: true },
+    { id: "item", header: t.reports.colItem, cell: (m) => <span className="font-(weight:--weight-strong)">{m.itemName}</span>, sortable: true },
     { id: "type", header: t.reports.colType, cell: (m) => <TxTypeBadge type={m.type} />, sortable: true },
     { id: "change", header: t.reports.colChange, cell: (m) => <span className={m.quantityChange < 0 ? "text-danger-icon" : "text-success-icon"}>{m.quantityChange > 0 ? "+" : ""}{formatNumber(m.quantityChange)}</span>, numeric: true, sortable: true },
     { id: "balance", header: t.reports.colBalance, cell: (m) => formatNumber(m.balanceAfter), numeric: true, sortable: true },
@@ -119,7 +119,7 @@ function LoansReport() {
   const list = useGet<LoanReportRow[]>("/reports/loans", lp.params);
   const clear = () => clearTab(lp, ["status", "from", "to"]);
   const columns: Column<LoanReportRow>[] = [
-    { id: "number", header: t.reports.colLoan, cell: (l) => <Link href={`/loans/view?id=${l.id}`} className="font-medium text-link hover:underline">{l.number}</Link>, sortable: true },
+    { id: "number", header: t.reports.colLoan, cell: (l) => <Link href={`/loans/view?id=${l.id}`} className="font-(weight:--weight-strong) text-link hover:underline">{l.number}</Link>, sortable: true },
     { id: "borrower", header: t.reports.colBorrower, cell: (l) => l.borrowerName, sortable: true },
     { id: "items", header: t.loans.colItems, cell: (l) => <span className="line-clamp-1 max-w-64 whitespace-normal">{l.summary}</span>, hideOnMobile: true },
     { id: "loanDate", header: t.reports.colLoanDate, cell: (l) => <span className="tabular">{formatDate(l.loanDate)}</span>, sortable: true, hideOnMobile: true },
@@ -137,7 +137,7 @@ function LoansReport() {
       </FilterBar>
       <LoadGate load={list}>
         <ReportHeader count={list.meta?.total ?? 0} type="loans" lp={lp} />
-        <p className="mb-3 text-sm text-muted-foreground">{t.reports.overdueHighlight}</p>
+        <p className="mb-3 text-(length:--text-table) text-muted-foreground">{t.reports.overdueHighlight}</p>
         <DataTable caption={t.reports.loansCaption} {...tableProps(list, lp)} columns={columns} rowKey={(l) => l.id} rowLabel={(l) => l.number} empty={<NoRows onClear={clear} />} />
       </LoadGate>
     </>
@@ -158,9 +158,9 @@ export default function ReportsPage() {
       <PageHeader title={t.reports.title} description={t.reports.description} />
       <Tabs value={tab} onValueChange={open}>
         <TabsList variant="line" className="mb-4 w-full justify-start overflow-x-auto">
-          <TabsTrigger value="stock" className="h-10 flex-none px-4 text-base">{t.reports.tabStock}</TabsTrigger>
-          <TabsTrigger value="movements" className="h-10 flex-none px-4 text-base">{t.reports.tabMovements}</TabsTrigger>
-          <TabsTrigger value="loans" className="h-10 flex-none px-4 text-base">{t.reports.tabLoans}</TabsTrigger>
+          <TabsTrigger value="stock" className="flex-none px-4">{t.reports.tabStock}</TabsTrigger>
+          <TabsTrigger value="movements" className="flex-none px-4">{t.reports.tabMovements}</TabsTrigger>
+          <TabsTrigger value="loans" className="flex-none px-4">{t.reports.tabLoans}</TabsTrigger>
         </TabsList>
         <TabsContent value="stock">{tab === "stock" && <StockReport />}</TabsContent>
         <TabsContent value="movements">{tab === "movements" && <MovementsReport />}</TabsContent>
