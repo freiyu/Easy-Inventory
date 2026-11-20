@@ -58,7 +58,7 @@ export default function UsersPage() {
   const columns: Column<User>[] = [
     {
       id: "name", header: t.users.colName, sortable: true,
-      cell: (u) => <span className="font-medium">{u.name}{u.id === me?.id && <span className="font-normal text-muted-foreground"> ({t.common.you})</span>}</span>,
+      cell: (u) => <span className="font-(weight:--weight-strong)">{u.name}{u.id === me?.id && <span className="font-(weight:--weight-regular) text-muted-foreground"> ({t.common.you})</span>}</span>,
     },
     { id: "email", header: t.users.colEmail, cell: (u) => <span className="break-all">{u.email}</span>, sortable: true, hideOnMobile: true },
     { id: "role", header: t.users.colRole, cell: (u) => <RoleBadge role={u.role} />, sortable: true },
@@ -146,10 +146,10 @@ export default function UsersPage() {
       <Dialog open={temp !== null} onOpenChange={(o) => !o && setTemp(null)}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">{t.users.tempTitle}</DialogTitle>
-            <DialogDescription className="text-base">{temp && t.users.tempBody(temp.name)}</DialogDescription>
+            <DialogTitle>{t.users.tempTitle}</DialogTitle>
+            <DialogDescription>{temp && t.users.tempBody(temp.name)}</DialogDescription>
           </DialogHeader>
-          <p className="tabular rounded-lg bg-muted px-4 py-3 text-center text-xl font-semibold tracking-wider select-all">{temp?.password}</p>
+          <p className="tabular rounded-lg bg-muted px-4 py-3 text-center text-(length:--text-section) font-(weight:--weight-strong) tracking-wider select-all">{temp?.password}</p>
           <DialogFooter>
             <Button onClick={() => setTemp(null)}>{t.users.tempClose}</Button>
           </DialogFooter>

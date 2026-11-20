@@ -26,7 +26,7 @@ export default function ActivityLogPage() {
   const columns: Column<ActivityRow>[] = [
     { id: "time", header: t.activity.colTime, cell: (a) => <span className="tabular">{formatDateTime(a.createdAt)}</span>, sortable: true },
     { id: "user", header: t.activity.colUser, cell: (a) => a.userName ?? t.activity.system, sortable: true },
-    { id: "action", header: t.activity.colAction, cell: (a) => <span className="font-medium">{a.action}</span>, sortable: true },
+    { id: "action", header: t.activity.colAction, cell: (a) => <span className="font-(weight:--weight-strong)">{a.action}</span>, sortable: true },
     { id: "module", header: t.activity.colModule, cell: (a) => a.module, sortable: true, hideOnMobile: true },
     { id: "ref", header: t.activity.colRef, cell: (a) => <span className="tabular break-all">{a.reference || "-"}</span>, hideOnMobile: true },
     { id: "details", header: t.activity.colDetails, cell: (a) => <span className="line-clamp-1 max-w-72 whitespace-normal">{a.metadata || "-"}</span>, hideOnMobile: true },

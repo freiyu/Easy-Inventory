@@ -17,22 +17,22 @@ export default function ProfilePage() {
     <>
       <PageHeader title={t.profile.title} description={t.profile.description} />
       <div className="grid max-w-4xl gap-6 md:grid-cols-2">
-        <Card className="h-fit gap-4">
-          <h2 className="px-5 text-lg font-semibold">{t.profile.account}</h2>
-          <dl className="flex flex-col gap-4 px-5">
+        <Card size="sm" className="h-fit gap-4">
+          <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.profile.account}</h2>
+          <dl className="flex flex-col gap-4 px-4">
             {[[t.fields.fullName, user.name], [t.fields.email, user.email]].map(([k, v]) => (
-              <div key={k}><dt className="text-sm text-muted-foreground">{k}</dt><dd className="text-base font-medium">{v}</dd></div>
+              <div key={k}><dt className="text-(length:--text-table) text-muted-foreground">{k}</dt><dd className="text-(length:--text-body) font-(weight:--weight-strong)">{v}</dd></div>
             ))}
-            <div><dt className="text-sm text-muted-foreground">{t.fields.role}</dt><dd className="mt-1"><RoleBadge role={user.role} /></dd></div>
-            <div><dt className="text-sm text-muted-foreground">{t.profile.lastLogin}</dt><dd className="text-base font-medium">{formatDateTime(user.lastLoginAt)}</dd></div>
+            <div><dt className="text-(length:--text-table) text-muted-foreground">{t.fields.role}</dt><dd className="mt-1"><RoleBadge role={user.role} /></dd></div>
+            <div><dt className="text-(length:--text-table) text-muted-foreground">{t.profile.lastLogin}</dt><dd className="text-(length:--text-body) font-(weight:--weight-strong)">{formatDateTime(user.lastLoginAt)}</dd></div>
           </dl>
         </Card>
-        <Card className="gap-4">
-          <div className="px-5">
-            <h2 className="text-lg font-semibold">{t.profile.passwordCard}</h2>
-            <p className="mt-1 text-base text-muted-foreground">{t.profile.passwordBody}</p>
+        <Card size="sm" className="gap-4">
+          <div className="px-4">
+            <h2 className="text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.profile.passwordCard}</h2>
+            <p className="mt-1 text-(length:--text-body) text-muted-foreground">{t.profile.passwordBody}</p>
           </div>
-          <div className="px-5"><PasswordForm key={formKey} onDone={() => setFormKey((k) => k + 1)} /></div>
+          <div className="px-4"><PasswordForm key={formKey} onDone={() => setFormKey((k) => k + 1)} /></div>
         </Card>
       </div>
     </>

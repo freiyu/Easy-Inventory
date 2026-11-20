@@ -36,7 +36,7 @@ export default function BackupPage() {
   };
 
   const columns: Column<BackupFile>[] = [
-    { id: "file", header: t.backup.colFile, cell: (b) => <span className="tabular font-medium break-all">{b.fileName}</span>, sortable: true },
+    { id: "file", header: t.backup.colFile, cell: (b) => <span className="tabular font-(weight:--weight-strong) break-all">{b.fileName}</span>, sortable: true },
     { id: "created", header: t.backup.colCreated, cell: (b) => <span className="tabular">{formatDateTime(b.createdAt)}</span>, sortable: true },
     { id: "kind", header: t.backup.colType, cell: (b) => <StatusBadge tone="neutral" icon={kindIcon[b.kind]}>{t.backup.kinds[b.kind]}</StatusBadge>, sortable: true },
     { id: "size", header: t.backup.colSize, cell: (b) => formatSize(b.sizeKb), numeric: true, sortable: true },
@@ -46,7 +46,7 @@ export default function BackupPage() {
   return (
     <>
       <PageHeader title={t.backup.title} description={t.backup.description} actions={<Button disabled={busy} onClick={create}>{busy ? t.backup.creating : t.backup.backupNow}</Button>} />
-      <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-warning-soft px-4 py-3 text-base text-foreground">
+      <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-warning-soft px-4 py-3 text-(length:--text-body) text-foreground">
         <TriangleAlert className="mt-0.5 size-5 shrink-0 text-warning-icon" aria-hidden="true" />
         {t.backup.warning}
       </p>
@@ -55,7 +55,7 @@ export default function BackupPage() {
           <KpiCard label={t.backup.lastBackup} value={latest ? formatDateTime(latest.createdAt) : "-"} caption={t.backup.lastCaption} icon={CalendarClock} />
           <KpiCard label={t.backup.kept} value={t.backup.keptValue(total, BACKUP_RETENTION)} caption={t.backup.keptCaption(BACKUP_RETENTION)} icon={Archive} />
         </div>
-        <h2 className="mb-3 text-lg font-semibold">{t.backup.available}</h2>
+        <h2 className="mb-3 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.backup.available}</h2>
         <DataTable
           caption={t.backup.available}
           {...tableProps(list, lp)}
@@ -64,7 +64,7 @@ export default function BackupPage() {
           rowLabel={(b) => b.fileName}
           empty={<EmptyState title={t.backup.emptyTitle} body={t.backup.emptyBody} action={<Button onClick={create}>{t.backup.backupNow}</Button>} />}
         />
-        <p className="mt-4 flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-base text-foreground">
+        <p className="mt-4 flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-(length:--text-body) text-foreground">
           <Info className="mt-0.5 size-5 shrink-0 text-info-icon" aria-hidden="true" />
           {t.backup.restoreNote}
         </p>
