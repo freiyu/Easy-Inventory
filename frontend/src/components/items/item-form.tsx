@@ -62,9 +62,9 @@ export function ItemForm({ item }: { item?: ItemDto }) {
 
   return (
     <form onSubmit={submit} noValidate>
-      <Card className="max-w-3xl gap-6">
-        <section className="flex flex-col gap-4 px-5">
-          <h2 className="text-lg font-semibold">{t.items.sectionBasic}</h2>
+      <Card className="max-w-3xl gap-6 [--card-spacing:--spacing(6)]">
+        <section className="flex flex-col gap-4 px-6">
+          <h2 className="text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.items.sectionBasic}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t.items.fieldCode} hint={t.items.codeHint}>
               {(p) => <Input {...p} value={item?.code ?? t.items.codeAuto} readOnly disabled />}
@@ -84,8 +84,8 @@ export function ItemForm({ item }: { item?: ItemDto }) {
           </div>
         </section>
 
-        <section className="flex flex-col gap-4 border-t px-5 pt-6">
-          <h2 className="text-lg font-semibold">{t.items.sectionStock}</h2>
+        <section className="flex flex-col gap-4 border-t px-6 pt-6">
+          <h2 className="text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.items.sectionStock}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {item ? (
               <Field label={t.items.currentStock} hint={t.items.openingReadOnly}>
@@ -102,8 +102,8 @@ export function ItemForm({ item }: { item?: ItemDto }) {
           </div>
         </section>
 
-        <section className="flex flex-col gap-4 border-t px-5 pt-6">
-          <h2 className="text-lg font-semibold">{t.items.sectionPurchasing}</h2>
+        <section className="flex flex-col gap-4 border-t px-6 pt-6">
+          <h2 className="text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.items.sectionPurchasing}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t.fields.lastPrice} error={errors.lastPurchasePrice}>
               {(p) => <Input {...p} inputMode="numeric" {...input("lastPurchasePrice")} />}
@@ -126,8 +126,8 @@ export function ItemForm({ item }: { item?: ItemDto }) {
           </Field>
         </section>
 
-        {errors._form && <p role="alert" className="mx-5 rounded-lg bg-danger-soft px-3 py-2 text-sm font-medium text-foreground">{errors._form}</p>}
-        <div className="flex justify-end gap-2 border-t px-5 pt-5">
+        {errors._form && <p role="alert" className="ezi-field-error mx-6 rounded-lg bg-danger-soft px-3 py-2 text-(length:--text-table) font-(weight:--weight-strong) text-foreground">{errors._form}</p>}
+        <div className="flex justify-end gap-2 border-t px-6 pt-6">
           <Button type="button" variant="outline" disabled={pending} onClick={() => router.back()}>{t.common.cancel}</Button>
           <Button type="submit" disabled={pending}>{pending ? t.common.saving : t.items.saveItem}</Button>
         </div>

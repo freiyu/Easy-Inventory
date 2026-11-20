@@ -21,8 +21,8 @@ import type { Role } from "@/lib/types";
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-base font-medium">{children}</dd>
+      <dt className="text-(length:--text-table) text-muted-foreground">{label}</dt>
+      <dd className="text-(length:--text-body) font-(weight:--weight-strong)">{children}</dd>
     </div>
   );
 }
@@ -61,9 +61,9 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="gap-4 lg:col-span-2">
-          <h2 className="px-5 text-lg font-semibold">{t.items.detailsCard}</h2>
-          <dl className="grid gap-x-6 gap-y-4 px-5 sm:grid-cols-2">
+        <Card size="sm" className="gap-4 lg:col-span-2">
+          <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.items.detailsCard}</h2>
+          <dl className="grid gap-x-6 gap-y-4 px-4 sm:grid-cols-2">
             <Detail label={t.fields.category}>{item.categoryName}</Detail>
             <Detail label={t.fields.subcategory}>{item.subcategoryName}</Detail>
             <Detail label={t.fields.unit}>{item.unit}</Detail>
@@ -81,29 +81,29 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
           </dl>
         </Card>
 
-        <Card className="gap-4">
-          <h2 className="px-5 text-lg font-semibold">{t.items.stockCard}</h2>
+        <Card size="sm" className="gap-4">
+          <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.items.stockCard}</h2>
           {isAdmin ? (
-            <dl className="flex flex-col gap-3 px-5">
+            <dl className="flex flex-col gap-3 px-4">
               <div>
-                <dt className="text-sm text-muted-foreground">{t.items.currentStock}</dt>
-                <dd className="tabular text-3xl font-semibold">{formatNumber(item.currentStock ?? 0)} <span className="text-base font-normal text-muted-foreground">{item.unit}</span></dd>
+                <dt className="text-(length:--text-table) text-muted-foreground">{t.items.currentStock}</dt>
+                <dd className="tabular text-(length:--text-kpi) font-(weight:--weight-strong)">{formatNumber(item.currentStock ?? 0)} <span className="text-(length:--text-body) font-(weight:--weight-regular) text-muted-foreground">{item.unit}</span></dd>
               </div>
               <Detail label={t.items.minimumStock}>{formatNumber(item.minimumStock ?? 0)}</Detail>
               <Detail label={t.items.reserved}>{formatNumber(reserved)}</Detail>
               <Detail label={t.items.availableForLoan}>{formatNumber(item.availableForLoan)}</Detail>
             </dl>
           ) : (
-            <p className="px-5 text-base text-muted-foreground">{t.items.staffStockNote}</p>
+            <p className="px-4 text-(length:--text-body) text-muted-foreground">{t.items.staffStockNote}</p>
           )}
         </Card>
       </div>
 
       {isAdmin && (
-        <Card className="mt-6 gap-0 overflow-hidden p-0">
-          <h2 className="px-5 py-4 text-lg font-semibold">{t.items.movements}</h2>
+        <Card size="sm" className="mt-6 gap-0 overflow-hidden p-0">
+          <h2 className="px-4 py-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.items.movements}</h2>
           {lines.length === 0 ? (
-            <p className="border-t px-5 py-8 text-center text-base text-muted-foreground">{t.items.movementsEmpty}</p>
+            <p className="border-t px-4 py-8 text-center text-(length:--text-body) text-muted-foreground">{t.items.movementsEmpty}</p>
           ) : (
             <Table>
               <TableHeader>
@@ -121,7 +121,7 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
                   <TableRow key={x.id}>
                     <TableCell className="tabular">{formatDate(x.date)}</TableCell>
                     <TableCell><TxTypeBadge type={x.type} /></TableCell>
-                    <TableCell className={`tabular text-right font-medium ${x.quantityChange < 0 ? "text-danger-icon" : "text-success-icon"}`}>
+                    <TableCell className={`tabular text-right font-(weight:--weight-strong) ${x.quantityChange < 0 ? "text-danger-icon" : "text-success-icon"}`}>
                       {x.quantityChange > 0 ? "+" : ""}{formatNumber(x.quantityChange)}
                     </TableCell>
                     <TableCell className="tabular text-right">{formatNumber(x.balanceAfter)}</TableCell>

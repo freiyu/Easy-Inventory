@@ -40,7 +40,7 @@ export default function ItemsPage() {
 
   const nameCell = (i: ItemDto) => (
     <span className="flex flex-wrap items-center gap-2">
-      <Link href={`/items/view?id=${i.id}`} className="font-medium hover:text-link hover:underline">{i.name}</Link>
+      <Link href={`/items/view?id=${i.id}`} className="font-(weight:--weight-strong) hover:text-link hover:underline">{i.name}</Link>
       {i.status === "Inactive" && <StatusBadge tone="neutral" icon={CircleX}>{t.items.inactiveTag}</StatusBadge>}
     </span>
   );

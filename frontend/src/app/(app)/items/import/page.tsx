@@ -40,7 +40,7 @@ const badge: Record<ImportRowDto["status"], { tone: "success" | "neutral" | "dan
 
 const columns: Column<ImportRowDto>[] = [
   { id: "line", header: c.colLine, numeric: true, cell: (r) => r.line },
-  { id: "name", header: c.colName, primary: true, cell: (r) => <span className="font-medium">{r.name || "-"}</span> },
+  { id: "name", header: c.colName, primary: true, cell: (r) => <span className="font-(weight:--weight-strong)">{r.name || "-"}</span> },
   { id: "category", header: c.colCategory, cell: (r) => r.category || "-" },
   { id: "subcategory", header: c.colSubcategory, cell: (r) => r.subcategory || "-" },
   { id: "unit", header: c.colUnit, cell: (r) => r.unit || "-" },
@@ -51,7 +51,7 @@ const columns: Column<ImportRowDto>[] = [
       return (
         <div className="flex flex-col items-start gap-1">
           <StatusBadge tone={b.tone} icon={b.icon}>{b.label}</StatusBadge>
-          {r.message && <span className="text-sm text-muted-foreground">{r.message}</span>}
+          {r.message && <span className="text-(length:--text-table) text-muted-foreground">{r.message}</span>}
         </div>
       );
     },
@@ -97,13 +97,13 @@ export default function ImportItemsPage() {
     <>
       <PageHeader title={c.title} description={c.desc} crumbs={[{ label: t.nav.items, href: "/items" }, { label: c.crumb }]} />
       <div className="flex flex-col gap-6">
-        <Card className="gap-4">
-          <div className="flex flex-col gap-1 px-5">
-            <h2 className="text-lg font-semibold">{c.howTitle}</h2>
-            <p className="text-base text-muted-foreground">{c.howBody}</p>
-            <p className="text-sm text-muted-foreground">{c.required}</p>
+        <Card size="sm" className="gap-4">
+          <div className="flex flex-col gap-1 px-4">
+            <h2 className="text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{c.howTitle}</h2>
+            <p className="text-(length:--text-body) text-muted-foreground">{c.howBody}</p>
+            <p className="text-(length:--text-table) text-muted-foreground">{c.required}</p>
           </div>
-          <div className="px-5">
+          <div className="px-4">
             <Button type="button" variant="outline" onClick={downloadTemplate}>
               <Download className="size-4" aria-hidden="true" />
               {c.template}
@@ -111,21 +111,21 @@ export default function ImportItemsPage() {
           </div>
         </Card>
 
-        <Card className="gap-4">
-          <h2 className="px-5 text-lg font-semibold">{c.chooseTitle}</h2>
-          <div className="flex flex-col gap-3 px-5">
+        <Card size="sm" className="gap-4">
+          <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{c.chooseTitle}</h2>
+          <div className="flex flex-col gap-3 px-4">
             <Field label={c.fileLabel} error={error}>
               {(p) => <Input {...p} ref={input} type="file" accept=".csv,text/csv" disabled={busy !== null || done} onChange={choose} className="max-w-md" />}
             </Field>
-            {busy === "reading" && <p role="status" className="text-sm text-muted-foreground">{c.reading}</p>}
+            {busy === "reading" && <p role="status" className="text-(length:--text-table) text-muted-foreground">{c.reading}</p>}
           </div>
         </Card>
 
         {report && (
-          <Card className="gap-4 overflow-hidden">
-            <div className="flex flex-col gap-3 px-5">
-              <h2 className="text-lg font-semibold">{c.previewTitle}</h2>
-              <p role="status" className="flex flex-wrap items-center gap-2 text-base">
+          <Card size="sm" className="gap-4 overflow-hidden">
+            <div className="flex flex-col gap-3 px-4">
+              <h2 className="text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{c.previewTitle}</h2>
+              <p role="status" className="flex flex-wrap items-center gap-2 text-(length:--text-body)">
                 {done
                   ? <StatusBadge tone="success" icon={CircleCheck}>{c.done(report.created)}</StatusBadge>
                   : <StatusBadge tone="success" icon={CircleCheck}>{c.summaryReady(report.ready)}</StatusBadge>}
@@ -133,7 +133,7 @@ export default function ImportItemsPage() {
                 <StatusBadge tone="danger" icon={CircleX}>{c.summaryErrors(report.errors)}</StatusBadge>
               </p>
               {report.newCategories.length + report.newSubcategories.length > 0 && (
-                <div className="flex flex-col gap-1 text-sm">
+                <div className="flex flex-col gap-1 text-(length:--text-table)">
                   <StatusBadge tone="neutral" icon={FolderPlus}>{c.newGroups(report.newCategories.length, report.newSubcategories.length)}</StatusBadge>
                   <p className="text-muted-foreground">
                     {c.newGroupsList(done)}{" "}
@@ -141,9 +141,9 @@ export default function ImportItemsPage() {
                   </p>
                 </div>
               )}
-              <p className="text-sm text-muted-foreground">{c.backupNote}</p>
+              <p className="text-(length:--text-table) text-muted-foreground">{c.backupNote}</p>
             </div>
-            <div className="px-5">
+            <div className="px-4">
               <DataTable
                 rows={report.rows.slice((page - 1) * pageSize, page * pageSize)}
                 meta={{ page, pageSize, total: report.rows.length }}
@@ -159,7 +159,7 @@ export default function ImportItemsPage() {
                 minWidth="720px"
               />
             </div>
-            <div className="flex flex-wrap justify-end gap-2 px-5">
+            <div className="flex flex-wrap justify-end gap-2 px-4">
               {done ? (
                 <Link href="/items" className={buttonVariants()}>{c.backToItems}</Link>
               ) : (
