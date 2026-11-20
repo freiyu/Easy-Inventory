@@ -374,6 +374,7 @@ export const en = {
     activeOnly: "Active items",
     inactiveOnly: "Inactive items",
     allRecords: "Active and inactive",
+    moreFilters: (n: number) => (n ? `More filters (${n})` : "More filters"),
     allAvailability: "All availability",
     colCode: "Code",
     colName: "Name",

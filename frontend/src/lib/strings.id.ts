@@ -375,6 +375,7 @@ export const id: Strings = {
     activeOnly: "Barang aktif",
     inactiveOnly: "Barang nonaktif",
     allRecords: "Aktif dan nonaktif",
+    moreFilters: (n: number) => (n ? `Filter lain (${n})` : "Filter lain"),
     allAvailability: "Semua ketersediaan",
     colCode: "Kode",
     colName: "Nama",

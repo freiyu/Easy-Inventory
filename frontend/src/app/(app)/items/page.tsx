@@ -3,13 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CircleX, Eye, Pencil, Power, PowerOff, Trash2 } from "lucide-react";
+import { CircleX, Eye, Pencil, Power, PowerOff, SlidersHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DownloadButton } from "@/components/shared/download-button";
 import { DataTable, type Column, type RowAction } from "@/components/shared/data-table";
 import { ConfirmDialog } from "@/components/shared/dialogs";
 import { FilterBar, SearchBox } from "@/components/shared/filter-bar";
+import { Field } from "@/components/shared/form-field";
 import { PageHeader } from "@/components/shared/page-header";
 import { SelectField } from "@/components/shared/select-field";
 import { StockBadge, StatusBadge } from "@/components/shared/status-badge";
@@ -47,14 +49,14 @@ export default function ItemsPage() {
 
   const stock = (i: ItemDto) => <StockBadge status={i.stockStatus} role={user.role} />;
   const adminColumns: Column<ItemDto>[] = [
-    { id: "code", header: t.items.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortable: true, hideOnMobile: true, required: true },
+    { id: "code", header: t.items.colCode, cell: (i) => <span className="tabular text-muted-foreground">{i.code}</span>, sortable: true, hideOnMobile: true, defaultHidden: true },
     { id: "name", header: t.items.colName, cell: nameCell, sortable: true, primary: true, required: true },
     { id: "category", header: t.items.colCategory, cell: (i) => i.categoryName, sortable: true },
     { id: "subcategory", header: t.items.colSubcategory, cell: (i) => i.subcategoryName, sortable: true, hideOnMobile: true },
     { id: "stock", header: t.items.colStock, cell: (i) => <>{formatNumber(i.currentStock ?? 0)} <span className="text-muted-foreground">{i.unit}</span></>, numeric: true, sortable: true, required: true },
     { id: "minimum", header: t.items.colMinimum, cell: (i) => formatNumber(i.minimumStock ?? 0), numeric: true, sortable: true, hideOnMobile: true },
-    { id: "supplier", header: t.items.colSupplier, cell: (i) => <span className="block max-w-44 truncate" title={i.supplierName}>{i.supplierName}</span>, sortable: true, hideOnMobile: true },
-    { id: "location", header: t.items.colLocation, cell: (i) => i.location || "-", sortable: true, hideOnMobile: true },
+    { id: "supplier", header: t.items.colSupplier, cell: (i) => <span className="block max-w-44 truncate" title={i.supplierName}>{i.supplierName}</span>, sortable: true, hideOnMobile: true, defaultHidden: true },
+    { id: "location", header: t.items.colLocation, cell: (i) => i.location || "-", sortable: true, hideOnMobile: true, defaultHidden: true },
     { id: "status", header: t.items.colStatus, cell: stock, sortable: true, required: true },
   ];
   const staffColumns: Column<ItemDto>[] = [
@@ -84,6 +86,8 @@ export default function ItemsPage() {
     ? <EmptyState title={t.items.emptyTitle} body={isAdmin ? t.items.emptyBody : undefined} action={isAdmin ? <Link href="/items/new" className={buttonVariants()}>{t.items.add}</Link> : undefined} />
     : <EmptyState title={t.items.emptyFiltered} body={t.items.emptyFilteredBody} action={<Button variant="outline" onClick={lp.clear}>{t.common.clear}</Button>} />;
 
+  // Secondary filters live behind one button; the number counts those that are not at their default.
+  const moreActive = isAdmin ? [filters.supplierId !== ALL, filters.location !== ALL, filters.status !== "Active"].filter(Boolean).length : 0;
   const stockOptions = (["Safe", "Low", "Out"] as const).map((s) => ({ value: s, label: isAdmin ? t.status.stockAdmin[s] : t.status.stockStaff[s] }));
 
   return (
@@ -94,7 +98,6 @@ export default function ItemsPage() {
         actions={isAdmin && (
           <>
             <Link href="/items/import" className={buttonVariants({ variant: "outline" })}>{t.itemImport.button}</Link>
-            <DownloadButton variant="outline" run={() => api.items.export(lp.params)} label={t.common.exportExcel} busyLabel={t.common.exporting} />
             <Link href="/items/new" className={buttonVariants()}>{t.items.add}</Link>
           </>
         )}
@@ -105,11 +108,23 @@ export default function ItemsPage() {
         <SelectField className="w-48" aria-label={t.fields.subcategory} value={filters.subcategoryId} onChange={(v) => lp.set({ subcategoryId: v })} options={[{ value: ALL, label: t.items.allSubcategories }, ...(subcategories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
         <SelectField className="w-52" aria-label={isAdmin ? t.items.stockStatusFilter : t.items.availabilityFilter} value={filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: isAdmin ? t.items.allStockStatus : t.items.allAvailability }, ...stockOptions]} />
         {isAdmin && (
-          <>
-            <SelectField className="w-56" aria-label={t.fields.preferredSupplier} value={filters.supplierId} onChange={(v) => lp.set({ supplierId: v })} options={[{ value: ALL, label: t.items.allSuppliers }, ...(suppliers.data ?? []).map((s) => ({ value: String(s.id), label: s.name }))]} />
-            <SelectField className="w-48" aria-label={t.fields.location} value={filters.location} onChange={(v) => lp.set({ location: v })} options={[{ value: ALL, label: t.items.allLocations }, ...(locations.data ?? []).map((l) => ({ value: l, label: l }))]} />
-            <SelectField className="w-48" aria-label={t.items.recordStatusFilter} value={filters.status} onChange={(v) => lp.set({ status: v })} options={[{ value: "Active", label: t.items.activeOnly }, { value: "Inactive", label: t.items.inactiveOnly }, { value: ALL, label: t.items.allRecords }]} />
-          </>
+          <Popover>
+            <PopoverTrigger render={<Button variant="outline" />}>
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+              {t.items.moreFilters(moreActive)}
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-80">
+              <Field label={t.fields.preferredSupplier}>
+                {(p) => <SelectField {...p} value={filters.supplierId} onChange={(v) => lp.set({ supplierId: v })} options={[{ value: ALL, label: t.items.allSuppliers }, ...(suppliers.data ?? []).map((s) => ({ value: String(s.id), label: s.name }))]} />}
+              </Field>
+              <Field label={t.fields.location}>
+                {(p) => <SelectField {...p} value={filters.location} onChange={(v) => lp.set({ location: v })} options={[{ value: ALL, label: t.items.allLocations }, ...(locations.data ?? []).map((l) => ({ value: l, label: l }))]} />}
+              </Field>
+              <Field label={t.items.recordStatusFilter}>
+                {(p) => <SelectField {...p} value={filters.status} onChange={(v) => lp.set({ status: v })} options={[{ value: "Active", label: t.items.activeOnly }, { value: "Inactive", label: t.items.inactiveOnly }, { value: ALL, label: t.items.allRecords }]} />}
+              </Field>
+            </PopoverContent>
+          </Popover>
         )}
       </FilterBar>
       <LoadGate load={list}>
@@ -121,6 +136,7 @@ export default function ItemsPage() {
           rowKey={(i) => i.id}
           rowLabel={(i) => i.name}
           actions={isAdmin ? actions : undefined}
+          toolbar={isAdmin ? <DownloadButton variant="outline" size="sm" run={() => api.items.export(lp.params)} label={t.common.exportExcel} busyLabel={t.common.exporting} /> : undefined}
           empty={empty}
           minWidth="880px"
         />

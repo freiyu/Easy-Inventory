@@ -26,6 +26,8 @@ export interface Column<T> {
   primary?: boolean;
   /** Always shown; the column picker cannot hide it. */
   required?: boolean;
+  /** Hidden until the viewer turns it on in the column picker; their own choice replaces this default. */
+  defaultHidden?: boolean;
   className?: string;
 }
 
@@ -47,7 +49,7 @@ const PAGE_SIZES = [10, 25, 50, 100];
  * buttons, the pager and the mobile card layout, and reports clicks through the on* callbacks.
  */
 export function DataTable<T>({
-  rows, meta, sort, onSortChange, onPageChange, onPageSizeChange, columns: allColumns, rowKey, rowLabel, actions, empty, caption, minWidth, busy, columnsKey,
+  rows, meta, sort, onSortChange, onPageChange, onPageSizeChange, columns: allColumns, rowKey, rowLabel, actions, empty, caption, minWidth, busy, columnsKey, toolbar,
 }: {
   rows: T[];
   meta: ListMeta;
@@ -67,8 +69,10 @@ export function DataTable<T>({
   busy?: boolean;
   /** Turns on the column picker; the viewer's choice is remembered in this browser under this key. */
   columnsKey?: string;
+  /** Extra controls (for example Export) shown next to the column picker above the table. */
+  toolbar?: React.ReactNode;
 }) {
-  const [hidden, setHidden] = useHiddenColumns(columnsKey);
+  const [hidden, setHidden] = useHiddenColumns(columnsKey, allColumns.filter((c) => c.defaultHidden).map((c) => c.id));
   if (meta.total === 0) return <>{empty}</>;
   const columns = allColumns.filter((c) => c.required || !hidden.includes(c.id));
 
@@ -86,9 +90,10 @@ export function DataTable<T>({
 
   return (
     <div className={cn("flex flex-col gap-3", busy && "opacity-60 transition-opacity duration-(--duration-hover) ease-(--ease-out)")} aria-busy={busy}>
-      {columnsKey && (
-        <div className="flex justify-end">
-          <ColumnPicker columns={allColumns} hidden={hidden} onChange={setHidden} />
+      {(columnsKey || toolbar) && (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {toolbar}
+          {columnsKey && <ColumnPicker columns={allColumns} hidden={hidden} onChange={setHidden} />}
         </div>
       )}
       <Card className="hidden gap-0 overflow-hidden p-0 md:flex">
@@ -200,30 +205,33 @@ const memory = new Map<string, string>();
 const listeners = new Set<() => void>();
 const readHidden = (k: string) => {
   try {
-    return localStorage.getItem(k) ?? memory.get(k) ?? "[]";
+    return localStorage.getItem(k) ?? memory.get(k) ?? "";
   } catch {
-    return memory.get(k) ?? "[]";
+    return memory.get(k) ?? "";
   }
 };
 
-function useHiddenColumns(key?: string): [string[], (ids: string[]) => void] {
+// An empty stored value means the viewer has not chosen yet, so the columns marked defaultHidden stay hidden.
+function useHiddenColumns(key: string | undefined, defaults: string[]): [string[], (ids: string[]) => void] {
   const storageKey = key ? `ezi-columns:${key}` : "";
   const raw = useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    () => (storageKey ? readHidden(storageKey) : "[]"),
-    () => "[]",
+    () => (storageKey ? readHidden(storageKey) : ""),
+    () => "",
   );
+  const defaultsKey = defaults.join(",");
   const hidden = useMemo(() => {
+    if (raw === "") return defaultsKey ? defaultsKey.split(",") : [];
     try {
       const v: unknown = JSON.parse(raw);
       return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
     } catch {
       return [];
     }
-  }, [raw]);
+  }, [raw, defaultsKey]);
   const save = (ids: string[]) => {
     const v = JSON.stringify(ids);
     memory.set(storageKey, v);

@@ -86,20 +86,30 @@ test("items: required fields are checked before saving", async ({ page }) => {
   await expect(page.getByText(/required|enter|choose|select/i).first()).toBeVisible();
 });
 
-test("items: column picker hides optional columns, keeps required ones, survives reload", async ({ page }) => {
+test("items: Code, Supplier and Location start hidden; the column picker shows them and the choice survives a reload", async ({ page }) => {
   await page.goto("/items");
   const table = page.getByRole("table", { name: "Items" });
+  const header = (name: RegExp) => table.getByRole("columnheader", { name });
+  for (const name of [/Code/, /supplier/i, /Location/]) await expect(header(name)).toHaveCount(0);
   await page.getByRole("button", { name: "Columns" }).click();
-  await expect(page.getByRole("menuitemcheckbox", { name: "Code" })).toBeDisabled();
+  await expect(page.getByRole("menuitemcheckbox", { name: "Name" })).toBeDisabled();
   await page.getByRole("menuitemcheckbox", { name: "Location" }).click();
   await page.keyboard.press("Escape");
-  await expect(table.getByRole("columnheader", { name: /Location/ })).toHaveCount(0);
+  await expect(header(/Location/)).toHaveCount(1);
   await page.reload();
-  await expect(table.getByRole("columnheader", { name: /Location/ })).toHaveCount(0);
-  await expect(table.getByRole("columnheader", { name: /Code/ })).toHaveCount(1);
+  await expect(header(/Location/)).toHaveCount(1);
+  await expect(header(/Code/)).toHaveCount(0);
   await page.getByRole("button", { name: "Columns" }).click();
   await page.getByRole("menuitem", { name: "Show all columns" }).click();
-  await expect(table.getByRole("columnheader", { name: /Location/ })).toHaveCount(1);
+  await expect(header(/Code/)).toHaveCount(1);
+  await expect(header(/supplier/i)).toHaveCount(1);
+});
+
+test("items: the secondary filters sit behind More filters", async ({ page }) => {
+  await page.goto("/items");
+  await expect(page.getByRole("combobox", { name: "Preferred supplier" })).toHaveCount(0);
+  await page.getByRole("button", { name: "More filters" }).click();
+  for (const name of ["Preferred supplier", "Location", "Record status"]) await expect(page.getByRole("combobox", { name })).toBeVisible();
 });
 
 test("items: filter by subcategory", async ({ page }) => {
