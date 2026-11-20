@@ -50,8 +50,8 @@ export default function AdjustmentPage() {
     <>
       <PageHeader title={t.stock.adjTitle} description={t.stock.adjDesc} crumbs={[{ label: t.nav.stock, href: "/stock" }, { label: t.stock.adjTitle }]} />
       <form onSubmit={submit} noValidate>
-        <Card className="max-w-3xl gap-6">
-          <div className="grid gap-4 px-5 sm:grid-cols-2">
+        <Card className="max-w-3xl gap-6 [--card-spacing:--spacing(6)]">
+          <div className="grid gap-4 px-6 sm:grid-cols-2">
             <Field label={t.fields.item} required error={errors.itemId} hint={t.stock.adjItemHint}>
               {(p) => <ItemPicker {...p} value={itemId} item={item} onChange={(x) => { setItem(x ?? undefined); setPhysical(""); }} />}
             </Field>
@@ -59,7 +59,7 @@ export default function AdjustmentPage() {
               {(p) => <Input {...p} type="date" value={date} onChange={(e) => setDate(e.target.value)} />}
             </Field>
           </div>
-          <div className="grid gap-4 px-5 sm:grid-cols-3">
+          <div className="grid gap-4 px-6 sm:grid-cols-3">
             <Field label={t.fields.systemStock} hint={item ? t.stock.reservedNote(systemStock - item.availableForLoan) : undefined}>
               {(p) => <Input {...p} readOnly disabled value={item ? `${formatNumber(systemStock)} ${item.unit}` : "-"} />}
             </Field>
@@ -73,13 +73,13 @@ export default function AdjustmentPage() {
               )}
             </Field>
           </div>
-          <div className="px-5">
+          <div className="px-6">
             <Field label={t.fields.reason} required error={errors.reason} hint={t.stock.reasonHint}>
               {(p) => <Textarea {...p} rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />}
             </Field>
           </div>
-          {errors._form && <p role="alert" className="mx-5 rounded-lg bg-danger-soft px-3 py-2 text-sm font-medium text-foreground">{errors._form}</p>}
-          <div className="flex justify-end gap-2 border-t px-5 pt-5">
+          {errors._form && <p role="alert" className="ezi-field-error mx-6 rounded-lg bg-danger-soft px-3 py-2 text-(length:--text-table) font-(weight:--weight-strong) text-foreground">{errors._form}</p>}
+          <div className="flex justify-end gap-2 border-t px-6 pt-6">
             <Button type="button" variant="outline" disabled={pending} onClick={() => router.back()}>{t.common.cancel}</Button>
             <Button type="submit" disabled={pending}>{pending ? t.common.saving : t.stock.saveAdj}</Button>
           </div>

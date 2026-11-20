@@ -33,7 +33,7 @@ export default function StockPage() {
   );
 
   const columns: Column<StockTxDto>[] = [
-    { id: "number", header: t.stock.colNumber, cell: (x) => <Link href={`/stock/view?id=${x.id}`} className="font-medium text-link hover:underline">{x.number}</Link>, sortable: true },
+    { id: "number", header: t.stock.colNumber, cell: (x) => <Link href={`/stock/view?id=${x.id}`} className="font-(weight:--weight-strong) text-link hover:underline">{x.number}</Link>, sortable: true },
     { id: "date", header: t.stock.colDate, cell: (x) => <span className="tabular">{formatDate(x.date)}</span>, sortable: true },
     { id: "type", header: t.stock.colType, cell: (x) => <TxTypeBadge type={x.type} />, sortable: true },
     { id: "items", header: t.stock.colItems, cell: itemsCell, hideOnMobile: true },

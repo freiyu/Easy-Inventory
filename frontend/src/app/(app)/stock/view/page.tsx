@@ -19,8 +19,8 @@ import { t } from "@/lib/strings";
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-base font-medium">{children}</dd>
+      <dt className="text-(length:--text-table) text-muted-foreground">{label}</dt>
+      <dd className="text-(length:--text-body) font-(weight:--weight-strong)">{children}</dd>
     </div>
   );
 }
@@ -44,9 +44,9 @@ function TransactionDetail({ tx }: { tx: StockTxDto }) {
         badge={<><TxTypeBadge type={tx.type} /><TxStatusBadge status={tx.status} /></>}
         actions={tx.allowedActions.includes("void") && <Button variant="destructive" onClick={() => setVoiding(true)}>{t.stock.void}</Button>}
       />
-      <Card className="gap-4">
-        <h2 className="px-5 text-lg font-semibold">{t.stock.detailsCard}</h2>
-        <dl className="grid gap-x-6 gap-y-4 px-5 sm:grid-cols-2 lg:grid-cols-3">
+      <Card size="sm" className="gap-4">
+        <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.stock.detailsCard}</h2>
+        <dl className="grid gap-x-6 gap-y-4 px-4 sm:grid-cols-2 lg:grid-cols-3">
           <Detail label={t.fields.date}>{formatDate(tx.date)}</Detail>
           <Detail label={t.stock.colUser}>{tx.userName}</Detail>
           <Detail label={t.stock.colParty}>{tx.party || "-"}</Detail>
@@ -59,8 +59,8 @@ function TransactionDetail({ tx }: { tx: StockTxDto }) {
         </dl>
       </Card>
 
-      <Card className="mt-6 gap-0 overflow-hidden p-0">
-        <h2 className="px-5 py-4 text-lg font-semibold">{t.stock.linesCard}</h2>
+      <Card size="sm" className="mt-6 gap-0 overflow-hidden p-0">
+        <h2 className="px-4 py-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.stock.linesCard}</h2>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-muted">
@@ -74,8 +74,8 @@ function TransactionDetail({ tx }: { tx: StockTxDto }) {
           <TableBody>
             {tx.lines.map((l) => (
               <TableRow key={l.itemId}>
-                <TableCell className="font-medium"><Link href={`/items/view?id=${l.itemId}`} className="hover:text-link hover:underline">{l.itemName}</Link></TableCell>
-                <TableCell className={`tabular text-right font-medium ${l.quantityChange < 0 ? "text-danger-icon" : "text-success-icon"}`}>{l.quantityChange > 0 ? "+" : ""}{formatNumber(l.quantityChange)}</TableCell>
+                <TableCell className="font-(weight:--weight-strong)"><Link href={`/items/view?id=${l.itemId}`} className="hover:text-link hover:underline">{l.itemName}</Link></TableCell>
+                <TableCell className={`tabular text-right font-(weight:--weight-strong) ${l.quantityChange < 0 ? "text-danger-icon" : "text-success-icon"}`}>{l.quantityChange > 0 ? "+" : ""}{formatNumber(l.quantityChange)}</TableCell>
                 <TableCell className="tabular text-right">{formatNumber(l.balanceAfter)}</TableCell>
                 {isIn && <TableCell className="tabular text-right">{formatIDR(l.unitPrice ?? 0)}</TableCell>}
                 {isIn && <TableCell className="tabular text-right">{formatIDR(l.total ?? 0)}</TableCell>}
