@@ -12,8 +12,8 @@ export function StatePanel({
   return (
     <Card className="items-center gap-3 px-6 py-12 text-center">
       <Icon className="size-10 text-muted-foreground" aria-hidden="true" />
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-      {body && <p className="max-w-md text-base text-muted-foreground">{body}</p>}
+      <h2 className="text-(length:--text-section) leading-tight font-(weight:--weight-strong) text-foreground">{title}</h2>
+      {body && <p className="max-w-md text-(length:--text-body) text-muted-foreground">{body}</p>}
       {action && <div className="mt-2">{action}</div>}
     </Card>
   );
@@ -54,14 +54,14 @@ export function TableSkeleton({ rows = 6 }: { rows?: number }) {
   return (
     <div className="flex flex-col gap-4" role="status" aria-label={t.common.loading}>
       <div className="flex gap-3">
-        <Skeleton className="h-10 w-72" />
-        <Skeleton className="hidden h-10 w-40 sm:block" />
+        <Skeleton className="h-(--control-height) w-72" />
+        <Skeleton className="hidden h-(--control-height) w-40 sm:block" />
       </div>
       <Card className="gap-0 overflow-hidden p-0">
-        <Skeleton className="h-11 rounded-none" />
+        <Skeleton className="h-(--table-header-height) rounded-none" />
         {Array.from({ length: rows }, (_, i) => (
-          <div key={i} className="border-t px-4 py-3">
-            <Skeleton className="h-6 w-full" />
+          <div key={i} className="flex h-(--table-row-height) items-center border-t px-3">
+            <Skeleton className="h-5 w-full" />
           </div>
         ))}
       </Card>

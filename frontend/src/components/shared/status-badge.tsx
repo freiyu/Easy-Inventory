@@ -41,7 +41,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-sm font-medium whitespace-nowrap text-foreground",
+        "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-(length:--text-table) font-(weight:--weight-regular) whitespace-nowrap text-foreground",
         tones[tone].bg,
         className,
       )}

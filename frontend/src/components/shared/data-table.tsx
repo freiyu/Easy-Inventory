@@ -85,7 +85,7 @@ export function DataTable<T>({
   );
 
   return (
-    <div className={cn("flex flex-col gap-3", busy && "opacity-60 transition-opacity")} aria-busy={busy}>
+    <div className={cn("flex flex-col gap-3", busy && "opacity-60 transition-opacity duration-(--duration-hover) ease-(--ease-out)")} aria-busy={busy}>
       {columnsKey && (
         <div className="flex justify-end">
           <ColumnPicker columns={allColumns} hidden={hidden} onChange={setHidden} />
@@ -107,7 +107,7 @@ export function DataTable<T>({
                       type="button"
                       onClick={() => toggleSort(c.id)}
                       aria-label={t.common.sortBy(c.header)}
-                      className={cn("inline-flex items-center gap-1 rounded-sm hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none", c.numeric && "flex-row-reverse")}
+                      className={cn("inline-flex items-center gap-1 rounded-sm transition-colors duration-(--duration-hover) ease-(--ease-out) hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none", c.numeric && "flex-row-reverse")}
                     >
                       {c.header}
                       {sortField === c.id ? (sortDir === "asc" ? <ArrowUp className="size-4" aria-hidden="true" /> : <ArrowDown className="size-4" aria-hidden="true" />) : <ChevronsUpDown className="size-4 text-muted-foreground" aria-hidden="true" />}
@@ -141,10 +141,10 @@ export function DataTable<T>({
             <li key={rowKey(row)}>
               <Card className="gap-3">
                 <div className="flex items-start justify-between gap-2 px-5">
-                  <div className="min-w-0 font-medium text-foreground">{first.cell(row)}</div>
+                  <div className="min-w-0 font-(weight:--weight-strong) text-foreground">{first.cell(row)}</div>
                   {actions && <RowMenu label={rowLabel(row)} actions={actions(row)} />}
                 </div>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-5 text-sm">
+                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-5 text-(length:--text-table)">
                   {rest.filter((c) => !c.hideOnMobile).map((c) => (
                     <div key={c.id} className="col-span-2 grid grid-cols-subgrid items-center">
                       <dt className="text-muted-foreground">{c.header}</dt>
@@ -158,7 +158,7 @@ export function DataTable<T>({
         })}
       </ul>
 
-      <div className="flex flex-col items-center justify-between gap-3 text-sm text-muted-foreground sm:flex-row">
+      <div className="flex flex-col items-center justify-between gap-3 text-(length:--text-table) text-muted-foreground sm:flex-row">
         <p aria-live="polite">{t.common.showing(start + 1, Math.min(start + pageSize, total), total)}</p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <div className="flex items-center gap-2">

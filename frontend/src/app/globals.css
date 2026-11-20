@@ -215,6 +215,9 @@
   .ezi-spinner {
     animation: none !important;
   }
+  .ezi-pill {
+    transition-property: none !important;
+  }
 }
 
 /* Keyframes read the distance and scale tokens above, so reduced motion needs no second set. */
@@ -325,6 +328,23 @@
   }
   .ezi-popup[data-align-trigger="true"][data-closed] {
     animation: ezi-fade-out var(--duration-exit) var(--ease-out) both;
+  }
+  /* Segmented control pill: position and size move by transition, so a click mid-move redirects it. */
+  .ezi-pill {
+    transition-property: translate, width, height;
+    transition-duration: var(--duration-pill);
+    transition-timing-function: var(--ease-in-out);
+  }
+  .ezi-pill[data-ready="false"] {
+    transition: none;
+  }
+  /* New line-item row: fade and rise 4 px in 160 ms. Deleting a row stays instant. */
+  .ezi-row-in {
+    animation: ezi-rise-row var(--duration-route) var(--ease-out) both;
+  }
+  /* Field error: fade in 150 ms, no shake and no height slide. */
+  .ezi-field-error {
+    animation: ezi-fade-in var(--duration-theme) var(--ease-out) both;
   }
   /* Drawer slides in 220 ms and leaves in 120 ms. */
   .ezi-drawer {

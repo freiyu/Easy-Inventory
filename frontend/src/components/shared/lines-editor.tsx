@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Check, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,13 +54,16 @@ export function LinesEditor({
   subcategories?: CategoryOption[];
   addLabel?: string;
 }) {
+  // Rows present on first render do not animate; rows added later fade and rise in.
+  const [initialKeys] = useState(() => new Set(lines.map((l) => l.key)));
+  const rowIn = (key: number) => (initialKeys.has(key) ? "" : "ezi-row-in");
   const update = (key: number, patch: Partial<LineDraft>) =>
     onChange(lines.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   const taken = (key: number) => new Set(lines.filter((l) => l.key !== key && !l.isNew).map((l) => l.itemId));
 
   return (
     <div className="flex flex-col gap-3">
-      {errors.lines && <p role="alert" className="text-sm font-medium text-danger-icon">{errors.lines}</p>}
+      {errors.lines && <p role="alert" className="ezi-field-error text-(length:--text-table) font-(weight:--weight-strong) text-danger-icon">{errors.lines}</p>}
       {lines.map((line, i) => {
         const item = line.item;
         const total = parseInt0(line.quantity) * parseInt0(line.unitPrice);
@@ -73,7 +77,7 @@ export function LinesEditor({
         );
         if (mode === "purchase") {
           return (
-            <div key={line.key} className="grid gap-3 rounded-lg border bg-muted/40 p-3 sm:grid-cols-12 sm:items-start">
+            <div key={line.key} className={cn("grid gap-3 rounded-lg border bg-muted/40 p-3 sm:grid-cols-12 sm:items-start", rowIn(line.key))}>
               <div className="flex items-center justify-between gap-2 sm:col-span-12">
                 <div role="group" aria-label={t.purchases.lineKind(i + 1)} className="flex gap-2">
                   {([false, true] as const).map((isNew) => {
@@ -85,7 +89,7 @@ export function LinesEditor({
                         aria-pressed={on}
                         onClick={() => update(line.key, { isNew })}
                         className={cn(
-                          "inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-base font-medium transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                          "inline-flex h-(--control-height) items-center gap-2 rounded-lg border px-3 text-(length:--text-label) font-(weight:--weight-strong) transition-colors duration-(--duration-hover) ease-(--ease-out) focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                           on ? "border-primary bg-info-soft text-foreground" : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground",
                         )}
                       >
@@ -132,7 +136,7 @@ export function LinesEditor({
           );
         }
         return (
-          <div key={line.key} className="grid gap-3 rounded-lg border bg-muted/40 p-3 sm:grid-cols-12 sm:items-start">
+          <div key={line.key} className={cn("grid gap-3 rounded-lg border bg-muted/40 p-3 sm:grid-cols-12 sm:items-start", rowIn(line.key))}>
             <Field label={t.fields.item} required error={errors[`lines.${i}.itemId`]} className={mode === "in" ? "sm:col-span-5" : "sm:col-span-7"}>
               {(p) => (
                 <ItemPicker {...p} value={line.itemId} item={item} savedName={line.itemName} exclude={taken(line.key)}

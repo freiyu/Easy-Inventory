@@ -45,7 +45,7 @@ export function PasswordForm({ forced, onDone }: { forced?: boolean; onDone: () 
       <Field label={t.fields.confirmPassword} required error={errors.confirm}>
         {(p) => <Input {...p} type="password" autoComplete="new-password" value={values.confirm} onChange={set("confirm")} />}
       </Field>
-      {errors._form && <p role="alert" className="text-sm font-medium text-danger-icon">{errors._form}</p>}
+      {errors._form && <p role="alert" className="ezi-field-error text-(length:--text-table) font-(weight:--weight-strong) text-danger-icon">{errors._form}</p>}
       <Button type="submit" disabled={pending} className="self-start">{pending ? t.common.saving : t.auth.changeSubmit}</Button>
     </form>
   );

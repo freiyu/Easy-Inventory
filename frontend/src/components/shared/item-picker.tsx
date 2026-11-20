@@ -77,12 +77,12 @@ export function ItemPicker({
         </Combobox.Trigger>
       </div>
       {unavailable && (
-        <p role="alert" className="mt-1.5 text-sm font-medium text-danger-icon">{t.stock.itemUnavailable(item?.name ?? savedName ?? value)}</p>
+        <p role="alert" className="ezi-field-error mt-1.5 text-(length:--text-table) font-(weight:--weight-strong) text-danger-icon">{t.stock.itemUnavailable(item?.name ?? savedName ?? value)}</p>
       )}
       <Combobox.Portal>
         <Combobox.Positioner sideOffset={4} className="isolate z-50">
-          <Combobox.Popup className="max-h-[min(var(--available-height),20rem)] w-(--anchor-width) min-w-56 overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
-            <Combobox.Empty className="px-2 py-1.5 text-sm text-muted-foreground empty:hidden">
+          <Combobox.Popup className="ezi-popup max-h-[min(var(--available-height),20rem)] w-(--anchor-width) min-w-56 overflow-y-auto rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-overlay">
+            <Combobox.Empty className="px-2 py-1.5 text-(length:--text-table) text-muted-foreground empty:hidden">
               {found.status === "error"
                 ? <span role="alert" className="text-danger-icon">{found.error?.message}</span>
                 : found.status === "loading" || found.refreshing ? t.stock.searchingItems : t.stock.noItemMatch}
@@ -90,14 +90,14 @@ export function ItemPicker({
             <Combobox.List>
               {(i: ItemDto) => (
                 <Combobox.Item key={i.id} value={i}
-                  className="flex cursor-default items-baseline justify-between gap-3 rounded-md px-2 py-1.5 text-sm outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground">
+                  className="flex cursor-default items-baseline justify-between gap-3 min-h-8 rounded-md px-2 py-1 text-(length:--text-body) outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground">
                   <span>{i.name}</span>
                   {i.code && <span className="tabular shrink-0 text-muted-foreground">{i.code}</span>}
                 </Combobox.Item>
               )}
             </Combobox.List>
             {total > results.length && (
-              <p className="border-t px-2 pt-1.5 pb-1 text-sm text-muted-foreground">{t.stock.narrowSearch(results.length, total)}</p>
+              <p className="border-t px-2 pt-1.5 pb-1 text-(length:--text-table) text-muted-foreground">{t.stock.narrowSearch(results.length, total)}</p>
             )}
           </Combobox.Popup>
         </Combobox.Positioner>

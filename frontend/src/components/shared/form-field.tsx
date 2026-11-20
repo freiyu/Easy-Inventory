@@ -24,7 +24,7 @@ export function Field({
   const describedBy = [hint ? `${id}-hint` : "", error ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined;
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <Label htmlFor={id} className="text-sm font-medium text-foreground">
+      <Label htmlFor={id} className="text-(length:--text-label) font-(weight:--weight-strong) text-foreground">
         {label}
         {required && <span className="text-danger-icon" aria-hidden="true"> *</span>}
       </Label>
@@ -34,8 +34,8 @@ export function Field({
         "aria-describedby": describedBy,
         "aria-required": required || undefined,
       })}
-      {hint && !error && <p id={`${id}-hint`} className="text-sm text-muted-foreground">{hint}</p>}
-      {error && <p id={`${id}-error`} role="alert" className="text-sm font-medium text-danger-icon">{error}</p>}
+      {hint && !error && <p id={`${id}-hint`} className="text-(length:--text-table) text-muted-foreground">{hint}</p>}
+      {error && <p id={`${id}-error`} role="alert" className="ezi-field-error text-(length:--text-table) font-(weight:--weight-strong) text-danger-icon">{error}</p>}
     </div>
   );
 }

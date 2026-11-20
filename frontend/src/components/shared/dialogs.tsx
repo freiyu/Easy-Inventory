@@ -28,14 +28,14 @@ export function FormDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !pending && onOpenChange(o)}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="contents" noValidate>
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">{title}</DialogTitle>
-            {description && <DialogDescription className="text-base">{description}</DialogDescription>}
+            <DialogTitle>{title}</DialogTitle>
+            {description && <DialogDescription>{description}</DialogDescription>}
           </DialogHeader>
           {children && <div className="flex flex-col gap-4">{children}</div>}
-          {error && <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm font-medium text-foreground">{error}</p>}
+          {error && <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-(length:--text-table) font-(weight:--weight-strong) text-foreground">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={pending} onClick={() => onOpenChange(false)}>{t.common.cancel}</Button>
             <Button type="submit" variant={destructive ? "destructive" : "default"} disabled={pending}>
@@ -75,11 +75,11 @@ export function ConfirmDialog({
     <AlertDialog open={open} onOpenChange={(o) => { if (!pending) { onOpenChange(o); if (!o) setError(""); } }}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-lg font-semibold">{title}</AlertDialogTitle>
-          <AlertDialogDescription className="text-base">{description}</AlertDialogDescription>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         {children}
-        {error && <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm font-medium text-foreground">{error}</p>}
+        {error && <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-(length:--text-table) font-(weight:--weight-strong) text-foreground">{error}</p>}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>{t.common.cancel}</AlertDialogCancel>
           <Button variant={destructive ? "destructive" : "default"} disabled={pending} onClick={submit}>
