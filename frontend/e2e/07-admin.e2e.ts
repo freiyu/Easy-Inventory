@@ -5,13 +5,13 @@ import { ADMIN, ADMIN_STATE, apiAs, ok } from "./helpers";
 
 test.use({ storageState: ADMIN_STATE });
 
-test("dashboard shows stock status, loans and the Admin quick actions", async ({ page }) => {
+test("dashboard shows the KPI cards, the needs-attention table and the Admin quick actions", async ({ page }) => {
   await page.goto("/dashboard");
   for (const link of ["+ New loan", "+ Add item", "+ Incoming stock"]) await expect(page.getByRole("link", { name: link })).toBeVisible();
   await expect(page.getByRole("button", { name: "Export Excel" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Stock status" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Loans" })).toBeVisible();
-  await expect(page.getByText("Active loans")).toBeVisible();
+  const main = page.locator("#main");
+  for (const label of ["Total unique items", "Stock", "Waiting for approval"]) await expect(main.getByText(label, { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
 });
 
 test("expense summary totals posted incoming stock and drops a voided purchase", async ({ page, baseURL }) => {

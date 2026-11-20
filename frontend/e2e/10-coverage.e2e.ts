@@ -47,10 +47,12 @@ test("the stock KPIs match the item list counts", async ({ browser, baseURL }) =
   const out = await total("Out"), low = await total("Low");
   const page = await as(browser, ADMIN_STATE);
   await page.goto("/dashboard");
-  const card = (label: string) => page.getByText(label, { exact: true }).locator("xpath=ancestor::*[@data-slot='card'][1]");
-  await expect(card("Out of stock")).toContainText(String(out));
-  await expect(card("Low-stock items")).toContainText(String(low + out));
-  await expect(card("Low-stock items")).toContainText(`${low} Low and ${out} Out of stock`);
+  const card = (label: string) => page.locator("#main").getByText(label, { exact: true }).first().locator("xpath=ancestor::*[@data-slot='card'][1]");
+  const stock = card("Stock");
+  await expect(stock).toContainText(String(out));
+  await expect(stock).toContainText("out of stock");
+  await expect(stock).toContainText(String(low));
+  await expect(stock).toContainText("low");
 });
 
 test("the stock report filter shows only matching rows", async ({ browser }) => {
@@ -108,7 +110,7 @@ test("a Staff draft whose item was deactivated shows the item and a warning (S6-
   try {
     const page = await as(browser, STAFF_STATE);
     await page.goto(`/loans/edit?id=${draft.id}`);
-    await expect(page.getByRole("combobox", { name: "Item" })).toHaveValue("Kursi Lipat Uji");
+    await expect(page.getByRole("combobox", { name: "Item", exact: true })).toHaveValue("Kursi Lipat Uji");
     await expect(page.getByRole("alert").filter({ hasText: "Kursi Lipat Uji is no longer active. Choose another item." })).toBeVisible();
   } finally {
     await ok(admin, "post", `/items/${item.id}/activate`);
