@@ -28,8 +28,8 @@ import { cn } from "@/lib/utils";
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-base font-medium">{children}</dd>
+      <dt className="text-(length:--text-table) text-muted-foreground">{label}</dt>
+      <dd className="text-(length:--text-body) font-(weight:--weight-strong)">{children}</dd>
     </div>
   );
 }
@@ -79,13 +79,13 @@ function PurchaseDetail({ request, userId, isAdmin }: { request: PurchaseDto; us
       />
 
       {isAdmin && request.status === "Pending Approval" && own && (
-        <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-warning-soft px-4 py-3 text-base text-foreground">
+        <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-warning-soft px-4 py-3 text-(length:--text-body) text-foreground">
           <CircleAlert className="mt-0.5 size-5 shrink-0 text-warning-icon" aria-hidden="true" />
           {t.purchases.ownRequest}
         </p>
       )}
       {isAdmin && request.receiptVoided && (
-        <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-warning-soft px-4 py-3 text-base text-foreground">
+        <p role="note" className="mb-6 flex items-start gap-2 rounded-lg bg-warning-soft px-4 py-3 text-(length:--text-body) text-foreground">
           <CircleAlert className="mt-0.5 size-5 shrink-0 text-warning-icon" aria-hidden="true" />
           {t.purchases.receiptVoided}
         </p>
@@ -93,9 +93,9 @@ function PurchaseDetail({ request, userId, isAdmin }: { request: PurchaseDto; us
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
-          <Card className="gap-4">
-            <h2 className="px-5 text-lg font-semibold">{t.purchases.detailTitle}</h2>
-            <dl className="grid gap-x-6 gap-y-4 px-5 sm:grid-cols-2">
+          <Card size="sm" className="gap-4">
+            <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.purchases.detailTitle}</h2>
+            <dl className="grid gap-x-6 gap-y-4 px-4 sm:grid-cols-2">
               <Detail label={t.fields.requester}>{request.requesterName}</Detail>
               <Detail label={t.purchases.createdOn}>{formatDateTime(request.createdAt)}</Detail>
               <Detail label={t.purchases.neededBy}>{formatDate(request.neededBy)}</Detail>
@@ -113,8 +113,8 @@ function PurchaseDetail({ request, userId, isAdmin }: { request: PurchaseDto; us
             </dl>
           </Card>
 
-          <Card className="gap-0 overflow-hidden p-0">
-            <h2 className="px-5 py-4 text-lg font-semibold">{t.purchases.itemsCard}</h2>
+          <Card size="sm" className="gap-0 overflow-hidden p-0">
+            <h2 className="px-4 py-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.purchases.itemsCard}</h2>
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-muted">
@@ -128,11 +128,11 @@ function PurchaseDetail({ request, userId, isAdmin }: { request: PurchaseDto; us
               <TableBody>
                 {request.lines.map((l, i) => (
                   <TableRow key={i}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-(weight:--weight-strong)">
                       {l.itemName}
-                      {l.itemId === null && <span className="ml-2 text-sm font-normal text-muted-foreground">{t.purchases.newItemTag}</span>}
+                      {l.itemId === null && <span className="ml-2 text-(length:--text-table) font-(weight:--weight-regular) text-muted-foreground">{t.purchases.newItemTag}</span>}
                       {l.newItem && (
-                        <span className="block text-sm font-normal text-muted-foreground">
+                        <span className="block text-(length:--text-table) font-(weight:--weight-regular) text-muted-foreground">
                           {l.newItem.categoryName}{l.newItem.subcategoryName && ` · ${l.newItem.subcategoryName}`}
                         </span>
                       )}
@@ -151,7 +151,7 @@ function PurchaseDetail({ request, userId, isAdmin }: { request: PurchaseDto; us
         <div className="flex flex-col gap-6">
           <Progress request={request} who={request.requesterName} />
           {can("approve") && (
-            <p className="flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-base text-foreground">
+            <p className="flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-(length:--text-body) text-foreground">
               <Info className="mt-0.5 size-5 shrink-0 text-info-icon" aria-hidden="true" />
               {t.purchases.approveInfo}
             </p>
@@ -245,14 +245,14 @@ function ReceiveDialog({ request, onClose }: { request: PurchaseDto; onClose: ()
         </Field>
       </div>
       {hasNew && (
-        <p className="flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-base text-foreground">
+        <p className="flex items-start gap-2 rounded-lg bg-info-soft px-4 py-3 text-(length:--text-body) text-foreground">
           <Info className="mt-0.5 size-5 shrink-0 text-info-icon" aria-hidden="true" />
           {t.purchases.receiveNewItemsNote}
         </p>
       )}
       {request.lines.map((l, i) => (
         <fieldset key={i} className="flex flex-col gap-3 rounded-lg border p-3">
-          <legend className="px-1 text-base font-medium">{t.purchases.receiveLineName(l.itemName, l.quantity, l.unit)}</legend>
+          <legend className="px-1 text-(length:--text-body) font-(weight:--weight-strong)">{t.purchases.receiveLineName(l.itemName, l.quantity, l.unit)}</legend>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {l.newItem && (
               <Field label={t.fields.minimumStock} hint={t.items.minimumHint} required error={errors[`lines.${i}.minimumStock`]}>
@@ -265,9 +265,9 @@ function ReceiveDialog({ request, onClose }: { request: PurchaseDto; onClose: ()
           </div>
         </fieldset>
       ))}
-      <p className="flex justify-between rounded-lg bg-muted px-4 py-3 text-base">
+      <p className="flex justify-between rounded-lg bg-muted px-4 py-3 text-(length:--text-body)">
         <span className="text-muted-foreground">{t.purchases.receiveTotal}</span>
-        <span className="tabular font-semibold">{formatIDR(total)}</span>
+        <span className="tabular font-(weight:--weight-strong)">{formatIDR(total)}</span>
       </p>
       <Field label={t.common.notes}>
         {(p) => <Textarea {...p} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />}
@@ -289,9 +289,9 @@ function Progress({ request, who }: { request: PurchaseDto; who: string }) {
   const note = request.status === "Rejected" ? t.purchases.rejectedNote : request.status === "Cancelled" ? t.purchases.cancelledNote : request.status === "Draft" ? t.purchases.draftNote : null;
 
   return (
-    <Card className="gap-4">
-      <h2 className="px-5 text-lg font-semibold">{t.purchases.progress}</h2>
-      <ol className="flex flex-col gap-4 px-5">
+    <Card size="sm" className="gap-4">
+      <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.purchases.progress}</h2>
+      <ol className="flex flex-col gap-4 px-4">
         {steps.map((s, i) => {
           const isDone = done(i);
           const current = !closed && !isDone && step === i;
@@ -306,17 +306,17 @@ function Progress({ request, who }: { request: PurchaseDto; who: string }) {
                 {isDone ? <Check className="size-3.5" aria-hidden="true" /> : <Circle className="size-2 fill-current" aria-hidden="true" />}
               </span>
               <div>
-                <p className={cn("text-base font-semibold", !isDone && !current && "text-muted-foreground")}>
+                <p className={cn("text-(length:--text-body) font-(weight:--weight-strong)", !isDone && !current && "text-muted-foreground")}>
                   {s.title}
                   <span className="sr-only">{isDone ? t.purchases.stepDone : current ? t.purchases.stepCurrent : t.purchases.stepUpcoming}</span>
                 </p>
-                <p className="text-sm text-muted-foreground">{s.body}</p>
+                <p className="text-(length:--text-table) text-muted-foreground">{s.body}</p>
               </div>
             </li>
           );
         })}
       </ol>
-      {note && <p className="mx-5 rounded-lg bg-muted px-3 py-2 text-sm text-foreground">{note}</p>}
+      {note && <p className="mx-4 rounded-lg bg-muted px-3 py-2 text-(length:--text-table) text-foreground">{note}</p>}
     </Card>
   );
 }

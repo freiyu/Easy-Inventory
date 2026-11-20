@@ -34,7 +34,7 @@ export default function PurchasesPage() {
   const newLink = <Link href="/purchases/new" className={buttonVariants()}>{t.purchases.new}</Link>;
 
   const columns: Column<PurchaseDto>[] = [
-    { id: "number", header: t.purchases.colNumber, cell: (p) => <Link href={`/purchases/view?id=${p.id}`} className="font-medium text-link hover:underline">{p.number}</Link>, sortable: true },
+    { id: "number", header: t.purchases.colNumber, cell: (p) => <Link href={`/purchases/view?id=${p.id}`} className="font-(weight:--weight-strong) text-link hover:underline">{p.number}</Link>, sortable: true },
     ...(isAdmin ? [{ id: "requester", header: t.purchases.colRequester, cell: (p: PurchaseDto) => p.requesterName, sortable: true }] : []),
     { id: "items", header: t.purchases.colItems, cell: (p) => <span className="line-clamp-1 max-w-72 whitespace-normal">{p.lineSummary}</span>, hideOnMobile: true },
     { id: "neededBy", header: t.purchases.colNeededBy, cell: (p) => <span className="tabular">{formatDate(p.neededBy)}</span>, sortable: true },
