@@ -48,86 +48,202 @@
   --radius-2xl: 12px;
   --radius-3xl: 12px;
   --radius-4xl: 9999px;
+  /* Motion curves (PRD_REDESIGN.md 10.4). `ease-out` here is the strong curve, not the CSS default. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* Catppuccin Latte (docs/DESIGN.md) */
+/* Kanagawa Lotus, variant B (docs/DESIGN.md) */
 :root {
-  --background: #eff1f5;
-  --foreground: #4c4f69;
-  --card: #eff1f5;
-  --card-foreground: #4c4f69;
-  --popover: #eff1f5;
-  --popover-foreground: #4c4f69;
-  --primary: #1e66f5;
+  --background: #f4f2ec;
+  --foreground: #545464;
+  --card: #f4f2ec;
+  --card-foreground: #545464;
+  --popover: #f4f2ec;
+  --popover-foreground: #545464;
+  --primary: #4d699b;
   --primary-foreground: #ffffff;
-  --primary-hover: #0a52e1;
-  --link: #0a54e8;
-  --secondary: #e6e9ef;
-  --secondary-foreground: #4c4f69;
-  --muted: #e6e9ef;
-  --muted-foreground: #5c5f77;
-  --accent: #dce0e8;
-  --accent-foreground: #4c4f69;
-  --destructive: #d20f39;
+  --primary-hover: #445c88;
+  --link: #405781;
+  --secondary: #e9e7de;
+  --secondary-foreground: #545464;
+  --muted: #e9e7de;
+  --muted-foreground: #605e52;
+  --accent: #dfddd2;
+  --accent-foreground: #545464;
+  --destructive: #c84053;
   --destructive-foreground: #ffffff;
-  --border: #bcc0cc;
-  --input: #7c7f93;
-  --ring: #1e66f5;
+  --border: #d3d1c4;
+  --input: #83827a;
+  --ring: #4d699b;
 
-  --success-soft: #cce1cd;
-  --success-icon: #2d701e;
-  --warning-soft: #ecddca;
-  --warning-icon: #895712;
-  --danger-soft: #e9c4cf;
-  --danger-icon: #c10e34;
-  --info-soft: #c5d5f5;
-  --info-icon: #0a54e8;
+  --success-soft: #d3d8c4;
+  --success-icon: #4d5f36;
+  --warning-soft: #eedcb1;
+  --warning-icon: #7c5500;
+  --danger-soft: #ebcecd;
+  --danger-icon: #98313f;
+  --info-soft: #d3d7dc;
+  --info-icon: #405781;
 
-  --sidebar: #e6e9ef;
-  --sidebar-foreground: #4c4f69;
-  --sidebar-active: #cce1cd;
-  --sidebar-active-icon: #2d701e;
-  --sidebar-border: #bcc0cc;
+  --sidebar: #e9e7de;
+  --sidebar-foreground: #545464;
+  --sidebar-active: #d3d8c4;
+  --sidebar-active-icon: #4d5f36;
+  --sidebar-border: #d3d1c4;
 }
 
-/* Catppuccin Mocha */
+/* Kanagawa Wave */
 .dark {
-  --background: #1e1e2e;
-  --foreground: #cdd6f4;
-  --card: #1e1e2e;
-  --card-foreground: #cdd6f4;
-  --popover: #313244;
-  --popover-foreground: #cdd6f4;
-  --primary: #89b4fa;
-  --primary-foreground: #11111b;
-  --primary-hover: #9bbffb;
-  --link: #89b4fa;
-  --secondary: #313244;
-  --secondary-foreground: #cdd6f4;
-  --muted: #313244;
-  --muted-foreground: #a6adc8;
-  --accent: #313244;
-  --accent-foreground: #cdd6f4;
-  --destructive: #f38ba8;
-  --destructive-foreground: #11111b;
-  --border: #45475a;
-  --input: #7f849c;
-  --ring: #b4befe;
+  --background: #1f1f28;
+  --foreground: #dcd7ba;
+  --card: #1f1f28;
+  --card-foreground: #dcd7ba;
+  --popover: #2a2a37;
+  --popover-foreground: #dcd7ba;
+  --primary: #7e9cd8;
+  --primary-foreground: #16161d;
+  --primary-hover: #8ba7dc;
+  --link: #7e9cd8;
+  --secondary: #2a2a37;
+  --secondary-foreground: #dcd7ba;
+  --muted: #2a2a37;
+  --muted-foreground: #a8a493;
+  --accent: #2a2a37;
+  --accent-foreground: #dcd7ba;
+  --destructive: #ff5d62;
+  --destructive-foreground: #16161d;
+  --border: #363646;
+  --input: #7a7a8a;
+  --ring: #7fb4ca;
 
-  --success-soft: #343e40;
-  --success-icon: #a6e3a1;
-  --warning-soft: #413d43;
-  --warning-icon: #f9e2af;
-  --danger-soft: #402f42;
-  --danger-icon: #f38ba8;
-  --info-soft: #2f364f;
-  --info-icon: #89b4fa;
+  --success-soft: #323833;
+  --success-icon: #98bb6c;
+  --warning-soft: #3f3937;
+  --warning-icon: #e6c384;
+  --danger-soft: #432931;
+  --danger-icon: #ff5d62;
+  --info-soft: #2e3344;
+  --info-icon: #7e9cd8;
 
-  --sidebar: #181825;
-  --sidebar-foreground: #cdd6f4;
-  --sidebar-active: #343e40;
-  --sidebar-active-icon: #a6e3a1;
-  --sidebar-border: #45475a;
+  --sidebar: #16161d;
+  --sidebar-foreground: #dcd7ba;
+  --sidebar-active: #2d342b;
+  --sidebar-active-icon: #98bb6c;
+  --sidebar-border: #363646;
+}
+
+/* Layout, type and motion tokens. Defined once here; components never use raw values (docs/DESIGN.md). */
+:root {
+  --sidebar-width: 224px;
+  --content-max: 960px;
+  --table-row-height: 40px;
+  --table-header-height: 36px;
+  --control-height: 36px;
+  --nav-item-height: 32px;
+  --nav-group-height: 24px;
+
+  --text-title: 22px;
+  --text-section: 16px;
+  --text-kpi: 32px;
+  --text-body: 15px;
+  --text-label: 14px;
+  --text-table: 14px;
+  --weight-regular: 400;
+  --weight-strong: 600;
+
+  --duration-press: 140ms;
+  --duration-hover: 120ms;
+  --duration-theme: 150ms;
+  --duration-route: 160ms;
+  --duration-overlay-enter: 190ms;
+  --duration-drawer: 220ms;
+  --duration-exit: 120ms;
+  --duration-stagger: 40ms;
+  --duration-pill: 200ms;
+  --duration-spinner: 800ms;
+  --duration-skeleton: 1400ms;
+  --duration-reduced: 100ms;
+
+  /* Distances and scales used by the motion keyframes. Reduced motion sets them to "no movement". */
+  --press-scale: 0.97;
+  --overlay-scale-from: 0.96;
+  --rise-route: 6px;
+  --rise-card: 8px;
+  --rise-row: 4px;
+}
+
+/* Reduced motion: no slide, rise, scale or stagger. Colour and opacity fades stay, shortened to 100 ms.
+   Skeleton stays still, the spinner is replaced by text, the pill jumps and only fades its colour. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --press-scale: 1;
+    --overlay-scale-from: 1;
+    --rise-route: 0px;
+    --rise-card: 0px;
+    --rise-row: 0px;
+    --duration-press: var(--duration-reduced);
+    --duration-hover: var(--duration-reduced);
+    --duration-theme: var(--duration-reduced);
+    --duration-route: var(--duration-reduced);
+    --duration-overlay-enter: var(--duration-reduced);
+    --duration-drawer: var(--duration-reduced);
+    --duration-exit: var(--duration-reduced);
+    --duration-stagger: 0ms;
+    --duration-pill: var(--duration-reduced);
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: var(--duration-reduced) !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: var(--duration-reduced) !important;
+    scroll-behavior: auto !important;
+  }
+  .ezi-skeleton {
+    animation: none !important;
+  }
+  .ezi-spinner {
+    animation: none !important;
+  }
+}
+
+/* Keyframes read the distance and scale tokens above, so reduced motion needs no second set. */
+@keyframes ezi-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ezi-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes ezi-rise-route {
+  from { opacity: 0; transform: translateY(var(--rise-route)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ezi-rise-card {
+  from { opacity: 0; transform: translateY(var(--rise-card)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ezi-rise-row {
+  from { opacity: 0; transform: translateY(var(--rise-row)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ezi-overlay-in {
+  from { opacity: 0; transform: scale(var(--overlay-scale-from)); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes ezi-overlay-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(var(--overlay-scale-from)); }
+}
+@keyframes ezi-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(0.94); }
+}
+@keyframes ezi-spin {
+  to { transform: rotate(360deg); }
 }
 
 @layer base {
@@ -138,10 +254,23 @@
     @apply font-sans;
   }
   body {
-    @apply bg-background text-foreground text-[15px] antialiased;
+    @apply bg-background text-foreground antialiased;
+    font-size: var(--text-body);
     font-variant-numeric: normal;
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
   }
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+  .ezi-skeleton {
+    animation: ezi-pulse var(--duration-skeleton) var(--ease-in-out) infinite;
+  }
+  .ezi-spinner {
+    animation: ezi-spin var(--duration-spinner) linear infinite;
   }
 }
