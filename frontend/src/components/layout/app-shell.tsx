@@ -29,6 +29,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const mounted = useMounted();
   const { user, loaded } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Route changes animate the content area, but the first page load does not.
+  const [seenPath, setSeenPath] = useState(pathname);
+  const [animateRoute, setAnimateRoute] = useState(false);
+  if (pathname !== seenPath) {
+    setSeenPath(pathname);
+    setAnimateRoute(true);
+  }
 
   useEffect(() => {
     if (!mounted || !loaded) return;
@@ -49,12 +56,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground">
         {t.nav.skipToContent}
       </a>
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
+      <aside className="sticky top-0 hidden h-screen w-(--sidebar-width) shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
         <Sidebar user={user} />
       </aside>
 
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="left" className="w-72 gap-0 bg-sidebar p-0" showCloseButton>
+        <SheetContent side="left" className="w-(--sidebar-width) gap-0 bg-sidebar p-0" showCloseButton>
           <SheetTitle className="sr-only">{t.nav.mainNav}</SheetTitle>
           <SheetDescription className="sr-only">{t.nav.mainNav}</SheetDescription>
           <Sidebar user={user} />
@@ -68,8 +75,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Button>
           <Logo />
         </div>
-        <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-24 sm:px-6 lg:px-6 lg:pt-8">
-          {canAccess(user.role, pathname) ? children : <NoAccess />}
+        <main id="main" className="mx-auto w-full max-w-(--content-max) flex-1 px-4 pt-6 pb-24 sm:px-6 lg:px-6 lg:pt-8">
+          <div key={pathname} className={animateRoute ? "ezi-route" : undefined}>
+            {canAccess(user.role, pathname) ? children : <NoAccess />}
+          </div>
         </main>
       </div>
     </div>
@@ -79,9 +88,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 function ShellSkeleton() {
   return (
     <div className="flex min-h-screen" role="status" aria-label={t.common.loading}>
-      <div className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar p-4 lg:block">
+      <div className="hidden w-(--sidebar-width) shrink-0 border-r border-sidebar-border bg-sidebar p-4 lg:block">
         <Skeleton className="mb-6 h-9 w-40" />
-        {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="mb-2 h-10" />)}
+        {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="mb-2 h-(--nav-item-height)" />)}
       </div>
       <div className="flex-1 p-8"><Skeleton className="mb-6 h-9 w-56" /><Skeleton className="h-64" /></div>
     </div>
@@ -97,17 +106,17 @@ function Sidebar({ user }: { user: User }) {
 
   return (
     <div className="flex h-full flex-col text-sidebar-foreground">
-      <div className="flex h-16 shrink-0 items-center px-5">
+      <div className="flex h-14 shrink-0 items-center px-4">
         <Link href="/dashboard" aria-label={`${t.app.name} ${t.app.product}`}><Logo /></Link>
       </div>
-      <nav aria-label={t.nav.mainNav} className="flex-1 overflow-y-auto px-3 pb-4">
+      <nav aria-label={t.nav.mainNav} className="flex-1 overflow-y-auto px-2 pb-4">
         {navGroups.map((group, gi) => {
           const entries = group.entries.filter((e) => e.roles.includes(user.role));
           if (entries.length === 0) return null;
           return (
             <div key={gi} className="mt-4 first:mt-0">
               {showGroupLabels && group.label && (
-                <p className="px-3 pb-1 text-sm font-semibold text-muted-foreground">{group.label}</p>
+                <p className="flex h-(--nav-group-height) items-center px-3 text-(length:--text-table) font-(weight:--weight-strong) text-muted-foreground">{group.label}</p>
               )}
               <ul className="flex flex-col gap-0.5">
                 {entries.map((e) => {
@@ -119,15 +128,15 @@ function Sidebar({ user }: { user: User }) {
                         href={e.href}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "relative flex h-10 items-center gap-3 rounded-lg px-3 text-base font-medium transition-colors hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                          "ezi-press relative flex h-(--nav-item-height) items-center gap-3 rounded-lg px-3 text-(length:--text-body) hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                           active && "bg-sidebar-active hover:bg-sidebar-active",
                         )}
                       >
-                        {active && <span className="absolute top-1/2 left-0 h-5 w-[3px] -translate-y-1/2 rounded-r bg-sidebar-active-icon" aria-hidden="true" />}
-                        <e.icon className={cn("size-5 shrink-0", active ? "text-sidebar-active-icon" : "text-muted-foreground")} aria-hidden="true" />
+                        {active && <span className="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-r bg-sidebar-active-icon" aria-hidden="true" />}
+                        <e.icon className={cn("size-4 shrink-0", active ? "text-sidebar-active-icon" : "text-muted-foreground")} aria-hidden="true" />
                         <span className="flex-1 truncate">{e.label}</span>
                         {badge > 0 && (
-                          <span className={cn("min-w-6 rounded-full px-1.5 text-center text-sm font-semibold text-foreground", e.badge === "purchases" ? "bg-info-soft" : "bg-danger-soft")}>
+                          <span className={cn("min-w-6 rounded-full px-1.5 text-center text-(length:--text-table) font-(weight:--weight-strong) text-foreground", e.badge === "purchases" ? "bg-info-soft" : "bg-danger-soft")}>
                             {badge}
                             <span className="sr-only">{t.nav.needsAttention}</span>
                           </span>
@@ -149,23 +158,30 @@ function Sidebar({ user }: { user: User }) {
 function UserMenu({ user }: { user: User }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  // Colours move over 150 ms for a moment around the switch (class is defined in globals.css).
+  const switchTheme = (value: string) => {
+    const root = document.documentElement;
+    root.classList.add("ezi-theme-fade");
+    setTheme(value);
+    setTimeout(() => root.classList.remove("ezi-theme-fade"), 250);
+  };
   return (
     <div className="shrink-0 border-t border-sidebar-border p-3">
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<button type="button" aria-label={t.user.accountMenu} className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none" />}
+          render={<button type="button" aria-label={t.user.accountMenu} className="ezi-press flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none" />}
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-info-soft text-sm font-semibold text-foreground" aria-hidden="true">{initials(user.name)}</span>
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-info-soft text-(length:--text-table) font-(weight:--weight-strong) text-foreground" aria-hidden="true">{initials(user.name)}</span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-base font-medium">{user.name}</span>
-            <span className="block text-sm text-muted-foreground">{user.role}</span>
+            <span className="block truncate text-(length:--text-body) font-(weight:--weight-strong)">{user.name}</span>
+            <span className="block text-(length:--text-table) text-muted-foreground">{user.role}</span>
           </span>
           <ChevronsUpDown className="size-4 text-muted-foreground" aria-hidden="true" />
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="start" className="w-60">
           <DropdownMenuGroup>
             <DropdownMenuLabel>{t.user.theme}</DropdownMenuLabel>
-            <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>
+            <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={switchTheme}>
               <DropdownMenuRadioItem value="light"><Sun className="size-4" aria-hidden="true" />{t.user.themeLight}</DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="dark"><Moon className="size-4" aria-hidden="true" />{t.user.themeDark}</DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="system"><Monitor className="size-4" aria-hidden="true" />{t.user.themeSystem}</DropdownMenuRadioItem>
