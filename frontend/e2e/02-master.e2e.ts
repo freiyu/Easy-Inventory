@@ -110,6 +110,11 @@ test("items: the secondary filters sit behind More filters", async ({ page }) =>
   await expect(page.getByRole("combobox", { name: "Preferred supplier" })).toHaveCount(0);
   await page.getByRole("button", { name: "More filters" }).click();
   for (const name of ["Preferred supplier", "Location", "Record status"]) await expect(page.getByRole("combobox", { name })).toBeVisible();
+  // A select inside the popover still works: picking a value applies the filter and the button counts it.
+  await page.getByRole("combobox", { name: "Record status" }).click();
+  await page.getByRole("option", { name: "Inactive items" }).click();
+  await expect(page.getByRole("button", { name: "More filters (1)" })).toBeVisible();
+  await expect(page).toHaveURL(/status=Inactive/);
 });
 
 test("items: filter by subcategory", async ({ page }) => {

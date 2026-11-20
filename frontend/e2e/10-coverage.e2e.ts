@@ -49,10 +49,9 @@ test("the stock KPIs match the item list counts", async ({ browser, baseURL }) =
   await page.goto("/dashboard");
   const card = (label: string) => page.locator("#main").getByText(label, { exact: true }).first().locator("xpath=ancestor::*[@data-slot='card'][1]");
   const stock = card("Stock");
-  await expect(stock).toContainText(String(out));
-  await expect(stock).toContainText("out of stock");
-  await expect(stock).toContainText(String(low));
-  await expect(stock).toContainText("low");
+  // Each number sits right before its own label.
+  await expect(stock.locator("span", { hasText: /^\s*\d+\s*out of stock\s*$/ }).last()).toHaveText(new RegExp(`^${out}\\s*out of stock$`));
+  await expect(stock.locator("span", { hasText: /^\s*\d+\s*low\s*$/ }).last()).toHaveText(new RegExp(`^${low}\\s*low$`));
 });
 
 test("the stock report filter shows only matching rows", async ({ browser }) => {

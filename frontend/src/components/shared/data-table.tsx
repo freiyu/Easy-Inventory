@@ -145,11 +145,11 @@ export function DataTable<T>({
           return (
             <li key={rowKey(row)}>
               <Card className="gap-3">
-                <div className="flex items-start justify-between gap-2 px-5">
+                <div className="flex items-start justify-between gap-2 px-4">
                   <div className="min-w-0 font-(weight:--weight-strong) text-foreground">{first.cell(row)}</div>
                   {actions && <RowMenu label={rowLabel(row)} actions={actions(row)} />}
                 </div>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-5 text-(length:--text-table)">
+                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 px-4 text-(length:--text-table)">
                   {rest.filter((c) => !c.hideOnMobile).map((c) => (
                     <div key={c.id} className="col-span-2 grid grid-cols-subgrid items-center">
                       <dt className="text-muted-foreground">{c.header}</dt>
