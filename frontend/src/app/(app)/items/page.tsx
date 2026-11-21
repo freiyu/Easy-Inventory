@@ -106,7 +106,7 @@ export default function ItemsPage() {
         <SearchBox value={lp.search} onChange={lp.setSearch} placeholder={t.items.searchPlaceholder} />
         <SelectField className="w-48" aria-label={t.fields.category} value={filters.categoryId} onChange={(v) => lp.set({ categoryId: v })} options={[{ value: ALL, label: t.items.allCategories }, ...(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
         <SelectField className="w-48" aria-label={t.fields.subcategory} value={filters.subcategoryId} onChange={(v) => lp.set({ subcategoryId: v })} options={[{ value: ALL, label: t.items.allSubcategories }, ...(subcategories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
-        <SelectField className="w-52" aria-label={isAdmin ? t.items.stockStatusFilter : t.items.availabilityFilter} value={filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: isAdmin ? t.items.allStockStatus : t.items.allAvailability }, ...stockOptions]} />
+        <SelectField className={isAdmin ? "w-52" : "w-52 max-sm:col-span-2"} aria-label={isAdmin ? t.items.stockStatusFilter : t.items.availabilityFilter} value={filters.stockStatus} onChange={(v) => lp.set({ stockStatus: v })} options={[{ value: ALL, label: isAdmin ? t.items.allStockStatus : t.items.allAvailability }, ...stockOptions]} />
         {isAdmin && (
           <Popover>
             <PopoverTrigger render={<Button variant="outline" />}>
