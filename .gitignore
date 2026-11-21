@@ -65,6 +65,8 @@ proof-of-work/
 /.claude/
 /CLAUDE.md
 /PRD_EZI.md
+/PRD_REDESIGN.md
+/.mcp.json
 /docs/CODEMAP.md
 /docs/DESIGN.md
 /docs/RESEARCH-LOG.md
@@ -73,5 +75,7 @@ proof-of-work/
 /docs/TESTING-PRD.md
 /docs/TESTING-DOCUMENTATION.md
 /docs/UML.md
+/docs/docs-1.0/
+/docs/docs-1.1/
 /scripts/worktime.py
 /frontend/AGENTS.md
