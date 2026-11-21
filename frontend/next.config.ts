@@ -3,6 +3,7 @@ import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 
 const base: NextConfig = {
   images: { unoptimized: true },
+  experimental: { agentUpgrade: "security" },
   turbopack: {
     rules: {
       "*.css": {
