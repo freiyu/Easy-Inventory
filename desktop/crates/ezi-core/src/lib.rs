@@ -2,7 +2,9 @@
 
 pub mod api;
 pub mod forms;
+pub mod format;
 pub mod i18n;
+pub mod models;
 pub mod nav;
 pub mod settings;
 pub mod theme;

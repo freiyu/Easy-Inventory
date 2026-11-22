@@ -65,6 +65,93 @@ impl RenderOnce for Badge {
     }
 }
 
+/// Badge tone of a stock status (Safe green, Low yellow, Out red), as in the web app.
+pub fn stock_tone(status: ezi_core::models::StockStatus) -> Tone {
+    use ezi_core::models::StockStatus::*;
+    match status {
+        Safe => Tone::Success,
+        Low => Tone::Warning,
+        Out => Tone::Danger,
+    }
+}
+
+/// Badge tone of a loan status, as in the web app (`LoanBadge`).
+pub fn loan_tone(status: ezi_core::models::LoanStatus) -> Tone {
+    use ezi_core::models::LoanStatus::*;
+    match status {
+        PendingApproval | Approved => Tone::Info,
+        Completed => Tone::Success,
+        Overdue => Tone::Danger,
+        Draft | Rejected | Borrowed | Cancelled => Tone::Neutral,
+    }
+}
+
+// ------------------------------------------------------------------ KPI card
+
+/// One number with a label and a caption (dashboard). `value` is any element, so a card can show two numbers.
+#[derive(IntoElement)]
+pub struct KpiCard {
+    label: SharedString,
+    value: AnyElement,
+    caption: Option<SharedString>,
+}
+
+impl KpiCard {
+    pub fn new(label: impl Into<SharedString>, value: impl IntoElement) -> Self {
+        KpiCard { label: label.into(), value: value.into_any_element(), caption: None }
+    }
+    pub fn caption(mut self, caption: impl Into<SharedString>) -> Self {
+        self.caption = Some(caption.into());
+        self
+    }
+}
+
+impl RenderOnce for KpiCard {
+    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_col()
+            .flex_1()
+            .gap(px(theme::SPACE_1))
+            .p(px(theme::SPACE_4))
+            .rounded(px(theme::RADIUS_CARD))
+            .border_1()
+            .border_color(color(cx, Token::Border))
+            .bg(color(cx, Token::Card))
+            .child(div().text_size(px(theme::TEXT_TABLE)).text_color(color(cx, Token::MutedForeground)).child(self.label))
+            .child(div().text_size(px(theme::TEXT_KPI)).font_weight(FontWeight::SEMIBOLD).line_height(relative(1.15)).child(self.value))
+            .children(self.caption.map(|c| div().text_size(px(theme::TEXT_TABLE)).text_color(color(cx, Token::MutedForeground)).child(c)))
+    }
+}
+
+/// A red banner for something that needs action now (an overdue loan).
+#[derive(IntoElement)]
+pub struct AlertBanner {
+    text: SharedString,
+}
+
+impl AlertBanner {
+    pub fn danger(text: impl Into<SharedString>) -> Self {
+        AlertBanner { text: text.into() }
+    }
+}
+
+impl RenderOnce for AlertBanner {
+    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+        // `flex_1` + `min_w_0` let the text shrink to the banner and wrap instead of running out of it.
+        div()
+            .flex()
+            .w_full()
+            .px(px(theme::SPACE_4))
+            .py(px(theme::SPACE_3))
+            .rounded(px(theme::RADIUS_CARD))
+            .bg(color(cx, Token::DangerSoft))
+            .text_size(px(theme::TEXT_BODY))
+            .text_color(color(cx, Token::Foreground))
+            .child(div().flex_1().min_w_0().child(self.text))
+    }
+}
+
 // ------------------------------------------------------------------ form field
 
 /// Label above, control, then the hint or the error below. A required field gets a `*` next to the label.
@@ -146,6 +233,10 @@ impl StatePanel {
             retry: Some((t(cx).common_retry.into(), Rc::new(on_retry))),
             busy: false,
         }
+    }
+    /// A plain message with a title and a line of help (an empty list with an explanation).
+    pub fn message(_cx: &App, title: &str, body: &str) -> Self {
+        StatePanel { title: title.to_string().into(), body: Some(body.to_string().into()), retry: None, busy: false }
     }
     pub fn no_access(cx: &App) -> Self {
         StatePanel { title: t(cx).states_no_access_title.into(), body: Some(t(cx).states_no_access_body.into()), retry: None, busy: false }

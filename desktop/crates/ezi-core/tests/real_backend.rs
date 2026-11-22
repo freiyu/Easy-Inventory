@@ -41,6 +41,20 @@ fn the_client_works_against_the_real_backend() {
     let id = item["id"].as_i64().unwrap();
     assert_eq!(item["code"], "KTR-ELK-0001");
 
+    // Dashboards: numbers are checked against the item list, an independent route to the same data.
+    for (name, stock) in [("Kabel Rust", 1), ("Lampu Rust", 0)] {
+        admin.post::<Value, _>("/items", &json!({ "name": name, "categoryId": cat["id"], "subcategoryId": sub["id"], "unit": "pcs", "openingStock": stock, "minimumStock": 1, "lastPurchasePrice": 500, "supplierId": sup["id"] })).unwrap();
+    }
+    let d = admin.dashboard().unwrap();
+    assert!(d.staff.is_none());
+    let a = d.admin.unwrap();
+    let items = admin.get::<Vec<Value>>("/items", &[("pageSize", "100")]).unwrap().data;
+    let count = |status: &str| items.iter().filter(|i| i["status"] == "Active" && i["stockStatus"] == status).count() as i64;
+    assert_eq!((a.stock.safe, a.stock.low, a.stock.out), (count("Safe"), count("Low"), count("Out")));
+    assert_eq!((a.stock.safe, a.stock.low, a.stock.out, a.total_items(), a.pending_approvals), (1, 1, 1, 3, 0));
+    let names: Vec<&str> = a.needs_attention.iter().map(|i| i.name.as_str()).collect();
+    assert_eq!(names, ["Lampu Rust", "Kabel Rust"], "out of stock first, then low");
+
     // A list with paging meta and a query, a photo upload and download, and an Excel download.
     let list = admin.get::<Vec<Value>>("/items", &[("page", "1"), ("pageSize", "8"), ("search", "proyektor")]).unwrap();
     assert_eq!(list.data.len(), 1);
@@ -70,6 +84,13 @@ fn the_client_works_against_the_real_backend() {
     assert_eq!(seen["barcode"], "KTR-ELK-0001", "Staff get only the barcode value");
     let no_write = staff.put_file::<Value>(&format!("/items/{id}/photo"), png, "image/png").unwrap_err();
     assert_eq!(no_write.code(), Some(&ErrorCode::Forbidden));
+
+    // The Staff dashboard has their own loans and counts, and nothing about stock numbers.
+    let sd = staff.dashboard().unwrap();
+    assert!(sd.admin.is_none());
+    let st = sd.staff.unwrap();
+    assert_eq!((st.active_items, st.requestable, st.overdue_count, st.active_loans.len()), (3, 2, 0, 0));
+    assert!(st.overdue_first.is_none());
 
     // Logout ends the session on the server too.
     admin.logout().unwrap();

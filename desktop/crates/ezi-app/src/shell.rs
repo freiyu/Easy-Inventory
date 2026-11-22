@@ -21,6 +21,7 @@ pub struct AppShell {
     content: PageBuilder,
     menu_open: bool,
     on_sign_out: Option<Rc<dyn Fn(&mut Window, &mut App)>>,
+    on_page: Option<Rc<dyn Fn(Page, &mut Window, &mut App)>>,
 }
 
 pub fn page_label(s: &Strings, page: Page) -> &'static str {
@@ -51,7 +52,13 @@ fn group_label(s: &Strings, g: Group) -> &'static str {
 
 impl AppShell {
     pub fn new(content: PageBuilder) -> Self {
-        AppShell { page: Page::Dashboard, content, menu_open: false, on_sign_out: None }
+        AppShell { page: Page::Dashboard, content, menu_open: false, on_sign_out: None, on_page: None }
+    }
+
+    /// Called each time a sidebar item is chosen, with the page (a screen can fetch fresh data).
+    pub fn on_page(mut self, f: impl Fn(Page, &mut Window, &mut App) + 'static) -> Self {
+        self.on_page = Some(Rc::new(f));
+        self
     }
 
     /// What the Sign out button does (the auth gate signs out on the server and shows the login screen).
@@ -82,8 +89,11 @@ impl AppShell {
             .border_l(px(theme::NAV_BAR_WIDTH))
             .border_color(if active { color(cx, Token::SuccessIcon) } else { color(cx, Token::Sidebar) })
             .when(!active, |d| d.hover(move |s| s.bg(hover)))
-            .on_click(cx.listener(move |this, _, _, cx| {
+            .on_click(cx.listener(move |this, _, window, cx| {
                 this.page = page;
+                if let Some(on_page) = this.on_page.clone() {
+                    on_page(page, window, cx);
+                }
                 cx.notify();
             }))
             .child(page_label(s, page))

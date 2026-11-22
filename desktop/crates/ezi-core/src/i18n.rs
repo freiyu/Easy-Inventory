@@ -30,6 +30,7 @@ strings! {
     states_not_found_body,
     errors_network, errors_signed_out, errors_rate_limited,
     auth_sign_in, auth_signing_in, auth_sign_in_title, auth_sign_in_intro, auth_setup_eyebrow, auth_setup_title, auth_setup_info, auth_setup_submit, auth_setup_done, auth_go_to_sign_in, auth_password_hint, auth_change_title, auth_change_forced_body, auth_change_submit, auth_change_done, auth_current_wrong, fields_email, fields_password, fields_current_password, fields_new_password, fields_confirm_password, fields_full_name, validation_email, validation_password_length, validation_password_match,
+    dashboard_title, dashboard_admin_desc, dashboard_kpi_total, dashboard_kpi_total_caption, dashboard_kpi_stock, dashboard_kpi_stock_out, dashboard_kpi_stock_low, dashboard_kpi_approvals, dashboard_kpi_approvals_caption, dashboard_needs_attention, dashboard_view_all_items, dashboard_all_good, dashboard_col_item, dashboard_col_category, dashboard_col_stock, dashboard_col_minimum, dashboard_col_status, dashboard_my_active_loans, dashboard_my_loans_kpi, dashboard_available_kpi, dashboard_view_my_loans, dashboard_no_active_loans, dashboard_no_active_loans_body, dashboard_col_loan, dashboard_col_items, dashboard_col_due, status_stock_admin_safe, status_stock_admin_low, status_stock_admin_out, status_stock_staff_safe, status_stock_staff_low, status_stock_staff_out, status_loan_draft, status_loan_pending_approval, status_loan_approved, status_loan_rejected, status_loan_borrowed, status_loan_completed, status_loan_cancelled, status_loan_overdue,
     ui_language_id, ui_language_en, ui_server_address, ui_server_address_hint, ui_checking_server, ui_invalid_address, ui_timeout, ui_server_error, ui_setup_needed,
 }
 
@@ -52,6 +53,46 @@ pub const EN: Strings = Strings {
     states_not_found_title: "Page not found", states_not_found_body: "The page you opened does not exist or the record was removed.",
     errors_network: "Cannot reach the EZI server. Check that the EZI host PC is on and this device is on the office network, then try again.",
     errors_signed_out: "Your session has ended. Please sign in again.", errors_rate_limited: "Too many attempts. Please wait 10 minutes and try again.",
+    dashboard_title: "Dashboard",
+    dashboard_admin_desc: "Stock and loans at a glance.",
+    dashboard_kpi_total: "Total unique items",
+    dashboard_kpi_total_caption: "items registered",
+    dashboard_kpi_stock: "Stock",
+    dashboard_kpi_stock_out: "out of stock",
+    dashboard_kpi_stock_low: "low",
+    dashboard_kpi_approvals: "Waiting for approval",
+    dashboard_kpi_approvals_caption: "Loan and purchase requests",
+    dashboard_needs_attention: "Needs attention",
+    dashboard_view_all_items: "View all items",
+    dashboard_all_good: "All items are above their minimum stock.",
+    dashboard_col_item: "Item",
+    dashboard_col_category: "Category",
+    dashboard_col_stock: "Stock",
+    dashboard_col_minimum: "Minimum",
+    dashboard_col_status: "Status",
+    dashboard_my_active_loans: "My active loans",
+    dashboard_my_loans_kpi: "My active loans",
+    dashboard_available_kpi: "Items you can request",
+    dashboard_view_my_loans: "View my loans",
+    dashboard_no_active_loans: "You have no active loans",
+    dashboard_no_active_loans_body: "When you request an item, it shows here until you return it.",
+    dashboard_col_loan: "Loan",
+    dashboard_col_items: "Items",
+    dashboard_col_due: "Expected return",
+    status_stock_admin_safe: "Safe",
+    status_stock_admin_low: "Low",
+    status_stock_admin_out: "Out",
+    status_stock_staff_safe: "Available",
+    status_stock_staff_low: "Low",
+    status_stock_staff_out: "Out",
+    status_loan_draft: "Draft",
+    status_loan_pending_approval: "Pending Approval",
+    status_loan_approved: "Approved",
+    status_loan_rejected: "Rejected",
+    status_loan_borrowed: "Borrowed",
+    status_loan_completed: "Completed",
+    status_loan_cancelled: "Cancelled",
+    status_loan_overdue: "Overdue",
     ui_language_id: "Bahasa Indonesia", ui_language_en: "English",
     auth_sign_in: "Sign in",
     auth_signing_in: "Signing in...",
@@ -106,6 +147,46 @@ pub const ID: Strings = Strings {
     states_not_found_title: "Halaman tidak ditemukan", states_not_found_body: "Halaman yang Anda buka tidak ada, atau datanya sudah dihapus.",
     errors_network: "Server EZI tidak bisa dihubungi. Pastikan PC server EZI menyala dan perangkat ini terhubung ke jaringan kantor, lalu coba lagi.",
     errors_signed_out: "Sesi Anda sudah berakhir. Silakan masuk lagi.", errors_rate_limited: "Terlalu banyak percobaan. Tunggu 10 menit, lalu coba lagi.",
+    dashboard_title: "Beranda",
+    dashboard_admin_desc: "Ringkasan stok dan peminjaman.",
+    dashboard_kpi_total: "Total barang unik",
+    dashboard_kpi_total_caption: "barang terdaftar",
+    dashboard_kpi_stock: "Stok",
+    dashboard_kpi_stock_out: "habis",
+    dashboard_kpi_stock_low: "menipis",
+    dashboard_kpi_approvals: "Menunggu persetujuan",
+    dashboard_kpi_approvals_caption: "Pengajuan pinjam dan beli",
+    dashboard_needs_attention: "Perlu dicek",
+    dashboard_view_all_items: "Lihat semua barang",
+    dashboard_all_good: "Semua barang masih di atas stok minimum.",
+    dashboard_col_item: "Barang",
+    dashboard_col_category: "Area",
+    dashboard_col_stock: "Stok",
+    dashboard_col_minimum: "Minimum",
+    dashboard_col_status: "Status",
+    dashboard_my_active_loans: "Peminjaman aktif saya",
+    dashboard_my_loans_kpi: "Peminjaman aktif saya",
+    dashboard_available_kpi: "Barang yang bisa dipinjam",
+    dashboard_view_my_loans: "Lihat peminjaman saya",
+    dashboard_no_active_loans: "Anda belum punya peminjaman aktif",
+    dashboard_no_active_loans_body: "Saat Anda meminjam barang, peminjamannya muncul di sini sampai barangnya dikembalikan.",
+    dashboard_col_loan: "Peminjaman",
+    dashboard_col_items: "Barang",
+    dashboard_col_due: "Rencana kembali",
+    status_stock_admin_safe: "Aman",
+    status_stock_admin_low: "Menipis",
+    status_stock_admin_out: "Habis",
+    status_stock_staff_safe: "Tersedia",
+    status_stock_staff_low: "Menipis",
+    status_stock_staff_out: "Habis",
+    status_loan_draft: "Draf",
+    status_loan_pending_approval: "Menunggu persetujuan",
+    status_loan_approved: "Disetujui",
+    status_loan_rejected: "Ditolak",
+    status_loan_borrowed: "Sedang dipinjam",
+    status_loan_completed: "Selesai",
+    status_loan_cancelled: "Dibatalkan",
+    status_loan_overdue: "Terlambat",
     ui_language_id: "Bahasa Indonesia", ui_language_en: "English",
     auth_sign_in: "Masuk",
     auth_signing_in: "Sedang masuk...",
@@ -169,6 +250,69 @@ pub fn error_message(lang: Lang, error: &crate::api::ApiError) -> String {
     }
 }
 
+
+// Texts with a number or a name inside, the same wording as the web app's functions in `strings.ts`.
+
+pub fn staff_desc(lang: Lang, first_name: &str) -> String {
+    match lang {
+        Lang::En => format!("Welcome back, {first_name}. Here are your loans and the items you can request."),
+        Lang::Id => format!("Halo, {first_name}. Ini peminjaman Anda dan barang yang bisa Anda pinjam."),
+    }
+}
+
+pub fn my_loans_caption(lang: Lang, overdue: i64) -> String {
+    match (lang, overdue) {
+        (Lang::En, 0) => "None overdue".into(),
+        (Lang::Id, 0) => "Tidak ada yang terlambat".into(),
+        (Lang::En, n) => format!("{n} overdue"),
+        (Lang::Id, n) => format!("{n} terlambat"),
+    }
+}
+
+pub fn available_caption(lang: Lang, active_items: i64) -> String {
+    match lang {
+        Lang::En => format!("Out of {active_items} active items"),
+        Lang::Id => format!("Dari {active_items} barang aktif"),
+    }
+}
+
+/// `due` is the date as shown (dd/MM/yyyy).
+pub fn overdue_alert(lang: Lang, number: &str, items: &str, due: &str, days: i64) -> String {
+    match lang {
+        Lang::En => format!("Loan {number} ({items}) was due on {due} and is {days} {} overdue. Please return it to an Admin.", if days == 1 { "day" } else { "days" }),
+        Lang::Id => format!("Peminjaman {number} ({items}) seharusnya kembali tanggal {due} dan sudah terlambat {days} hari. Tolong kembalikan ke Admin."),
+    }
+}
+
+/// Admin sees Safe/Low/Out, Staff see Available/Low/Out (intentional, as in the web app).
+pub fn stock_label(lang: Lang, admin: bool, status: crate::models::StockStatus) -> &'static str {
+    use crate::models::StockStatus::*;
+    let s = strings(lang);
+    match (admin, status) {
+        (true, Safe) => s.status_stock_admin_safe,
+        (true, Low) => s.status_stock_admin_low,
+        (true, Out) => s.status_stock_admin_out,
+        (false, Safe) => s.status_stock_staff_safe,
+        (false, Low) => s.status_stock_staff_low,
+        (false, Out) => s.status_stock_staff_out,
+    }
+}
+
+pub fn loan_status_label(lang: Lang, status: crate::models::LoanStatus) -> &'static str {
+    use crate::models::LoanStatus::*;
+    let s = strings(lang);
+    match status {
+        Draft => s.status_loan_draft,
+        PendingApproval => s.status_loan_pending_approval,
+        Approved => s.status_loan_approved,
+        Rejected => s.status_loan_rejected,
+        Borrowed => s.status_loan_borrowed,
+        Completed => s.status_loan_completed,
+        Cancelled => s.status_loan_cancelled,
+        Overdue => s.status_loan_overdue,
+    }
+}
+
 /// "Showing 1-8 of 17" / "Menampilkan 1-8 dari 17"; "No results" / "Tidak ada hasil" when `total` is 0.
 pub fn showing(lang: Lang, from: u32, to: u32, total: u32) -> String {
     match (lang, total) {
@@ -214,6 +358,51 @@ mod tests {
         assert_eq!(error_message(Lang::Id, &ApiError::Network("x".into())), ID.errors_network);
         assert_eq!(error_message(Lang::En, &ApiError::InvalidUrl("x".into())), EN.ui_invalid_address);
         assert_eq!(error_message(Lang::En, &ApiError::BadResponse { status: 502, detail: String::new() }), EN.ui_server_error);
+    }
+
+
+    #[test]
+    fn texts_with_numbers_read_like_the_web_app() {
+        assert_eq!(staff_desc(Lang::En, "Staf"), "Welcome back, Staf. Here are your loans and the items you can request.");
+        assert_eq!(staff_desc(Lang::Id, "Staf"), "Halo, Staf. Ini peminjaman Anda dan barang yang bisa Anda pinjam.");
+        assert_eq!((my_loans_caption(Lang::En, 0).as_str(), my_loans_caption(Lang::En, 2).as_str()), ("None overdue", "2 overdue"));
+        assert_eq!((my_loans_caption(Lang::Id, 0).as_str(), my_loans_caption(Lang::Id, 2).as_str()), ("Tidak ada yang terlambat", "2 terlambat"));
+        assert_eq!(available_caption(Lang::En, 6), "Out of 6 active items");
+        assert_eq!(available_caption(Lang::Id, 6), "Dari 6 barang aktif");
+        assert_eq!(overdue_alert(Lang::En, "LN-2", "Kabel x2", "01/11/2026", 21), "Loan LN-2 (Kabel x2) was due on 01/11/2026 and is 21 days overdue. Please return it to an Admin.");
+        assert_eq!(overdue_alert(Lang::En, "LN-2", "Kabel x2", "01/11/2026", 1), "Loan LN-2 (Kabel x2) was due on 01/11/2026 and is 1 day overdue. Please return it to an Admin.");
+        assert_eq!(overdue_alert(Lang::Id, "LN-2", "Kabel x2", "01/11/2026", 21), "Peminjaman LN-2 (Kabel x2) seharusnya kembali tanggal 01/11/2026 dan sudah terlambat 21 hari. Tolong kembalikan ke Admin.");
+    }
+
+    /// `name: { Key: "text", "Other Key": "text", ... }` of the web `status` section as key -> text.
+    fn web_nested(source: &str, name: &str) -> HashMap<String, String> {
+        let start = source.find(&format!("    {name}: {{")).unwrap_or_else(|| panic!("{name} not found"));
+        let body = &source[start + name.len() + 7..];
+        let end = body.find('}').unwrap();
+        body[..end]
+            .split(',')
+            .filter_map(|part| {
+                let (k, v) = part.split_once(": \"")?;
+                Some((k.trim().trim_matches('"').to_string(), v.trim().trim_end_matches('"').to_string()))
+            })
+            .collect()
+    }
+
+    #[test]
+    fn status_labels_equal_the_web_apps_labels() {
+        use crate::models::{LoanStatus::*, StockStatus::*};
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../frontend/src/lib/");
+        for (lang, file) in [(Lang::En, "strings.ts"), (Lang::Id, "strings.id.ts")] {
+            let src = std::fs::read_to_string(format!("{dir}{file}")).unwrap();
+            let (admin, staff, loan) = (web_nested(&src, "stockAdmin"), web_nested(&src, "stockStaff"), web_nested(&src, "loan"));
+            for (status, key) in [(Safe, "Safe"), (Low, "Low"), (Out, "Out")] {
+                assert_eq!(stock_label(lang, true, status), admin[key], "{file} admin {key}");
+                assert_eq!(stock_label(lang, false, status), staff[key], "{file} staff {key}");
+            }
+            for (status, key) in [(Draft, "Draft"), (PendingApproval, "Pending Approval"), (Approved, "Approved"), (Rejected, "Rejected"), (Borrowed, "Borrowed"), (Completed, "Completed"), (Cancelled, "Cancelled"), (Overdue, "Overdue")] {
+                assert_eq!(loan_status_label(lang, status), loan[key], "{file} loan {key}");
+            }
+        }
     }
 
     #[test]
@@ -262,7 +451,7 @@ mod tests {
         let id_src = std::fs::read_to_string(format!("{dir}strings.id.ts")).unwrap();
         let mut compared = 0;
         for (lang, src, ours) in [("en", &en_src, &EN), ("id", &id_src, &ID)] {
-            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation"] {
+            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard"] {
                 let web: HashMap<String, String> = web_section(src, section).into_iter().map(|(k, v)| (format!("{section}_{}", snake(&k)), v)).collect();
                 for (field, text) in ours.entries() {
                     if let Some(want) = web.get(field) {
@@ -273,7 +462,7 @@ mod tests {
             }
         }
         // Every non-`ui_` field must have been found in the web app: a typo in a name would otherwise skip the check.
-        let shared_fields = EN.entries().into_iter().filter(|(n, _)| !n.starts_with("ui_")).count();
+        let shared_fields = EN.entries().into_iter().filter(|(n, _)| !n.starts_with("ui_") && !n.starts_with("status_")).count();
         assert_eq!(compared, shared_fields * 2, "some shared fields were not found in the web strings");
     }
 }

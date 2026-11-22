@@ -367,6 +367,11 @@ impl Client {
         }
     }
 
+    /// The dashboard numbers: the `admin` part for an Admin, the `staff` part for Staff.
+    pub fn dashboard(&self) -> Result<crate::models::DashboardSummary, ApiError> {
+        Ok(self.get::<crate::models::DashboardSummary>("/dashboard/summary", &[])?.data)
+    }
+
     /// True when the server has no user yet and wants the first-run setup.
     pub fn needs_setup(&self) -> Result<bool, ApiError> {
         #[derive(Deserialize)]
