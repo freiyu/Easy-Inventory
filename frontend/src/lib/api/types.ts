@@ -21,6 +21,8 @@ export interface ApiRequest {
   path: string;
   query?: Query;
   body?: unknown;
+  /** An image upload: sent as the raw body with the file's own type, instead of JSON. */
+  file?: Blob;
 }
 
 export const DEFAULT_PAGE_SIZE = 25;

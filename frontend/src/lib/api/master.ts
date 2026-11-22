@@ -1,7 +1,7 @@
 // Categories, suppliers and items (PRD 4.2 to 4.4, 6.6).
 import type { CategoryInput, ItemInput, SupplierInput } from "../schemas";
 import type { ActiveStatus, Category, StockStatus, Supplier } from "../types";
-import { clean, del, get, getFile, post, put } from "./client";
+import { clean, del, get, getFile, post, put, putFile } from "./client";
 import type { Query } from "./types";
 
 /** Admin sees every field; Staff get only id and name of active categories (PRD 3.2). */
@@ -123,5 +123,8 @@ export const items = {
   create: (v: ItemInput) => post<ItemDto>("/items", v),
   update: (id: number, v: ItemInput) => put<ItemDto>(`/items/${id}`, v),
   remove: (id: number) => del<null>(`/items/${id}`),
+  /** Admin only: sets or replaces the item's photo (JPEG, PNG or WebP, up to 2 MB). */
+  uploadPhoto: (id: number, file: Blob) => putFile<{ photoVersion: string }>(`/items/${id}/photo`, file),
+  removePhoto: (id: number) => del<null>(`/items/${id}/photo`),
   setStatus: (id: number, kind: "deactivate" | "activate") => post<null>(`/items/${id}/${kind}`),
 };

@@ -26,8 +26,11 @@ export async function send(req: ApiRequest): Promise<Envelope<unknown>> {
   const res = await fetch(apiUrl(req.path, req.query), {
     method: req.method,
     credentials: "same-origin",
-    headers: { ...(hasBody ? { "Content-Type": "application/json" } : {}), [LANG_HEADER]: storedLang() },
-    body: hasBody ? JSON.stringify(req.body) : undefined,
+    headers: {
+      ...(req.file ? { "Content-Type": req.file.type || "application/octet-stream" } : hasBody ? { "Content-Type": "application/json" } : {}),
+      [LANG_HEADER]: storedLang(),
+    },
+    body: req.file ?? (hasBody ? JSON.stringify(req.body) : undefined),
   }).catch(() => null);
   if (!res) return failure(0, t.errors.network);
   if (!res.ok) return errorOf(res);

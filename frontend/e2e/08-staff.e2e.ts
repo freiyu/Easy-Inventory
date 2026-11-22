@@ -35,6 +35,18 @@ test("item pages show availability only: no code, price, supplier or stock numbe
   await expect(main.getByRole("figure")).not.toContainText(/[A-Z]{3}-[A-Z]{3}-\d{4}/);
 });
 
+test("Staff see an item's photo but have no control to change it", async ({ page }) => {
+  await page.goto("/items");
+  await page.getByRole("link", { name: "Proyektor Uji" }).click();
+  const main = page.getByRole("main");
+  const img = main.getByRole("img", { name: "Proyektor Uji", exact: true });
+  await expect(img).toBeVisible();
+  await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+  await expect(main.getByRole("link", { name: "Edit" })).toHaveCount(0);
+  await expect(main.getByRole("button", { name: /Remove photo|Delete/ })).toHaveCount(0);
+  await expect(main.getByLabel("Photo", { exact: true })).toHaveCount(0);
+});
+
 test("the item field on a loan request searches names and shows no codes", async ({ page }) => {
   await page.goto("/loans/new");
   await page.getByRole("combobox", { name: "Item" }).fill("proyektor");

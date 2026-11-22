@@ -114,6 +114,39 @@ test("items: Admin sees the barcode with its code and a Print label button on th
   await expect(main.getByRole("button", { name: "Print label" })).toBeVisible();
 });
 
+// A 1x1 PNG: enough for the server to accept it and the browser to decode it.
+const PNG_1X1 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+const photoImg = (page: import("@playwright/test").Page, name: string) => page.getByRole("main").getByRole("img", { name, exact: true });
+
+test("items: Admin adds a photo in the edit form, a bad file is refused inline, and the photo shows on the detail page", async ({ page }) => {
+  await page.goto("/items");
+  await page.getByRole("link", { name: "Proyektor Uji" }).click();
+  await expect(page.getByRole("main").getByText("No photo")).toBeVisible();
+  await page.getByRole("link", { name: "Edit" }).click();
+  const file = page.getByLabel("Photo", { exact: true });
+  await file.setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hello") });
+  await expect(page.getByText("The photo must be a JPEG, PNG or WebP image.")).toBeVisible();
+  await file.setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG_1X1 });
+  await expect(page.getByText("New photo selected. It is saved with the item.")).toBeVisible();
+  await page.getByRole("button", { name: "Save item" }).click();
+  const img = photoImg(page, "Proyektor Uji");
+  await expect(img).toBeVisible();
+  await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+});
+
+test("items: Admin removes a photo from the edit form", async ({ page }) => {
+  await page.goto("/items");
+  await page.getByRole("link", { name: "Kursi Lipat Uji" }).click();
+  await page.getByRole("link", { name: "Edit" }).click();
+  await page.getByLabel("Photo", { exact: true }).setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG_1X1 });
+  await page.getByRole("button", { name: "Save item" }).click();
+  await expect(photoImg(page, "Kursi Lipat Uji")).toBeVisible();
+  await page.getByRole("link", { name: "Edit" }).click();
+  await page.getByRole("button", { name: "Remove photo" }).click();
+  await page.getByRole("button", { name: "Save item" }).click();
+  await expect(page.getByRole("main").getByText("No photo")).toBeVisible();
+});
+
 test("items: the secondary filters sit behind More filters", async ({ page }) => {
   await page.goto("/items");
   await expect(page.getByRole("combobox", { name: "Preferred supplier" })).toHaveCount(0);

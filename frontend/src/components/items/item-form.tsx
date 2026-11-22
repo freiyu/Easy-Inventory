@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ItemPhoto } from "@/components/items/item-photo";
 import { Field } from "@/components/shared/form-field";
 import { SelectField } from "@/components/shared/select-field";
-import { UNITS } from "@/lib/constants";
+import { PHOTO_MAX_BYTES, PHOTO_TYPES, UNITS } from "@/lib/constants";
 import { api, useGet } from "@/lib/api";
 import type { CategoryDto, ItemDto, SupplierDto } from "@/lib/api/master";
 import { itemSchema, validate, type FieldErrors } from "@/lib/schemas";
@@ -36,6 +37,24 @@ export function ItemForm({ item }: { item?: ItemDto }) {
   const [values, setValues] = useState<Values>(item ? fromItem(item) : blank);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, setPending] = useState(false);
+  // The photo is staged here and sent after the item is saved (a new item has no id yet).
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [preview, setPreview] = useState<string>();
+  const previewRef = useRef<string>(undefined);
+  useEffect(() => () => { if (previewRef.current) URL.revokeObjectURL(previewRef.current); }, []);
+  const choosePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    const bad = file && (!PHOTO_TYPES.includes(file.type) ? t.errors.photoType : file.size > PHOTO_MAX_BYTES ? t.errors.photoTooBig : "");
+    setErrors((s) => ({ ...s, photo: bad || "" }));
+    if (bad) e.target.value = "";
+    const next = bad ? null : file;
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = next ? URL.createObjectURL(next) : undefined;
+    setPreview(previewRef.current);
+    setPhoto(next);
+    if (next) setRemovePhoto(false);
+  };
   const set = (k: keyof Values) => (v: string) => setValues((s) => ({ ...s, [k]: v }));
   const input = (k: keyof Values) => ({ value: values[k], onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => set(k)(e.target.value) });
 
@@ -49,6 +68,13 @@ export function ItemForm({ item }: { item?: ItemDto }) {
     setPending(false);
     if (!r.success) {
       setErrors({ ...(r.error.fields ?? {}), _form: r.error.message });
+      return;
+    }
+    // The item is saved at this point; a photo that fails is reported and the edit page opens so it can be chosen again.
+    const photoResult = photo ? await api.items.uploadPhoto(r.data.id, photo) : removePhoto && item?.photoVersion ? await api.items.removePhoto(r.data.id) : null;
+    if (photoResult && !photoResult.success) {
+      toast.error(t.items.photoSaveFailed);
+      router.push(`/items/edit?id=${r.data.id}`);
       return;
     }
     toast.success(item ? t.items.savedEdit : t.items.savedAdd);
@@ -124,6 +150,17 @@ export function ItemForm({ item }: { item?: ItemDto }) {
           <Field label={t.common.notes} error={errors.notes}>
             {(p) => <Textarea {...p} rows={3} {...input("notes")} />}
           </Field>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <ItemPhoto name={values.name || t.items.fieldPhoto} src={preview} version={removePhoto ? null : item?.photoVersion} id={item?.id} emptyLabel={t.items.photoNone} />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <Field label={t.items.fieldPhoto} hint={photo ? t.items.photoSelected : t.items.photoHint} error={errors.photo}>
+                {(p) => <Input {...p} type="file" accept={PHOTO_TYPES.join(",")} onChange={choosePhoto} />}
+              </Field>
+              {item?.photoVersion && !photo && !removePhoto && (
+                <Button type="button" variant="outline" className="self-start" onClick={() => setRemovePhoto(true)}>{t.items.photoRemove}</Button>
+              )}
+            </div>
+          </div>
         </section>
 
         {errors._form && <p role="alert" className="ezi-field-error mx-6 rounded-lg bg-danger-soft px-3 py-2 text-(length:--text-table) font-(weight:--weight-strong) text-foreground">{errors._form}</p>}

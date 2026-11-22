@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Barcode } from "@/components/shared/barcode";
+import { ItemPhoto } from "@/components/items/item-photo";
 import { ConfirmDialog } from "@/components/shared/dialogs";
 import { PageHeader } from "@/components/shared/page-header";
 import { ActiveBadge, StockBadge, TxTypeBadge } from "@/components/shared/status-badge";
@@ -65,7 +66,9 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card size="sm" className="gap-4 lg:col-span-2">
           <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.items.detailsCard}</h2>
-          <dl className="grid gap-x-6 gap-y-4 px-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-start">
+          <ItemPhoto id={item.id} name={item.name} version={item.photoVersion} emptyLabel={t.items.photoNone} className="sm:order-2" />
+          <dl className="grid min-w-0 flex-1 gap-x-6 gap-y-4 sm:grid-cols-2">
             <Detail label={t.fields.category}>{item.categoryName}</Detail>
             <Detail label={t.fields.subcategory}>{item.subcategoryName}</Detail>
             <Detail label={t.fields.unit}>{item.unit}</Detail>
@@ -81,6 +84,7 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
               </>
             )}
           </dl>
+          </div>
         </Card>
 
         <div className="flex flex-col gap-6">

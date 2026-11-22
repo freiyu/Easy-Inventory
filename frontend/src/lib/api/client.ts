@@ -22,6 +22,8 @@ export async function getFile(path: string, query?: Query): Promise<Envelope<nul
 export const get = <T>(path: string, query?: Query) => call<T>({ method: "GET", path, query });
 export const post = <T>(path: string, body?: unknown) => call<T>({ method: "POST", path, body });
 export const put = <T>(path: string, body?: unknown) => call<T>({ method: "PUT", path, body });
+/** Uploads a file as the raw request body (item photo). */
+export const putFile = <T>(path: string, file: Blob) => call<T>({ method: "PUT", path, file });
 export const del = <T>(path: string) => call<T>({ method: "DELETE", path });
 
 /** Drops empty values so "all" filters are not sent. */
