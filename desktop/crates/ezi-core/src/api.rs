@@ -351,16 +351,20 @@ impl Client {
     }
 
     /// `current` is required by the server except when a temporary password must be replaced.
-    pub fn change_password(&self, current: Option<&Password>, new: &Password) -> Result<(), ApiError> {
+    /// Returns the updated user (its `must_change_password` is then false), or `me()` when the answer has no user.
+    pub fn change_password(&self, current: Option<&Password>, new: &Password) -> Result<SessionUser, ApiError> {
         #[derive(Serialize)]
         struct Change<'a> {
             #[serde(skip_serializing_if = "Option::is_none")]
             current: Option<&'a str>,
             password: &'a str,
         }
-        // The server answers with the updated user, not null (found by the real-backend test). The answer is not needed.
-        self.post::<serde_json::Value, _>("/auth/change-password", &Change { current: current.map(Password::expose), password: new.expose() })?;
-        Ok(())
+        // The server answers with the updated user (found by the real-backend test), not null.
+        let answer = self.post::<serde_json::Value, _>("/auth/change-password", &Change { current: current.map(Password::expose), password: new.expose() })?;
+        match serde_json::from_value::<SessionUser>(answer.data) {
+            Ok(user) => Ok(user),
+            Err(_) => self.me(),
+        }
     }
 
     /// True when the server has no user yet and wants the first-run setup.

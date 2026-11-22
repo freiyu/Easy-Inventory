@@ -1,6 +1,7 @@
 //! EZI desktop client logic with no UI dependency. Everything here builds and is tested on any OS.
 
 pub mod api;
+pub mod forms;
 pub mod i18n;
 pub mod nav;
 pub mod settings;

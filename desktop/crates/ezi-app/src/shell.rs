@@ -20,6 +20,7 @@ pub struct AppShell {
     page: Page,
     content: PageBuilder,
     menu_open: bool,
+    on_sign_out: Option<Rc<dyn Fn(&mut Window, &mut App)>>,
 }
 
 pub fn page_label(s: &Strings, page: Page) -> &'static str {
@@ -50,7 +51,13 @@ fn group_label(s: &Strings, g: Group) -> &'static str {
 
 impl AppShell {
     pub fn new(content: PageBuilder) -> Self {
-        AppShell { page: Page::Dashboard, content, menu_open: false }
+        AppShell { page: Page::Dashboard, content, menu_open: false, on_sign_out: None }
+    }
+
+    /// What the Sign out button does (the auth gate signs out on the server and shows the login screen).
+    pub fn on_sign_out(mut self, f: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_sign_out = Some(Rc::new(f));
+        self
     }
 
     fn nav_item(&self, page: Page, cx: &mut Context<Self>) -> impl IntoElement {
@@ -121,7 +128,14 @@ impl AppShell {
                     .child(self.choice("lang-id", s.ui_language_id, lang == Lang::Id, cx, |_, cx| set_lang(Lang::Id, cx)))
                     .child(self.choice("lang-en", s.ui_language_en, lang == Lang::En, cx, |_, cx| set_lang(Lang::En, cx))),
             )
-            .child(Button::new("sign-out").outline().w_full().label(s.user_sign_out))
+            .child({
+                let out = self.on_sign_out.clone();
+                Button::new("sign-out").outline().w_full().label(s.user_sign_out).on_click(move |_, w, cx| {
+                    if let Some(out) = &out {
+                        out(w, cx);
+                    }
+                })
+            })
     }
 }
 

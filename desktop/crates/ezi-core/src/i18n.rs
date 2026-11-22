@@ -29,7 +29,8 @@ strings! {
     states_empty_title, states_error_title, states_error_body, states_no_access_title, states_no_access_body, states_not_found_title,
     states_not_found_body,
     errors_network, errors_signed_out, errors_rate_limited,
-    ui_language_id, ui_language_en,
+    auth_sign_in, auth_signing_in, auth_sign_in_title, auth_sign_in_intro, auth_setup_eyebrow, auth_setup_title, auth_setup_info, auth_setup_submit, auth_setup_done, auth_go_to_sign_in, auth_password_hint, auth_change_title, auth_change_forced_body, auth_change_submit, auth_change_done, auth_current_wrong, fields_email, fields_password, fields_current_password, fields_new_password, fields_confirm_password, fields_full_name, validation_email, validation_password_length, validation_password_match,
+    ui_language_id, ui_language_en, ui_server_address, ui_server_address_hint, ui_checking_server, ui_invalid_address, ui_timeout, ui_server_error, ui_setup_needed,
 }
 
 pub const EN: Strings = Strings {
@@ -52,6 +53,38 @@ pub const EN: Strings = Strings {
     errors_network: "Cannot reach the EZI server. Check that the EZI host PC is on and this device is on the office network, then try again.",
     errors_signed_out: "Your session has ended. Please sign in again.", errors_rate_limited: "Too many attempts. Please wait 10 minutes and try again.",
     ui_language_id: "Bahasa Indonesia", ui_language_en: "English",
+    auth_sign_in: "Sign in",
+    auth_signing_in: "Signing in...",
+    auth_sign_in_title: "Sign in",
+    auth_sign_in_intro: "Use your work email and password.",
+    auth_setup_eyebrow: "First-run setup",
+    auth_setup_title: "Create the first Admin account",
+    auth_setup_info: "This account has full access. It is created only once. Later users are added in User management.",
+    auth_setup_submit: "Create Admin account",
+    auth_setup_done: "Admin account created. Sign in to continue.",
+    auth_go_to_sign_in: "Go to sign in",
+    auth_password_hint: "At least 8 characters.",
+    auth_change_title: "Change your password",
+    auth_change_forced_body: "You are using a temporary password. Choose a new one to continue.",
+    auth_change_submit: "Change password",
+    auth_change_done: "Password changed.",
+    auth_current_wrong: "Enter your current password.",
+    fields_email: "Email",
+    fields_password: "Password",
+    fields_current_password: "Current password",
+    fields_new_password: "New password",
+    fields_confirm_password: "Confirm password",
+    fields_full_name: "Full name",
+    validation_email: "Enter a valid email address.",
+    validation_password_length: "Password must be at least 8 characters.",
+    validation_password_match: "The passwords do not match.",
+    ui_server_address: "Server address",
+    ui_server_address_hint: "The address of the EZI host PC, for example 192.168.1.10:3000.",
+    ui_checking_server: "Checking the server...",
+    ui_invalid_address: "Enter the server address like 192.168.1.10:3000.",
+    ui_timeout: "The server took too long to answer. Try again.",
+    ui_server_error: "The request could not be completed. Try again. If it keeps happening, ask an Admin to check the application.",
+    ui_setup_needed: "This server has no Admin account yet. Create the first one.",
 };
 
 pub const ID: Strings = Strings {
@@ -74,12 +107,65 @@ pub const ID: Strings = Strings {
     errors_network: "Server EZI tidak bisa dihubungi. Pastikan PC server EZI menyala dan perangkat ini terhubung ke jaringan kantor, lalu coba lagi.",
     errors_signed_out: "Sesi Anda sudah berakhir. Silakan masuk lagi.", errors_rate_limited: "Terlalu banyak percobaan. Tunggu 10 menit, lalu coba lagi.",
     ui_language_id: "Bahasa Indonesia", ui_language_en: "English",
+    auth_sign_in: "Masuk",
+    auth_signing_in: "Sedang masuk...",
+    auth_sign_in_title: "Masuk",
+    auth_sign_in_intro: "Pakai email dan password kantor Anda.",
+    auth_setup_eyebrow: "Pengaturan awal",
+    auth_setup_title: "Buat akun Admin pertama",
+    auth_setup_info: "Akun ini punya akses penuh dan hanya dibuat sekali. Pengguna lain ditambahkan nanti di Kelola pengguna.",
+    auth_setup_submit: "Buat akun Admin",
+    auth_setup_done: "Akun Admin sudah dibuat. Silakan masuk.",
+    auth_go_to_sign_in: "Ke halaman masuk",
+    auth_password_hint: "Minimal 8 karakter.",
+    auth_change_title: "Ganti password Anda",
+    auth_change_forced_body: "Anda sedang memakai password sementara. Buat password baru untuk melanjutkan.",
+    auth_change_submit: "Ganti password",
+    auth_change_done: "Password sudah diganti.",
+    auth_current_wrong: "Masukkan password Anda yang sekarang.",
+    fields_email: "Email",
+    fields_password: "Password",
+    fields_current_password: "Password sekarang",
+    fields_new_password: "Password baru",
+    fields_confirm_password: "Ulangi password",
+    fields_full_name: "Nama lengkap",
+    validation_email: "Masukkan alamat email yang benar.",
+    validation_password_length: "Password minimal 8 karakter.",
+    validation_password_match: "Password tidak sama.",
+    ui_server_address: "Alamat server",
+    ui_server_address_hint: "Alamat PC induk EZI, misalnya 192.168.1.10:3000.",
+    ui_checking_server: "Memeriksa server...",
+    ui_invalid_address: "Isi alamat server seperti 192.168.1.10:3000.",
+    ui_timeout: "Server terlalu lama menjawab. Coba lagi.",
+    ui_server_error: "Permintaan gagal diproses. Coba lagi. Kalau masih terjadi, minta Admin mengecek aplikasi.",
+    ui_setup_needed: "Server ini belum punya akun Admin. Buat yang pertama.",
 };
 
 pub fn strings(lang: Lang) -> &'static Strings {
     match lang {
         Lang::Id => &ID,
         Lang::En => &EN,
+    }
+}
+
+/// "{label} is required." / "{label} wajib diisi." (the web app's `validation.required`).
+pub fn required(lang: Lang, label: &str) -> String {
+    match lang {
+        Lang::En => format!("{label} is required."),
+        Lang::Id => format!("{label} wajib diisi."),
+    }
+}
+
+/// The text to show a person for an API error: the server's own message when it sent one, else a message for the kind of failure.
+pub fn error_message(lang: Lang, error: &crate::api::ApiError) -> String {
+    use crate::api::ApiError::*;
+    let s = strings(lang);
+    match error {
+        Server { message, .. } => message.clone(),
+        Network(_) => s.errors_network.to_string(),
+        Timeout => s.ui_timeout.to_string(),
+        InvalidUrl(_) => s.ui_invalid_address.to_string(),
+        BadResponse { .. } => s.ui_server_error.to_string(),
     }
 }
 
@@ -115,6 +201,19 @@ mod tests {
         // Spot check that Indonesian is really Indonesian, not a copy of English.
         assert_ne!(EN.nav_dashboard, ID.nav_dashboard);
         assert_ne!(EN.common_save, ID.common_save);
+    }
+
+    #[test]
+    fn required_and_error_messages_read_naturally() {
+        use crate::api::{ApiError, ErrorCode};
+        assert_eq!(required(Lang::En, "Email"), "Email is required.");
+        assert_eq!(required(Lang::Id, "Email"), "Email wajib diisi.");
+        let server = ApiError::Server { status: 401, code: ErrorCode::Unauthenticated, message: "Salah.".into(), fields: Default::default() };
+        assert_eq!(error_message(Lang::Id, &server), "Salah.");
+        assert_eq!(error_message(Lang::En, &ApiError::Timeout), EN.ui_timeout);
+        assert_eq!(error_message(Lang::Id, &ApiError::Network("x".into())), ID.errors_network);
+        assert_eq!(error_message(Lang::En, &ApiError::InvalidUrl("x".into())), EN.ui_invalid_address);
+        assert_eq!(error_message(Lang::En, &ApiError::BadResponse { status: 502, detail: String::new() }), EN.ui_server_error);
     }
 
     #[test]
@@ -163,7 +262,7 @@ mod tests {
         let id_src = std::fs::read_to_string(format!("{dir}strings.id.ts")).unwrap();
         let mut compared = 0;
         for (lang, src, ours) in [("en", &en_src, &EN), ("id", &id_src, &ID)] {
-            for section in ["app", "nav", "common", "user", "states", "errors"] {
+            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation"] {
                 let web: HashMap<String, String> = web_section(src, section).into_iter().map(|(k, v)| (format!("{section}_{}", snake(&k)), v)).collect();
                 for (field, text) in ours.entries() {
                     if let Some(want) = web.get(field) {

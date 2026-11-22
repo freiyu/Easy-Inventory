@@ -1,6 +1,7 @@
 // Hide the console window in release builds on Windows.
 #![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
+mod auth;
 mod gallery;
 mod shell;
 mod state;
@@ -10,7 +11,7 @@ mod widgets;
 use std::rc::Rc;
 
 use ezi_core::api::{Lang, Role};
-use gpui_kit::component::button::*;
+use ezi_core::settings;
 use gpui_kit::*;
 
 use crate::state::{resolve, AppState, ThemePref};
@@ -28,23 +29,6 @@ fn window_size() -> Size<Pixels> {
         Some(size(px(w.parse().ok()?), px(h.parse().ok()?)))
     });
     parsed.unwrap_or(size(px(1366.), px(768.)))
-}
-
-/// P3-T1 placeholder, shown until the login screen exists.
-struct Hello;
-
-impl Render for Hello {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .flex()
-            .flex_col()
-            .gap_3()
-            .size_full()
-            .items_center()
-            .justify_center()
-            .child(ezi_core::window_title())
-            .child(Button::new("ok").primary().label("OK"))
-    }
 }
 
 /// The single root view: shows whichever screen the app starts on.
@@ -68,7 +52,13 @@ fn main() {
             Some("dark") => ThemePref::Dark,
             _ => ThemePref::System,
         };
-        let lang = if dev("EZI_LANG").as_deref() == Some("en") { Lang::En } else { Lang::Id };
+        // The language chosen last time, unless a dev switch overrides it.
+        let settings_path = settings::default_path();
+        let remembered = settings_path.as_deref().map(settings::load).unwrap_or_default().lang;
+        let lang = match dev("EZI_LANG").or(remembered).as_deref() {
+            Some("en") => Lang::En,
+            _ => Lang::Id,
+        };
         let role = if dev("EZI_ROLE").as_deref() == Some("staff") { Role::Staff } else { Role::Admin };
         let gallery = dev("EZI_GALLERY").as_deref() == Some("1");
 
@@ -85,7 +75,7 @@ fn main() {
                 let content: shell::PageBuilder = Rc::new(move |_page, _window, _cx| gallery.clone().into_any_element());
                 cx.new(|_| shell::AppShell::new(content)).into()
             } else {
-                cx.new(|_| Hello).into()
+                cx.new(|cx| auth::AuthGate::new(window, cx, settings_path.clone())).into()
             };
             cx.new(|_| Launcher { child })
         })

@@ -163,6 +163,8 @@ pub const USER_ROW_HEIGHT: f32 = 48.0;
 /// Width of the green bar on the active sidebar item.
 pub const NAV_BAR_WIDTH: f32 = 3.0;
 pub const DIALOG_WIDTH: f32 = 480.0;
+/// The sign-in, setup and change-password card.
+pub const AUTH_CARD_WIDTH: f32 = 420.0;
 /// Longest line of running text (about 65 characters at 15 px).
 pub const TEXT_MAX_WIDTH: f32 = 480.0;
 
