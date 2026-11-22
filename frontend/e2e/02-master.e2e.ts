@@ -105,6 +105,15 @@ test("items: Code, Supplier and Location start hidden; the column picker shows t
   await expect(header(/supplier/i)).toHaveCount(1);
 });
 
+test("items: Admin sees the barcode with its code and a Print label button on the detail page", async ({ page }) => {
+  await page.goto("/items");
+  await page.getByRole("link", { name: "Proyektor Uji" }).click();
+  const main = page.getByRole("main");
+  await expect(main.getByRole("img", { name: /Barcode: Proyektor Uji/ })).toBeVisible();
+  await expect(main.getByRole("figure")).toContainText(/[A-Z]{3}-[A-Z]{3}-\d{4}/);
+  await expect(main.getByRole("button", { name: "Print label" })).toBeVisible();
+});
+
 test("items: the secondary filters sit behind More filters", async ({ page }) => {
   await page.goto("/items");
   await expect(page.getByRole("combobox", { name: "Preferred supplier" })).toHaveCount(0);

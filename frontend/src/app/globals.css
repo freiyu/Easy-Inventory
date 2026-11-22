@@ -413,3 +413,20 @@
 [data-sonner-toaster] [data-sonner-toast][data-removed="true"] {
   transition-duration: var(--duration-exit);
 }
+
+/* Label printing (item detail): only the element with .print-label is printed, the app shell is hidden.
+   `visibility` keeps layout out of the way without touching the shell markup. */
+@media print {
+  @page { margin: 8mm; }
+  body * { visibility: hidden; }
+  .print-label, .print-label * { visibility: visible; }
+  .print-label {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 70mm;
+    border: 0;
+    box-shadow: none;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

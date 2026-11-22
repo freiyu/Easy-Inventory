@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Barcode } from "@/components/shared/barcode";
 import { ConfirmDialog } from "@/components/shared/dialogs";
 import { PageHeader } from "@/components/shared/page-header";
 import { ActiveBadge, StockBadge, TxTypeBadge } from "@/components/shared/status-badge";
@@ -43,6 +44,7 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
   const lines = item.movements ?? [];
   const reserved = item.reserved ?? 0;
   const active = item.status === "Active";
+  const barcodeValue = isAdmin ? item.code : item.barcode;
 
   return (
     <>
@@ -81,6 +83,7 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
           </dl>
         </Card>
 
+        <div className="flex flex-col gap-6">
         <Card size="sm" className="gap-4">
           <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.items.stockCard}</h2>
           {isAdmin ? (
@@ -97,6 +100,19 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
             <p className="px-4 text-(length:--text-body) text-muted-foreground">{t.items.staffStockNote}</p>
           )}
         </Card>
+
+        {barcodeValue && (
+          <Card size="sm" className="print-label gap-3">
+            <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong) print:hidden">{t.items.barcodeCard}</h2>
+            <div className="flex flex-col items-start gap-3 px-4">
+              <p className="hidden text-(length:--text-body) font-(weight:--weight-strong) print:block">{item.name}</p>
+              {/* Staff scan the bars but never read the code: no printed code line for them. */}
+              <Barcode value={barcodeValue} showText={isAdmin} label={`${t.items.barcodeCard}: ${item.name}`} className="w-full max-w-72" />
+              <Button variant="outline" onClick={() => window.print()} className="print:hidden">{t.items.printLabel}</Button>
+            </div>
+          </Card>
+        )}
+        </div>
       </div>
 
       {isAdmin && (

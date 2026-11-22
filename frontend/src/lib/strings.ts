@@ -415,6 +415,8 @@ export const en = {
     colUser: "User",
     createdAt: "Created",
     updatedAt: "Updated",
+    barcodeCard: "Barcode",
+    printLabel: "Print label",
     staffStockNote: "Availability only. Ask an Admin for stock numbers.",
     // form
     addTitle: "Add item",

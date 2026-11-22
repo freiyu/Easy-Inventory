@@ -416,6 +416,8 @@ export const id: Strings = {
     colUser: "Pengguna",
     createdAt: "Dibuat",
     updatedAt: "Diubah",
+    barcodeCard: "Barcode",
+    printLabel: "Cetak label",
     staffStockNote: "Hanya ketersediaan. Tanyakan ke Admin untuk jumlah stok.",
     // form
     addTitle: "Tambah barang",
