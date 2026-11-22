@@ -4,6 +4,8 @@
 mod auth;
 mod dashboard;
 mod gallery;
+mod item_form;
+mod item_import;
 mod items;
 mod load;
 mod shell;

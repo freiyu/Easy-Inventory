@@ -4,7 +4,8 @@
 use std::collections::BTreeMap;
 
 use crate::api::Lang;
-use crate::i18n::{required, strings};
+use crate::i18n::{at_least, required, strings, too_long, whole_number};
+use crate::models::ItemInput;
 
 /// Field key to message. An empty map means the form is valid.
 pub type Errors = BTreeMap<&'static str, String>;
@@ -67,6 +68,89 @@ fn new_password(lang: Lang, password: &str, confirm: &str, e: &mut Errors) {
     }
 }
 
+/// The units an item can have (`UNITS` in `frontend/src/lib/constants.ts`; a test compares them).
+pub const UNITS: [&str; 9] = ["pcs", "box", "pack", "unit", "ream", "bottle", "set", "roll", "pair"];
+
+/// The raw values of the item form, as typed or chosen.
+pub struct ItemFields<'a> {
+    pub name: &'a str,
+    pub category_id: Option<i64>,
+    pub subcategory_id: Option<i64>,
+    pub unit: &'a str,
+    pub opening_stock: &'a str,
+    pub minimum_stock: &'a str,
+    pub last_price: &'a str,
+    pub supplier_id: Option<i64>,
+    pub location: &'a str,
+    pub status: &'a str,
+    pub notes: &'a str,
+}
+
+/// A whole number of at least 0, typed as digits only. Empty is "required".
+fn whole(lang: Lang, label: &str, raw: &str, errors: &mut Errors, key: &'static str) -> i64 {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        errors.insert(key, required(lang, label));
+        return 0;
+    }
+    if !raw.bytes().all(|b| b.is_ascii_digit()) {
+        errors.insert(key, whole_number(lang, label));
+        return 0;
+    }
+    match raw.parse::<i64>() {
+        Ok(n) if n <= 1_000_000_000 => n,
+        _ => {
+            errors.insert(key, at_least(lang, label, 0)); // too large to be a real count: refused like the server does
+            0
+        }
+    }
+}
+
+/// Checks the item form like the web `itemSchema` and builds the body for the server.
+/// `creating` decides whether the opening stock is read (it cannot be changed after creation).
+pub fn item(lang: Lang, f: &ItemFields, creating: bool) -> Result<ItemInput, Errors> {
+    let s = strings(lang);
+    let mut e = Errors::new();
+    let name = f.name.trim();
+    if name.is_empty() {
+        e.insert("name", required(lang, s.fields_name));
+    } else if name.chars().count() > 150 {
+        e.insert("name", too_long(lang, s.fields_name, 150));
+    }
+    if f.category_id.is_none() {
+        e.insert("category", s.validation_select_category.to_string());
+    }
+    if f.subcategory_id.is_none() {
+        e.insert("subcategory", s.validation_select_subcategory.to_string());
+    }
+    if !UNITS.contains(&f.unit) {
+        e.insert("unit", s.validation_select_unit.to_string());
+    }
+    let opening = if creating { whole(lang, s.fields_opening_stock, f.opening_stock, &mut e, "opening") } else { 0 };
+    let minimum = whole(lang, s.fields_minimum_stock, f.minimum_stock, &mut e, "minimum");
+    let price = whole(lang, s.fields_last_price, f.last_price, &mut e, "price");
+    let location = f.location.trim();
+    if location.chars().count() > 100 {
+        e.insert("location", too_long(lang, s.fields_location, 100));
+    }
+    if !e.is_empty() {
+        return Err(e);
+    }
+    Ok(ItemInput {
+        name: name.to_string(),
+        category_id: f.category_id.unwrap_or_default(),
+        subcategory_id: f.subcategory_id.unwrap_or_default(),
+        unit: f.unit.to_string(),
+        opening_stock: opening,
+        minimum_stock: minimum,
+        last_purchase_price: price,
+        supplier_id: f.supplier_id,
+        location: location.to_string(),
+        status: if f.status == "Inactive" { "Inactive" } else { "Active" }.to_string(),
+        notes: f.notes.trim().to_string(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -107,5 +191,38 @@ mod tests {
         assert!(change_password(Lang::En, "newpass123", "newpass123").is_empty());
         assert!(change_password(Lang::En, "short", "short").contains_key("password"));
         assert!(change_password(Lang::En, "newpass123", "newpass124").contains_key("confirm"));
+    }
+
+    fn fields() -> ItemFields<'static> {
+        ItemFields { name: "Kabel", category_id: Some(1), subcategory_id: Some(2), unit: "pcs", opening_stock: "5", minimum_stock: "1", last_price: "1500", supplier_id: None, location: " Gudang ", status: "Active", notes: " " }
+    }
+
+    #[test]
+    fn a_valid_item_form_builds_the_body_with_trimmed_text() {
+        let b = item(Lang::En, &fields(), true).unwrap();
+        assert_eq!((b.name.as_str(), b.category_id, b.subcategory_id, b.opening_stock, b.minimum_stock, b.last_purchase_price, b.location.as_str(), b.notes.as_str()), ("Kabel", 1, 2, 5, 1, 1500, "Gudang", ""));
+        assert_eq!(item(Lang::En, &fields(), false).unwrap().opening_stock, 0, "opening stock is not read when editing");
+    }
+
+    #[test]
+    fn an_invalid_item_form_gives_the_web_messages_per_field() {
+        let f = ItemFields { name: " ", category_id: None, subcategory_id: None, unit: "", opening_stock: "-1", minimum_stock: "", last_price: "1.5", ..fields() };
+        let e = item(Lang::En, &f, true).unwrap_err();
+        assert_eq!(e["name"], "Name is required."); // the web schema labels it `fields.name`
+        assert_eq!((e["category"].as_str(), e["subcategory"].as_str(), e["unit"].as_str()), ("Select a category.", "Select a subcategory.", "Select a unit."));
+        assert_eq!(e["opening"], "Opening stock must be a whole number.");
+        assert_eq!(e["minimum"], "Minimum stock is required.");
+        assert_eq!(e["price"], "Last purchase price (IDR) must be a whole number.");
+        assert_eq!(item(Lang::Id, &ItemFields { name: "", ..fields() }, true).unwrap_err()["name"], "Nama wajib diisi.");
+        assert!(item(Lang::En, &ItemFields { name: &"x".repeat(151), ..fields() }, true).unwrap_err().contains_key("name"));
+        assert!(item(Lang::En, &ItemFields { unit: "kg", ..fields() }, true).unwrap_err().contains_key("unit"));
+    }
+
+    #[test]
+    fn units_equal_the_web_apps_units() {
+        let ts = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../frontend/src/lib/constants.ts")).unwrap();
+        let line = ts.lines().find(|l| l.starts_with("export const UNITS")).expect("UNITS in constants.ts");
+        let web: Vec<&str> = line.split('"').skip(1).step_by(2).collect();
+        assert_eq!(web, UNITS);
     }
 }

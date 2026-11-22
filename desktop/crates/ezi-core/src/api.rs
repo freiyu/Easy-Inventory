@@ -392,6 +392,56 @@ impl Client {
         Ok(self.get::<Vec<crate::models::NameOption>>(path, &[("status", "Active"), ("pageSize", "500"), ("sort", "name:asc")])?.data)
     }
 
+    pub fn create_item(&self, input: &crate::models::ItemInput) -> Result<crate::models::Item, ApiError> {
+        Ok(self.post::<crate::models::Item, _>("/items", input)?.data)
+    }
+
+    pub fn update_item(&self, id: i64, input: &crate::models::ItemInput) -> Result<crate::models::Item, ApiError> {
+        Ok(self.put::<crate::models::Item, _>(&format!("/items/{id}"), input)?.data)
+    }
+
+    /// Fails with `Conflict` when the item has history (it must be deactivated instead).
+    pub fn delete_item(&self, id: i64) -> Result<(), ApiError> {
+        self.delete::<Option<()>>(&format!("/items/{id}")).map(|_| ())
+    }
+
+    pub fn set_item_active(&self, id: i64, active: bool) -> Result<(), ApiError> {
+        let kind = if active { "activate" } else { "deactivate" };
+        self.post_empty::<serde_json::Value>(&format!("/items/{id}/{kind}")).map(|_| ())
+    }
+
+    /// Sets or replaces an item's photo. `content_type` is the file's own type; the server checks the bytes.
+    pub fn upload_item_photo(&self, id: i64, bytes: Vec<u8>, content_type: &str) -> Result<(), ApiError> {
+        self.put_file::<serde_json::Value>(&format!("/items/{id}/photo"), bytes, content_type).map(|_| ())
+    }
+
+    pub fn remove_item_photo(&self, id: i64) -> Result<(), ApiError> {
+        self.delete::<Option<()>>(&format!("/items/{id}/photo")).map(|_| ())
+    }
+
+    /// Validates a CSV file and returns one result per row. Saves nothing.
+    pub fn import_preview(&self, csv: &str) -> Result<crate::models::ImportReport, ApiError> {
+        #[derive(Serialize)]
+        struct Body<'a> {
+            csv: &'a str,
+        }
+        Ok(self.post::<crate::models::ImportReport, _>("/items/import/preview", &Body { csv })?.data)
+    }
+
+    /// Confirms the import: the server re-validates, takes a backup and creates the ready rows in one transaction.
+    pub fn import_confirm(&self, csv: &str) -> Result<crate::models::ImportReport, ApiError> {
+        #[derive(Serialize)]
+        struct Body<'a> {
+            csv: &'a str,
+        }
+        Ok(self.post::<crate::models::ImportReport, _>("/items/import", &Body { csv })?.data)
+    }
+
+    /// Excel export of the items list with the same filters as `items`.
+    pub fn export_items(&self, query: &[(&str, &str)]) -> Result<Download, ApiError> {
+        self.get_file("/export/items", query)
+    }
+
     /// True when the server has no user yet and wants the first-run setup.
     pub fn needs_setup(&self) -> Result<bool, ApiError> {
         #[derive(Deserialize)]

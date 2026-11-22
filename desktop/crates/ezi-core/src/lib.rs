@@ -2,8 +2,10 @@
 
 pub mod api;
 pub mod code128;
+pub mod files;
 pub mod forms;
 pub mod format;
+pub mod photo;
 pub mod i18n;
 pub mod models;
 pub mod nav;

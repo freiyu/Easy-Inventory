@@ -119,10 +119,16 @@ pub struct Movement {
 pub struct Item {
     pub id: i64,
     pub name: String,
+    #[serde(rename = "categoryId")]
+    pub category_id: Option<i64>,
     #[serde(rename = "categoryName")]
     pub category_name: String,
+    #[serde(rename = "subcategoryId")]
+    pub subcategory_id: Option<i64>,
     #[serde(rename = "subcategoryName")]
     pub subcategory_name: String,
+    #[serde(rename = "supplierId")]
+    pub supplier_id: Option<i64>,
     pub unit: String,
     /// `Active` or `Inactive`.
     pub status: String,
@@ -168,6 +174,77 @@ impl Item {
 pub struct NameOption {
     pub id: i64,
     pub name: String,
+}
+
+/// The body of create and update item, as the server expects it (`itemSchema` in `backend/src/schemas.ts`).
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct ItemInput {
+    pub name: String,
+    #[serde(rename = "categoryId")]
+    pub category_id: i64,
+    #[serde(rename = "subcategoryId")]
+    pub subcategory_id: i64,
+    pub unit: String,
+    /// Only used when creating: the server records it as an adjustment. Ignored by the server on update.
+    #[serde(rename = "openingStock")]
+    pub opening_stock: i64,
+    #[serde(rename = "minimumStock")]
+    pub minimum_stock: i64,
+    #[serde(rename = "lastPurchasePrice")]
+    pub last_purchase_price: i64,
+    #[serde(rename = "supplierId")]
+    pub supplier_id: Option<i64>,
+    pub location: String,
+    /// `Active` or `Inactive`.
+    pub status: String,
+    pub notes: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+pub enum ImportStatus {
+    #[serde(rename = "ready")]
+    Ready,
+    #[serde(rename = "skipped")]
+    Skipped,
+    #[serde(rename = "error")]
+    Error,
+    #[serde(rename = "imported")]
+    Imported,
+}
+
+/// One row of the CSV import preview (PRD 4.10).
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct ImportRow {
+    pub line: i64,
+    pub status: ImportStatus,
+    pub message: String,
+    pub name: String,
+    pub category: String,
+    pub subcategory: String,
+    pub unit: String,
+    #[serde(rename = "openingStock")]
+    pub opening_stock: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct NewGroup {
+    pub name: String,
+    pub code: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct ImportReport {
+    pub rows: Vec<ImportRow>,
+    pub total: i64,
+    pub ready: i64,
+    pub skipped: i64,
+    pub errors: i64,
+    /// Items created by a confirmed import; 0 in a preview.
+    pub created: i64,
+    #[serde(rename = "newCategories")]
+    pub new_categories: Vec<NewGroup>,
+    #[serde(rename = "newSubcategories")]
+    pub new_subcategories: Vec<NewGroup>,
 }
 
 #[cfg(test)]

@@ -4,6 +4,7 @@
 //!   cd desktop && EZI_TEST_URL=127.0.0.1:4101 cargo test -p ezi-core --test real_backend -- --ignored --nocapture
 
 use ezi_core::api::{Client, ErrorCode, Password, Role};
+use ezi_core::models::{ImportStatus, ItemInput};
 use serde_json::{json, Value};
 
 const PNG: [u8; 8] = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -105,6 +106,47 @@ fn the_client_works_against_the_real_backend() {
     let st = sd.staff.unwrap();
     assert_eq!((st.active_items, st.requestable, st.overdue_count, st.active_loans.len()), (3, 2, 0, 0));
     assert!(st.overdue_first.is_none());
+
+    // Item writes through the typed calls: create, edit, deactivate, activate, delete, and the history rule.
+    let input = |name: &str| ItemInput {
+        name: name.into(), category_id: cat["id"].as_i64().unwrap(), subcategory_id: sub["id"].as_i64().unwrap(), unit: "pcs".into(), opening_stock: 0,
+        minimum_stock: 1, last_purchase_price: 100, supplier_id: None, location: "Gudang".into(), status: "Active".into(), notes: "".into(),
+    };
+    let made = admin.create_item(&input("Item Baru")).unwrap();
+    assert_eq!((made.code.as_deref(), made.current_stock), (Some("KTR-ELK-0004"), Some(0)));
+    let renamed = admin.update_item(made.id, &ItemInput { name: "Item Ubah".into(), minimum_stock: 4, ..input("Item Ubah") }).unwrap();
+    assert_eq!((renamed.name.as_str(), renamed.minimum_stock), ("Item Ubah", Some(4)));
+    admin.set_item_active(made.id, false).unwrap();
+    assert_eq!(admin.item(made.id).unwrap().status, "Inactive");
+    assert!(staff.item(made.id).unwrap_err().code() == Some(&ErrorCode::NotFound), "Staff never see inactive items");
+    admin.set_item_active(made.id, true).unwrap();
+    assert_eq!(admin.item(made.id).unwrap().status, "Active");
+    assert_eq!(admin.delete_item(id).unwrap_err().code(), Some(&ErrorCode::Conflict), "an item with history cannot be deleted");
+    let invalid_item = admin.create_item(&ItemInput { name: "".into(), ..input("x") }).unwrap_err();
+    assert_eq!(invalid_item.code(), Some(&ErrorCode::Validation));
+    admin.delete_item(made.id).unwrap();
+    assert_eq!(admin.item(made.id).unwrap_err().code(), Some(&ErrorCode::NotFound));
+    // Staff cannot write, import or export.
+    assert_eq!(staff.create_item(&input("Nope")).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    assert_eq!(staff.import_preview("name\nx\n").unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    assert_eq!(staff.export_items(&[]).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    assert_eq!(staff.remove_item_photo(id).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+
+    // Photo removal, then the CSV import: a preview saves nothing, the confirm creates only the ready rows.
+    admin.remove_item_photo(id).unwrap();
+    assert_eq!(admin.item_photo(id).unwrap_err().code(), Some(&ErrorCode::NotFound));
+    admin.remove_item_photo(id).unwrap(); // nothing to remove is fine
+    let csv = "name,category,subcategory,unit,opening_stock\nKertas HVS,Kantor,ELK,ream,10\nKabel Rust,Kantor,ELK,pcs,1\nPenggaris,Gudang Baru,ELK,kardus,1\n";
+    let before = admin.items(&[("pageSize", "1")]).unwrap().meta.unwrap().total;
+    let preview = admin.import_preview(csv).unwrap();
+    assert_eq!((preview.ready, preview.skipped, preview.errors, preview.created), (1, 1, 1, 0));
+    assert_eq!(preview.rows.iter().map(|r| r.status).collect::<Vec<_>>(), [ImportStatus::Ready, ImportStatus::Skipped, ImportStatus::Error]);
+    assert_eq!(admin.items(&[("pageSize", "1")]).unwrap().meta.unwrap().total, before, "a preview saves nothing");
+    let done = admin.import_confirm(csv).unwrap();
+    assert_eq!(done.created, 1);
+    assert_eq!(admin.items(&[("search", "kertas")]).unwrap().data.len(), 1);
+    let export = admin.export_items(&[("search", "kertas")]).unwrap();
+    assert!(export.file_name.ends_with(".xlsx") && export.bytes.starts_with(b"PK"));
 
     // Logout ends the session on the server too.
     admin.logout().unwrap();

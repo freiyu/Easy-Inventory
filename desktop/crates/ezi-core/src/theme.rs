@@ -159,6 +159,8 @@ pub const FILTER_SELECT_WIDTH: f32 = 160.0;
 pub const FILTER_STOCK_WIDTH: f32 = 180.0;
 pub const FILTER_STATUS_WIDTH: f32 = 150.0;
 pub const SIDE_CARD_WIDTH: f32 = 280.0;
+/// Widest a form may be: about 65 characters of text (PRD_REDESIGN.md 10.2).
+pub const FORM_MAX_WIDTH: f32 = 560.0;
 /// Side of the square photo of an item.
 pub const PHOTO_SIZE: f32 = 144.0;
 

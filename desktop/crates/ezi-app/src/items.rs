@@ -1,6 +1,7 @@
 //! Items: the list with search and filters, and the item detail with photo, barcode and stock movements.
 //! Same data and the same filters as the web Items page; Staff get the limited view the server gives them.
 
+use std::rc::Rc;
 use std::sync::Arc;
 
 use ezi_core::api::{Client, ListMeta};
@@ -9,15 +10,19 @@ use ezi_core::i18n::{self, error_message};
 use ezi_core::models::{Item, NameOption};
 use ezi_core::theme::{self, Token};
 use gpui_kit::component::button::*;
+use gpui_kit::component::Disableable;
 use gpui_kit::component::input::{Input, InputEvent, InputState};
 use gpui_kit::component::select::{SearchableVec, Select, SelectEvent, SelectState};
 use gpui_kit::component::IndexPath;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
 
+use crate::item_form::{Done, ItemForm};
+use crate::item_import::ItemImport;
 use crate::load::Load;
 use crate::state::{color, state, t};
-use crate::widgets::{stock_tone, Badge, BarcodeView, Cell, Column, DataTable, Paging, PhotoView, StatePanel};
+use crate::widgets::{confirm, stock_tone, toast, Badge, BarcodeView, Cell, Column, DataTable, Paging, PhotoView, StatePanel, ToastKind};
+use ezi_core::files;
 
 /// Rows per page: the dense layout of the redesign (PRD_REDESIGN.md 10.2).
 const PAGE_SIZE: u32 = 8;
@@ -28,6 +33,8 @@ type Choice = Entity<SelectState<SearchableVec<String>>>;
 enum View {
     List,
     Detail(i64),
+    Form,
+    Import,
 }
 
 #[derive(Default, Clone, PartialEq)]
@@ -57,6 +64,9 @@ pub struct ItemsPage {
     detail: Load<Item>,
     photo: Option<Arc<Vec<u8>>>,
     detail_generation: u32,
+    form: Option<Entity<ItemForm>>,
+    import: Option<Entity<ItemImport>>,
+    exporting: bool,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -127,6 +137,9 @@ impl ItemsPage {
             detail: Load::Loading,
             photo: None,
             detail_generation: 0,
+            form: None,
+            import: None,
+            exporting: false,
             _subscriptions: subs,
         };
         page.fetch_list(cx);
@@ -244,6 +257,140 @@ impl ItemsPage {
             select.update(cx, |s, cx| s.set_selected_index(Some(IndexPath::default()), window, cx));
         }
         self.fetch_list(cx);
+    }
+
+
+    /// What the form and the import screen call when they finish: `Some(id)` opens that item, `None` goes back to the list.
+    fn finished(&self, cx: &mut Context<Self>) -> Done {
+        let this = cx.entity().downgrade();
+        Rc::new(move |id, _window, cx| {
+            this.update(cx, |page, cx| {
+                page.form = None;
+                page.import = None;
+                match id {
+                    Some(id) => page.open_detail(id, cx),
+                    None => page.show_list(cx),
+                }
+            })
+            .ok();
+        })
+    }
+
+    /// The add form (`edit` None) or the edit form for the item shown on the detail page.
+    fn open_form(&mut self, edit: bool, window: &mut Window, cx: &mut Context<Self>) {
+        let (item, photo) = match (&self.detail, edit) {
+            (Load::Ready(item), true) => (Some(item.clone()), self.photo.clone()),
+            _ => (None, None),
+        };
+        let (client, done) = (self.client.clone(), self.finished(cx));
+        self.form = Some(cx.new(|cx| ItemForm::new(client, item, photo, done, window, cx)));
+        self.view = View::Form;
+        cx.notify();
+    }
+
+    fn open_import(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let (client, done) = (self.client.clone(), self.finished(cx));
+        self.import = Some(cx.new(|cx| ItemImport::new(client, done, window, cx)));
+        self.view = View::Import;
+        cx.notify();
+    }
+
+    /// Excel export of the list as filtered now, saved to the Downloads folder (never over an existing file).
+    fn export(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.exporting {
+            return;
+        }
+        self.exporting = true;
+        cx.notify();
+        let (client, query) = (self.client.clone(), self.query(cx));
+        cx.spawn_in(window, async move |this, cx| {
+            let result = cx
+                .background_executor()
+                .spawn(async move {
+                    // The export is of the whole filtered list, not one page.
+                    let q: Vec<(&str, &str)> = query.iter().filter(|(k, _)| k != "page" && k != "pageSize").map(|(k, v)| (k.as_str(), v.as_str())).collect();
+                    let file = client.export_items(&q).map_err(|e| (false, e.to_string(), Some(e)))?;
+                    let dir = files::downloads_dir().ok_or((true, "no Downloads folder".to_string(), None))?;
+                    std::fs::create_dir_all(&dir).map_err(|e| (true, e.to_string(), None))?;
+                    let path = files::unique_path(&dir, &file.file_name);
+                    std::fs::write(&path, &file.bytes).map_err(|e| (true, e.to_string(), None))?;
+                    Ok::<_, (bool, String, Option<ezi_core::api::ApiError>)>(path)
+                })
+                .await;
+            this.update_in(cx, |this, window, cx| {
+                this.exporting = false;
+                let lang = state(cx).lang;
+                match result {
+                    Ok(path) => toast(window, cx, ToastKind::Success, i18n::export_saved(lang, &path.to_string_lossy())),
+                    Err((_, text, Some(api))) => {
+                        let _ = text;
+                        toast(window, cx, ToastKind::Error, error_message(lang, &api))
+                    }
+                    Err((_, text, None)) => toast(window, cx, ToastKind::Error, text),
+                }
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    fn confirm_status(&mut self, id: i64, name: String, active: bool, window: &mut Window, cx: &mut Context<Self>) {
+        let (s, lang) = (t(cx), state(cx).lang);
+        let this = cx.entity();
+        let (title, body, label) = if active { (i18n::activate_title(lang, &name), s.items_activate_body, s.items_activate) } else { (i18n::deactivate_title(lang, &name), s.items_deactivate_body, s.items_deactivate) };
+        confirm(window, cx, title, body, label, false, move |window, cx| {
+            this.update(cx, |page, cx| page.set_active(id, active, window, cx));
+        });
+    }
+
+    fn set_active(&mut self, id: i64, active: bool, window: &mut Window, cx: &mut Context<Self>) {
+        let client = self.client.clone();
+        cx.spawn_in(window, async move |this, cx| {
+            let result = cx.background_executor().spawn(async move { client.set_item_active(id, active) }).await;
+            this.update_in(cx, |this, window, cx| match result {
+                Ok(()) => {
+                    let s = t(cx);
+                    toast(window, cx, ToastKind::Success, if active { s.items_activated } else { s.items_deactivated });
+                    this.open_detail(id, cx);
+                }
+                Err(e) => {
+                    let message = error_message(state(cx).lang, &e);
+                    toast(window, cx, ToastKind::Error, message)
+                }
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    fn confirm_delete(&mut self, id: i64, name: String, window: &mut Window, cx: &mut Context<Self>) {
+        let (s, lang) = (t(cx), state(cx).lang);
+        let this = cx.entity();
+        confirm(window, cx, i18n::delete_title(lang, &name), s.items_delete_body, s.items_delete, true, move |window, cx| {
+            this.update(cx, |page, cx| page.delete(id, window, cx));
+        });
+    }
+
+    fn delete(&mut self, id: i64, window: &mut Window, cx: &mut Context<Self>) {
+        let client = self.client.clone();
+        cx.spawn_in(window, async move |this, cx| {
+            let result = cx.background_executor().spawn(async move { client.delete_item(id) }).await;
+            this.update_in(cx, |this, window, cx| match result {
+                Ok(()) => {
+                    let text = t(cx).items_deleted;
+                    toast(window, cx, ToastKind::Success, text);
+                    this.show_list(cx);
+                }
+                // For example "has history": the server's own message says to deactivate instead.
+                Err(e) => {
+                    let message = error_message(state(cx).lang, &e);
+                    toast(window, cx, ToastKind::Error, message)
+                }
+            })
+            .ok();
+        })
+        .detach();
     }
 
     fn open_detail(&mut self, id: i64, cx: &mut Context<Self>) {
@@ -365,10 +512,26 @@ impl ItemsPage {
             .child(
                 div()
                     .flex()
-                    .flex_col()
-                    .gap(px(theme::SPACE_1))
-                    .child(div().text_size(px(theme::TEXT_TITLE)).font_weight(FontWeight::SEMIBOLD).child(s.items_title))
-                    .child(div().text_size(px(theme::TEXT_BODY)).text_color(color(cx, Token::MutedForeground)).child(if admin { s.items_desc_admin } else { s.items_desc_staff })),
+                    .items_start()
+                    .justify_between()
+                    .child(
+                        div()
+                            .flex()
+                            .flex_col()
+                            .gap(px(theme::SPACE_1))
+                            .child(div().text_size(px(theme::TEXT_TITLE)).font_weight(FontWeight::SEMIBOLD).child(s.items_title))
+                            .child(div().text_size(px(theme::TEXT_BODY)).text_color(color(cx, Token::MutedForeground)).child(if admin { s.items_desc_admin } else { s.items_desc_staff })),
+                    )
+                    .when(admin, |d| {
+                        d.child(
+                            div()
+                                .flex()
+                                .gap(px(theme::SPACE_2))
+                                .child(Button::new("items-export").outline().label(if self.exporting { s.common_exporting } else { s.common_export_excel }).disabled(self.exporting).on_click(cx.listener(|this, _, window, cx| this.export(window, cx))))
+                                .child(Button::new("items-import").outline().label(s.item_import_button).on_click(cx.listener(|this, _, window, cx| this.open_import(window, cx))))
+                                .child(Button::new("items-add").primary().label(s.items_add).on_click(cx.listener(|this, _, window, cx| this.open_form(false, window, cx)))),
+                        )
+                    }),
             )
             .child(
                 div()
@@ -401,7 +564,7 @@ impl ItemsPage {
                 let message = error_message(lang, e);
                 let id = match self.view {
                     View::Detail(id) => id,
-                    View::List => 0,
+                    _ => 0,
                 };
                 let this = this.clone();
                 StatePanel::error(cx, message, move |_, cx| this.update(cx, |p, cx| p.open_detail(id, cx))).into_any_element()
@@ -493,7 +656,22 @@ impl ItemsPage {
                     .into_any_element()
             }
         };
-        div().flex().flex_col().gap(px(theme::SPACE_4)).child(div().flex().child(back)).child(content).into_any_element()
+        let actions = match (&self.detail, admin) {
+            (Load::Ready(item), true) => {
+                let (id, name, active) = (item.id, item.name.clone(), item.status == "Active");
+                let (name_a, name_d) = (name.clone(), name);
+                Some(
+                    div()
+                        .flex()
+                        .gap(px(theme::SPACE_2))
+                        .child(Button::new("item-edit").outline().label(s.items_edit).on_click(cx.listener(|this, _, window, cx| this.open_form(true, window, cx))))
+                        .child(Button::new("item-status").outline().label(if active { s.items_deactivate } else { s.items_activate }).on_click(cx.listener(move |this, _, window, cx| this.confirm_status(id, name_a.clone(), !active, window, cx))))
+                        .child(Button::new("item-delete").danger().label(s.items_delete).on_click(cx.listener(move |this, _, window, cx| this.confirm_delete(id, name_d.clone(), window, cx)))),
+                )
+            }
+            _ => None,
+        };
+        div().flex().flex_col().gap(px(theme::SPACE_4)).child(div().flex().items_center().justify_between().child(back).children(actions)).child(content).into_any_element()
     }
 }
 
@@ -502,6 +680,8 @@ impl Render for ItemsPage {
         match self.view {
             View::List => self.render_list(cx),
             View::Detail(_) => self.render_detail(cx),
+            View::Form => self.form.clone().map(|f| f.into_any_element()).unwrap_or_else(|| div().into_any_element()),
+            View::Import => self.import.clone().map(|i| i.into_any_element()).unwrap_or_else(|| div().into_any_element()),
         }
     }
 }

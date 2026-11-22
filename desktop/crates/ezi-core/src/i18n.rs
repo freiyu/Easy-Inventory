@@ -32,7 +32,9 @@ strings! {
     auth_sign_in, auth_signing_in, auth_sign_in_title, auth_sign_in_intro, auth_setup_eyebrow, auth_setup_title, auth_setup_info, auth_setup_submit, auth_setup_done, auth_go_to_sign_in, auth_password_hint, auth_change_title, auth_change_forced_body, auth_change_submit, auth_change_done, auth_current_wrong, fields_email, fields_password, fields_current_password, fields_new_password, fields_confirm_password, fields_full_name, validation_email, validation_password_length, validation_password_match,
     dashboard_title, dashboard_admin_desc, dashboard_kpi_total, dashboard_kpi_total_caption, dashboard_kpi_stock, dashboard_kpi_stock_out, dashboard_kpi_stock_low, dashboard_kpi_approvals, dashboard_kpi_approvals_caption, dashboard_needs_attention, dashboard_view_all_items, dashboard_all_good, dashboard_col_item, dashboard_col_category, dashboard_col_stock, dashboard_col_minimum, dashboard_col_status, dashboard_my_active_loans, dashboard_my_loans_kpi, dashboard_available_kpi, dashboard_view_my_loans, dashboard_no_active_loans, dashboard_no_active_loans_body, dashboard_col_loan, dashboard_col_items, dashboard_col_due, status_stock_admin_safe, status_stock_admin_low, status_stock_admin_out, status_stock_staff_safe, status_stock_staff_low, status_stock_staff_out, status_loan_draft, status_loan_pending_approval, status_loan_approved, status_loan_rejected, status_loan_borrowed, status_loan_completed, status_loan_cancelled, status_loan_overdue,
     items_title, items_desc_admin, items_desc_staff, items_search_placeholder, items_all_categories, items_all_subcategories, items_stock_status_filter, items_availability_filter, items_all_stock_status, items_all_availability, items_col_name, items_col_category, items_col_subcategory, items_col_stock, items_col_minimum, items_col_unit, items_col_availability, items_inactive_tag, items_empty_title, items_empty_filtered, items_empty_filtered_body, items_record_status_filter, items_active_only, items_inactive_only, items_all_records, items_details_card, items_stock_card, items_current_stock, items_minimum_stock, items_reserved, items_available_for_loan, items_last_price, items_movements, items_movements_empty, items_col_date, items_col_type, items_col_change, items_col_balance, items_col_ref, items_col_user, items_created_at, items_updated_at, items_staff_stock_note, items_barcode_card, items_photo_none, items_not_found_back, fields_category, fields_subcategory, fields_unit, fields_preferred_supplier, fields_location, common_notes, status_tx_type_in, status_tx_type_out, status_tx_type_adjustment, status_tx_type_loan_issue, status_tx_type_loan_return, status_tx_type_reversal,
-    ui_language_id, ui_language_en, ui_server_address, ui_server_address_hint, ui_checking_server, ui_invalid_address, ui_timeout, ui_server_error, ui_setup_needed,
+    items_add, items_edit, items_deactivate, items_activate, items_delete, items_add_title, items_edit_title, items_section_basic, items_section_stock, items_section_purchasing, items_field_code, items_field_name, items_code_hint, items_code_auto, items_opening_hint, items_opening_read_only, items_minimum_hint, items_no_supplier, items_save_item, items_saved_add, items_saved_edit, items_deactivate_body, items_activate_body, items_delete_body, items_deactivated, items_activated, items_deleted, items_field_photo, items_photo_hint, items_photo_remove, items_photo_selected, items_photo_save_failed, item_import_button, item_import_title, item_import_desc, item_import_file_label, item_import_reading, item_import_preview_title, item_import_col_line, item_import_col_result, item_import_status_ready, item_import_status_skipped, item_import_status_error, item_import_status_imported, item_import_another, item_import_backup_note, item_import_confirming, item_import_back_to_items, fields_name, fields_opening_stock, fields_minimum_stock, fields_last_price, fields_supplier, validation_select_category, validation_select_subcategory, validation_select_unit, validation_select_supplier, errors_photo_empty, errors_photo_type, errors_photo_too_big,
+    common_export_excel, common_exporting,
+    ui_language_id, ui_language_en, ui_browse, ui_check_file, ui_file_path, ui_file_unreadable, ui_export_saved_to, ui_server_address, ui_server_address_hint, ui_checking_server, ui_invalid_address, ui_timeout, ui_server_error, ui_setup_needed,
 }
 
 pub const EN: Strings = Strings {
@@ -152,7 +154,74 @@ pub const EN: Strings = Strings {
     status_tx_type_loan_issue: "Loan issue",
     status_tx_type_loan_return: "Loan return",
     status_tx_type_reversal: "Reversal",
+    items_add: "+ Add item",
+    items_edit: "Edit item",
+    items_deactivate: "Deactivate",
+    items_activate: "Activate",
+    items_delete: "Delete item",
+    items_add_title: "Add item",
+    items_edit_title: "Edit item",
+    items_section_basic: "Basic details",
+    items_section_stock: "Stock",
+    items_section_purchasing: "Purchasing and storage",
+    items_field_code: "Item code",
+    items_field_name: "Item name",
+    items_code_hint: "Generated automatically from the category and subcategory, for example AUL-ELK-0001.",
+    items_code_auto: "Created when you save",
+    items_opening_hint: "Recorded as an adjustment with the reason \"Opening stock\".",
+    items_opening_read_only: "Stock is read-only. Use a stock transaction to change it.",
+    items_minimum_hint: "You get a Low status when stock reaches this number.",
+    items_no_supplier: "No preferred supplier",
+    items_save_item: "Save item",
+    items_saved_add: "Item added successfully.",
+    items_saved_edit: "Item updated successfully.",
+    items_deactivate_body: "It stays in history but is hidden from lists, transactions, and loans. You can activate it again.",
+    items_activate_body: "It will appear in lists and can be used in transactions and loans again.",
+    items_delete_body: "This permanently removes the item. It only works when the item has no transactions or loans.",
+    items_deactivated: "Item deactivated.",
+    items_activated: "Item activated.",
+    items_deleted: "Item deleted.",
+    items_field_photo: "Photo",
+    items_photo_hint: "JPEG, PNG or WebP, up to 2 MB.",
+    items_photo_remove: "Remove photo",
+    items_photo_selected: "New photo selected. It is saved with the item.",
+    items_photo_save_failed: "The item was saved, but its photo could not be saved. Choose the photo again.",
+    item_import_button: "Import CSV",
+    item_import_title: "Import items from CSV",
+    item_import_desc: "Add many items at once. You see a preview first; nothing is saved until you confirm.",
+    item_import_file_label: "CSV file",
+    item_import_reading: "Checking the file...",
+    item_import_preview_title: "3. Check the preview",
+    item_import_col_line: "Line",
+    item_import_col_result: "Result",
+    item_import_status_ready: "Ready",
+    item_import_status_skipped: "Skipped",
+    item_import_status_error: "Error",
+    item_import_status_imported: "Imported",
+    item_import_another: "Choose another file",
+    item_import_backup_note: "A backup is taken before the import. Skipped rows and rows with errors are not imported.",
+    item_import_confirming: "Importing...",
+    item_import_back_to_items: "Back to items",
+    fields_name: "Name",
+    fields_opening_stock: "Opening stock",
+    fields_minimum_stock: "Minimum stock",
+    fields_last_price: "Last purchase price (IDR)",
+    fields_supplier: "Supplier",
+    validation_select_category: "Select a category.",
+    validation_select_subcategory: "Select a subcategory.",
+    validation_select_unit: "Select a unit.",
+    validation_select_supplier: "Select a supplier.",
+    errors_photo_empty: "Choose a photo file.",
+    errors_photo_type: "The photo must be a JPEG, PNG or WebP image.",
+    errors_photo_too_big: "The photo is too large. The limit is 2 MB.",
+    common_export_excel: "Export Excel",
+    common_exporting: "Exporting...",
     ui_language_id: "Bahasa Indonesia", ui_language_en: "English",
+    ui_browse: "Choose file...",
+    ui_check_file: "Check file",
+    ui_file_path: "File location",
+    ui_file_unreadable: "This file cannot be read. Check the location.",
+    ui_export_saved_to: "Saved to",
     auth_sign_in: "Sign in",
     auth_signing_in: "Signing in...",
     auth_sign_in_title: "Sign in",
@@ -304,7 +373,74 @@ pub const ID: Strings = Strings {
     status_tx_type_loan_issue: "Diserahkan (pinjam)",
     status_tx_type_loan_return: "Dikembalikan (pinjam)",
     status_tx_type_reversal: "Pembatalan",
+    items_add: "+ Tambah barang",
+    items_edit: "Ubah barang",
+    items_deactivate: "Nonaktifkan",
+    items_activate: "Aktifkan",
+    items_delete: "Hapus barang",
+    items_add_title: "Tambah barang",
+    items_edit_title: "Ubah barang",
+    items_section_basic: "Data utama",
+    items_section_stock: "Stok",
+    items_section_purchasing: "Pembelian dan penyimpanan",
+    items_field_code: "Kode barang",
+    items_field_name: "Nama barang",
+    items_code_hint: "Dibuat otomatis dari area dan jenis, misalnya AUL-ELK-0001.",
+    items_code_auto: "Dibuat saat disimpan",
+    items_opening_hint: "Dicatat sebagai penyesuaian dengan alasan \"Stok awal\".",
+    items_opening_read_only: "Stok tidak bisa diubah di sini. Pakai transaksi stok.",
+    items_minimum_hint: "Status jadi Menipis saat stok sampai di angka ini.",
+    items_no_supplier: "Tidak ada supplier langganan",
+    items_save_item: "Simpan barang",
+    items_saved_add: "Barang berhasil ditambahkan.",
+    items_saved_edit: "Barang berhasil diubah.",
+    items_deactivate_body: "Riwayatnya tetap ada, tapi barang ini disembunyikan dari daftar, transaksi, dan peminjaman. Bisa diaktifkan lagi.",
+    items_activate_body: "Barang ini muncul lagi di daftar dan bisa dipakai di transaksi dan peminjaman.",
+    items_delete_body: "Barang ini dihapus permanen. Hanya bisa kalau barang belum pernah dipakai di transaksi atau peminjaman.",
+    items_deactivated: "Barang dinonaktifkan.",
+    items_activated: "Barang diaktifkan.",
+    items_deleted: "Barang dihapus.",
+    items_field_photo: "Foto",
+    items_photo_hint: "JPEG, PNG atau WebP, maksimal 2 MB.",
+    items_photo_remove: "Hapus foto",
+    items_photo_selected: "Foto baru dipilih. Foto disimpan bersama barang.",
+    items_photo_save_failed: "Barang tersimpan, tetapi fotonya gagal disimpan. Pilih fotonya lagi.",
+    item_import_button: "Impor CSV",
+    item_import_title: "Impor barang dari CSV",
+    item_import_desc: "Tambah banyak barang sekaligus. Anda lihat pratinjau dulu; belum ada yang disimpan sampai Anda konfirmasi.",
+    item_import_file_label: "File CSV",
+    item_import_reading: "Sedang mengecek file...",
+    item_import_preview_title: "3. Cek pratinjau",
+    item_import_col_line: "Baris",
+    item_import_col_result: "Hasil",
+    item_import_status_ready: "Siap",
+    item_import_status_skipped: "Dilewati",
+    item_import_status_error: "Bermasalah",
+    item_import_status_imported: "Sudah diimpor",
+    item_import_another: "Pilih file lain",
+    item_import_backup_note: "Data dicadangkan dulu sebelum impor. Baris yang dilewati atau ada error tidak diimpor.",
+    item_import_confirming: "Mengimpor...",
+    item_import_back_to_items: "Kembali ke daftar barang",
+    fields_name: "Nama",
+    fields_opening_stock: "Stok awal",
+    fields_minimum_stock: "Stok minimum",
+    fields_last_price: "Harga beli terakhir (Rp)",
+    fields_supplier: "Supplier",
+    validation_select_category: "Pilih area.",
+    validation_select_subcategory: "Pilih jenis.",
+    validation_select_unit: "Pilih satuan.",
+    validation_select_supplier: "Pilih supplier.",
+    errors_photo_empty: "Pilih file foto.",
+    errors_photo_type: "Foto harus berupa gambar JPEG, PNG atau WebP.",
+    errors_photo_too_big: "Foto terlalu besar. Batasnya 2 MB.",
+    common_export_excel: "Ekspor Excel",
+    common_exporting: "Mengekspor...",
     ui_language_id: "Bahasa Indonesia", ui_language_en: "English",
+    ui_browse: "Pilih file...",
+    ui_check_file: "Cek file",
+    ui_file_path: "Lokasi file",
+    ui_file_unreadable: "File ini tidak bisa dibaca. Periksa lokasinya.",
+    ui_export_saved_to: "Disimpan di",
     auth_sign_in: "Masuk",
     auth_signing_in: "Sedang masuk...",
     auth_sign_in_title: "Masuk",
@@ -445,6 +581,74 @@ pub fn loan_status_label(lang: Lang, status: crate::models::LoanStatus) -> &'sta
     }
 }
 
+
+// More texts with a name or a number inside (the web app's functions of the same names).
+
+pub fn deactivate_title(lang: Lang, name: &str) -> String {
+    match lang { Lang::En => format!("Deactivate {name}?"), Lang::Id => format!("Nonaktifkan {name}?") }
+}
+
+pub fn activate_title(lang: Lang, name: &str) -> String {
+    match lang { Lang::En => format!("Activate {name}?"), Lang::Id => format!("Aktifkan {name}?") }
+}
+
+pub fn delete_title(lang: Lang, name: &str) -> String {
+    match lang { Lang::En => format!("Delete {name}?"), Lang::Id => format!("Hapus {name}?") }
+}
+
+pub fn whole_number(lang: Lang, label: &str) -> String {
+    match lang { Lang::En => format!("{label} must be a whole number."), Lang::Id => format!("{label} harus angka bulat.") }
+}
+
+pub fn at_least(lang: Lang, label: &str, min: i64) -> String {
+    match lang { Lang::En => format!("{label} must be {min} or more."), Lang::Id => format!("{label} minimal {min}.") }
+}
+
+pub fn too_long(lang: Lang, label: &str, max: usize) -> String {
+    match lang { Lang::En => format!("{label} must be {max} characters or fewer."), Lang::Id => format!("{label} maksimal {max} karakter.") }
+}
+
+fn plural(lang: Lang, n: i64, en_one: &str, en_many: &str, id: &str) -> String {
+    match lang { Lang::En => if n == 1 { en_one } else { en_many }.to_string(), Lang::Id => id.to_string() }
+}
+
+pub fn import_summary_ready(lang: Lang, n: i64) -> String {
+    match lang { Lang::En => format!("{n} ready"), Lang::Id => format!("{n} siap") }
+}
+
+pub fn import_summary_skipped(lang: Lang, n: i64) -> String {
+    match lang { Lang::En => format!("{n} skipped"), Lang::Id => format!("{n} dilewati") }
+}
+
+pub fn import_summary_errors(lang: Lang, n: i64) -> String {
+    match lang { Lang::En => format!("{n} with errors"), Lang::Id => format!("{n} bermasalah") }
+}
+
+pub fn import_confirm(lang: Lang, n: i64) -> String {
+    match lang { Lang::En => format!("Import {n} {}", plural(lang, n, "item", "items", "")), Lang::Id => format!("Impor {n} barang") }
+}
+
+pub fn import_done(lang: Lang, n: i64) -> String {
+    match lang { Lang::En => format!("{n} {} imported.", plural(lang, n, "item", "items", "")), Lang::Id => format!("{n} barang berhasil diimpor.") }
+}
+
+/// "2 new categories, 1 new subcategory" / "2 area baru, 1 jenis baru".
+pub fn import_new_groups(lang: Lang, cats: i64, subs: i64) -> String {
+    match lang {
+        Lang::En => format!("{cats} new {}, {subs} new {}", plural(lang, cats, "category", "categories", ""), plural(lang, subs, "subcategory", "subcategories", "")),
+        Lang::Id => format!("{cats} area baru, {subs} jenis baru"),
+    }
+}
+
+pub fn import_new_groups_label(lang: Lang, done: bool) -> &'static str {
+    match (lang, done) { (Lang::En, true) => "Added:", (Lang::En, false) => "Will be added:", (Lang::Id, true) => "Ditambahkan:", (Lang::Id, false) => "Akan ditambahkan:" }
+}
+
+/// "Saved to <path>" for an Excel export written to the Downloads folder.
+pub fn export_saved(lang: Lang, path: &str) -> String {
+    format!("{} {path}", strings(lang).ui_export_saved_to)
+}
+
 /// "Showing 1-8 of 17" / "Menampilkan 1-8 dari 17"; "No results" / "Tidak ada hasil" when `total` is 0.
 pub fn showing(lang: Lang, from: u32, to: u32, total: u32) -> String {
     match (lang, total) {
@@ -550,6 +754,24 @@ mod tests {
         assert_eq!(tx_type_label(Lang::En, "SOMETHING_NEW"), "SOMETHING_NEW");
     }
 
+
+    #[test]
+    fn item_action_and_import_texts_read_like_the_web_app() {
+        assert_eq!((deactivate_title(Lang::En, "Kabel").as_str(), deactivate_title(Lang::Id, "Kabel").as_str()), ("Deactivate Kabel?", "Nonaktifkan Kabel?"));
+        assert_eq!((activate_title(Lang::En, "K").as_str(), activate_title(Lang::Id, "K").as_str()), ("Activate K?", "Aktifkan K?"));
+        assert_eq!((delete_title(Lang::En, "K").as_str(), delete_title(Lang::Id, "K").as_str()), ("Delete K?", "Hapus K?"));
+        assert_eq!(whole_number(Lang::En, "Minimum stock"), "Minimum stock must be a whole number.");
+        assert_eq!(at_least(Lang::Id, "Stok awal", 0), "Stok awal minimal 0.");
+        assert_eq!(too_long(Lang::En, "Name", 150), "Name must be 150 characters or fewer.");
+        assert_eq!((import_summary_ready(Lang::En, 3).as_str(), import_summary_skipped(Lang::Id, 2).as_str(), import_summary_errors(Lang::En, 1).as_str()), ("3 ready", "2 dilewati", "1 with errors"));
+        assert_eq!((import_confirm(Lang::En, 1).as_str(), import_confirm(Lang::En, 2).as_str(), import_confirm(Lang::Id, 5).as_str()), ("Import 1 item", "Import 2 items", "Impor 5 barang"));
+        assert_eq!((import_done(Lang::En, 1).as_str(), import_done(Lang::Id, 4).as_str()), ("1 item imported.", "4 barang berhasil diimpor."));
+        assert_eq!(import_new_groups(Lang::En, 1, 2), "1 new category, 2 new subcategories");
+        assert_eq!(import_new_groups(Lang::Id, 1, 2), "1 area baru, 2 jenis baru");
+        assert_eq!((import_new_groups_label(Lang::En, false), import_new_groups_label(Lang::Id, true)), ("Will be added:", "Ditambahkan:"));
+        assert_eq!(export_saved(Lang::Id, "/x/a.xlsx"), "Disimpan di /x/a.xlsx");
+    }
+
     #[test]
     fn counts_read_naturally() {
         assert_eq!(showing(Lang::En, 1, 8, 17), "Showing 1-8 of 17");
@@ -596,8 +818,8 @@ mod tests {
         let id_src = std::fs::read_to_string(format!("{dir}strings.id.ts")).unwrap();
         let mut compared = 0;
         for (lang, src, ours) in [("en", &en_src, &EN), ("id", &id_src, &ID)] {
-            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items"] {
-                let web: HashMap<String, String> = web_section(src, section).into_iter().map(|(k, v)| (format!("{section}_{}", snake(&k)), v)).collect();
+            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport"] {
+                let web: HashMap<String, String> = web_section(src, section).into_iter().map(|(k, v)| (format!("{}_{}", snake(section), snake(&k)), v)).collect();
                 for (field, text) in ours.entries() {
                     if let Some(want) = web.get(field) {
                         assert_eq!(text, want, "{lang}: {field} differs from the web app");
