@@ -7,6 +7,7 @@ import { filterId, filterValue, paged, searchRows, type Query } from "../list";
 import type { ItemInput } from "../schemas";
 import { t, UNITS, type StockStatus, type StockTxType } from "../shared";
 import { createBackup } from "./backup";
+import { dropPhotoFile } from "./photos";
 import { counter, iso, isAdmin, lockItemNames, log, num, postTransaction, reservedByItem, write, ymd, type Ctx, type SessionUser } from "./core";
 
 const e = t.errors;
@@ -299,15 +300,17 @@ export function setItemStatus(actor: SessionUser, id: number, status: "Active" |
 }
 
 /** BR-14: an item with any history (ledger, loan, purchase request) is deactivated, never deleted. */
-export function deleteItem(actor: SessionUser, id: number) {
-  return write(actor, async (c) => {
+export async function deleteItem(actor: SessionUser, id: number) {
+  const photo = await write(actor, async (c) => {
     const item = await c.tx.item.findUnique({ where: { id }, include: { _count: { select: { ledger: true, loanLines: true, purchaseLines: true } } } });
     if (!item) throw notFound();
     if (item._count.ledger + item._count.loanLines + item._count.purchaseLines > 0) throw fail("CONFLICT", e.itemHasHistory);
     await c.tx.item.delete({ where: { id } });
     await log(c, "Item deleted", "Items", item.code);
-    return null;
+    return item.photoPath;
   });
+  await dropPhotoFile(photo); // after the commit: the file is only removed once the item is really gone
+  return null;
 }
 
 // ------------------------------------------------------------- item CSV import

@@ -131,6 +131,8 @@ model Item {
   location          String   @default("") @db.VarChar(100)
   status            String   @default("Active") @db.VarChar(10)
   notes             String   @db.Text
+  /// v1.2: file name only (never a client name), the file lives in <DATA_DIR>/photos; null = no photo.
+  photoPath         String?  @map("photo_path") @db.VarChar(64)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
