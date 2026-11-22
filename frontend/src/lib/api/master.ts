@@ -40,6 +40,8 @@ export interface ItemDto {
   status: ActiveStatus;
   stockStatus: StockStatus;
   availableForLoan: number;
+  /** v1.2: name of the stored photo file, null when there is none. Use it as the cache key of /items/:id/photo. */
+  photoVersion: string | null;
   /** Item detail for Staff only (v1.2): the value to encode as a barcode. Never shown as text. */
   barcode?: string;
   // Admin only (the server leaves these out for Staff, PRD 3.2):

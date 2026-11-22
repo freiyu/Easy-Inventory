@@ -1,5 +1,5 @@
 // REST endpoints under /api, exactly as PRD 6.6. Routes stay thin (PRD 7.2): parse input, call a service, send.
-import { Router, type Request, type Response } from "express";
+import express, { Router, type Request, type Response } from "express";
 import { changePassword, createFirstAdmin, login, logout, requireAdmin as admin, requireAuth, setupStatus } from "./auth";
 import { notFound, parse, send, sendList } from "./http";
 import { s } from "./schemas";
@@ -8,6 +8,7 @@ import { backupPath, createBackup, listBackups } from "./services/backup";
 import { reader } from "./services/core";
 import * as loans from "./services/loans";
 import * as m from "./services/master";
+import * as photos from "./services/photos";
 import * as pr from "./services/purchases";
 import * as rep from "./services/reports";
 import * as stock from "./services/stock";
@@ -52,6 +53,18 @@ api.post("/items/import", admin, async (req, res) => send(res, await m.importCon
 api.get("/items/:id", async (req, res) => send(res, await m.oneItem(ctx(req), id(req))));
 api.post("/items", admin, async (req, res) => send(res, await m.createItem(me(req), parse(s.itemSchema, req.body)), 201));
 api.put("/items/:id", admin, async (req, res) => send(res, await m.updateItem(me(req), id(req), parse(s.itemSchema, req.body))));
+// Item photo (v1.2): the body is the image itself. The limit is above the 2 MB rule so an oversize file gets the clear message.
+const photoBody = express.raw({ type: () => true, limit: "3mb" });
+api.get("/items/:id/photo", async (req, res, next) => {
+  const file = await photos.itemPhotoFile(ctx(req), id(req));
+  res.sendFile(file, { cacheControl: false, headers: { "Cache-Control": "private, no-cache" } }, (err) => err && next(err));
+});
+api.put("/items/:id/photo", admin, photoBody, async (req, res) =>
+  send(res, { photoVersion: await photos.replaceItemPhoto(me(req), id(req), Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0)) }));
+api.delete("/items/:id/photo", admin, async (req, res) => {
+  await photos.removeItemPhoto(me(req), id(req));
+  send(res, null);
+});
 api.delete("/items/:id", admin, async (req, res) => send(res, await m.deleteItem(me(req), id(req))));
 for (const kind of KINDS) {
   api.post(`/items/:id/${kind}`, admin, async (req, res) => send(res, await m.setItemStatus(me(req), id(req), status(kind))));

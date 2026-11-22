@@ -8,7 +8,7 @@ import type { Tx } from "../db";
 import { env } from "../env";
 import { fail, notFound } from "../http";
 import { t } from "../shared";
-import { write, type SessionUser } from "./core";
+import { isAdmin, log, write, type Ctx, type SessionUser } from "./core";
 
 export const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 const NAME = /^[0-9a-f]{32}\.(jpg|png|webp)$/;
@@ -45,9 +45,10 @@ export async function replaceItemPhoto(actor: SessionUser, itemId: number, bytes
   let old: string | null;
   try {
     old = await write(actor, async (c) => {
-      const prev = await lockedPhoto(c.tx, itemId);
+      const { photo, code } = await lockedPhoto(c.tx, itemId);
       await c.tx.item.update({ where: { id: itemId }, data: { photoPath: name } });
-      return prev;
+      await log(c, "Item photo changed", "Items", code);
+      return photo;
     });
   } catch (err) {
     await dropPhotoFile(name);
@@ -60,17 +61,29 @@ export async function replaceItemPhoto(actor: SessionUser, itemId: number, bytes
 /** Removes the item's photo (no error when there is none). Returns true when a photo was removed. */
 export async function removeItemPhoto(actor: SessionUser, itemId: number): Promise<boolean> {
   const old = await write(actor, async (c) => {
-    const prev = await lockedPhoto(c.tx, itemId);
-    if (prev) await c.tx.item.update({ where: { id: itemId }, data: { photoPath: null } });
-    return prev;
+    const { photo, code } = await lockedPhoto(c.tx, itemId);
+    if (photo) {
+      await c.tx.item.update({ where: { id: itemId }, data: { photoPath: null } });
+      await log(c, "Item photo removed", "Items", code);
+    }
+    return photo;
   });
   await dropPhotoFile(old);
   return old !== null;
 }
 
 /** The item's current photo name, with the row locked so two concurrent changes cannot orphan a file. */
-async function lockedPhoto(tx: Tx, itemId: number): Promise<string | null> {
-  const rows = await tx.$queryRaw<{ photo_path: string | null }[]>`SELECT photo_path FROM items WHERE id = ${itemId} FOR UPDATE`;
+async function lockedPhoto(tx: Tx, itemId: number): Promise<{ photo: string | null; code: string }> {
+  const rows = await tx.$queryRaw<{ photo_path: string | null; code: string }[]>`SELECT photo_path, code FROM items WHERE id = ${itemId} FOR UPDATE`;
   if (rows.length === 0) throw notFound();
-  return rows[0].photo_path;
+  return { photo: rows[0].photo_path, code: rows[0].code };
+}
+
+/** The file to send for GET /items/:id/photo. Staff see active items only, like the item detail. NOT_FOUND when there is no photo. */
+export async function itemPhotoFile(c: Ctx, itemId: number): Promise<string> {
+  const item = await c.tx.item.findUnique({ where: { id: itemId }, select: { photoPath: true, status: true } });
+  if (!item || !item.photoPath || (!isAdmin(c) && item.status !== "Active")) throw notFound();
+  const file = photoFile(item.photoPath);
+  if (!file) throw notFound();
+  return file;
 }

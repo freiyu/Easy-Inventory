@@ -137,7 +137,7 @@ export function deleteSupplier(actor: SessionUser, id: number) {
 
 type ItemRow = {
   id: number; code: string; name: string; categoryId: number; subcategoryId: number | null; unit: string; currentStock: number; minimumStock: number;
-  lastPurchasePrice: unknown; supplierId: number | null; location: string; status: string; notes: string; createdAt: Date; updatedAt: Date;
+  lastPurchasePrice: unknown; supplierId: number | null; location: string; status: string; notes: string; photoPath: string | null; createdAt: Date; updatedAt: Date;
   category: { name: string }; subcategory: { name: string } | null; supplier: { name: string } | null;
 };
 const itemInclude = { category: { select: { name: true } }, subcategory: { select: { name: true } }, supplier: { select: { name: true } } } as const;
@@ -149,6 +149,8 @@ export function itemDto(admin: boolean, i: ItemRow, reserved: number) {
     subcategoryId: i.subcategoryId, subcategoryName: i.subcategory?.name ?? "-", unit: i.unit, status: i.status,
     stockStatus: stockStatus(i.currentStock, i.minimumStock) as StockStatus,
     availableForLoan: availableForLoan(i.currentStock, reserved),
+    /** v1.2: the stored photo file name (changes on every new photo, so it is the cache key), null when the item has no photo. */
+    photoVersion: i.photoPath,
   };
   if (!admin) return base;
   return {
