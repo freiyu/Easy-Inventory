@@ -4,6 +4,8 @@
 mod auth;
 mod dashboard;
 mod gallery;
+mod items;
+mod load;
 mod shell;
 mod state;
 mod theme;

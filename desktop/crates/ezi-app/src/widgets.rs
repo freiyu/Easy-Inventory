@@ -3,6 +3,7 @@
 //! Colours come from `ezi_core::theme` tokens through `state::color`; sizes are the constants of that module.
 
 use std::rc::Rc;
+use std::sync::Arc;
 
 use ezi_core::i18n;
 use ezi_core::theme::{self, Token};
@@ -83,6 +84,107 @@ pub fn loan_tone(status: ezi_core::models::LoanStatus) -> Tone {
         Completed => Tone::Success,
         Overdue => Tone::Danger,
         Draft | Rejected | Borrowed | Cancelled => Tone::Neutral,
+    }
+}
+
+// ------------------------------------------------------------------ barcode and photo
+
+/// A Code 128 barcode, drawn as filled bars. Always black on white (see `theme::BARCODE_INK`).
+/// `text` is printed under the bars; pass None to show the bars only (Staff never read the code as text).
+#[derive(IntoElement)]
+pub struct BarcodeView {
+    value: String,
+    text: Option<SharedString>,
+}
+
+impl BarcodeView {
+    pub fn new(value: impl Into<String>, show_text: bool) -> Self {
+        let value = value.into();
+        let text = show_text.then(|| SharedString::from(value.clone()));
+        BarcodeView { value, text }
+    }
+}
+
+impl RenderOnce for BarcodeView {
+    fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
+        let Some((bars, total)) = ezi_core::code128::bars(&self.value, theme::BARCODE_QUIET_MODULES) else {
+            return div().into_any_element();
+        };
+        let ink = crate::state::hsla(theme::BARCODE_INK);
+        let paper = crate::state::hsla(theme::BARCODE_PAPER);
+        let paint_bars = canvas(
+            |_, _, _| (),
+            move |bounds, _, window, _| {
+                let unit = bounds.size.width / total as f32;
+                window.paint_quad(fill(bounds, paper));
+                for (start, width) in &bars {
+                    let origin = point(bounds.origin.x + unit * *start as f32, bounds.origin.y);
+                    window.paint_quad(fill(Bounds::new(origin, size(unit * *width as f32, bounds.size.height)), ink));
+                }
+            },
+        )
+        .w_full()
+        .h(px(theme::BARCODE_HEIGHT));
+        div()
+            .flex()
+            .flex_col()
+            .items_center()
+            .gap(px(theme::SPACE_1))
+            .w_full()
+            .p(px(theme::SPACE_2))
+            .rounded(px(theme::RADIUS))
+            .bg(paper)
+            .text_color(ink)
+            .text_size(px(theme::TEXT_TABLE))
+            .child(paint_bars)
+            .children(self.text)
+            .into_any_element()
+    }
+}
+
+/// An item's photo, or an empty state when there is none. `bytes` is the file as the server sent it.
+#[derive(IntoElement)]
+pub struct PhotoView {
+    bytes: Option<Arc<Vec<u8>>>,
+    empty_label: SharedString,
+}
+
+impl PhotoView {
+    pub fn new(bytes: Option<Arc<Vec<u8>>>, empty_label: impl Into<SharedString>) -> Self {
+        PhotoView { bytes, empty_label: empty_label.into() }
+    }
+}
+
+/// The image type from the file's first bytes (the server only stores JPEG, PNG and WebP).
+fn image_format(b: &[u8]) -> Option<ImageFormat> {
+    if b.starts_with(&[0xff, 0xd8, 0xff]) {
+        Some(ImageFormat::Jpeg)
+    } else if b.starts_with(&[0x89, b'P', b'N', b'G']) {
+        Some(ImageFormat::Png)
+    } else if b.len() >= 12 && &b[0..4] == b"RIFF" && &b[8..12] == b"WEBP" {
+        Some(ImageFormat::Webp)
+    } else {
+        None
+    }
+}
+
+impl RenderOnce for PhotoView {
+    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let frame = div()
+            .flex()
+            .flex_none()
+            .items_center()
+            .justify_center()
+            .size(px(theme::PHOTO_SIZE))
+            .overflow_hidden()
+            .rounded(px(theme::RADIUS))
+            .border_1()
+            .border_color(color(cx, Token::Border))
+            .bg(color(cx, Token::Muted));
+        match self.bytes.as_ref().and_then(|b| image_format(b).map(|f| (f, b))) {
+            Some((format, bytes)) => frame.child(img(Arc::new(Image::from_bytes(format, bytes.as_ref().clone()))).size_full().object_fit(ObjectFit::Cover)),
+            None => frame.child(div().px(px(theme::SPACE_2)).text_center().text_size(px(theme::TEXT_TABLE)).text_color(color(cx, Token::MutedForeground)).child(self.empty_label)),
+        }
     }
 }
 
@@ -234,6 +336,10 @@ impl StatePanel {
             busy: false,
         }
     }
+    /// A message with one button (for example 'Clear filters').
+    pub fn action(title: &str, body: &str, label: &str, run: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        StatePanel { title: title.to_string().into(), body: Some(body.to_string().into()), retry: Some((label.to_string().into(), Rc::new(run))), busy: false }
+    }
     /// A plain message with a title and a line of help (an empty list with an explanation).
     pub fn message(_cx: &App, title: &str, body: &str) -> Self {
         StatePanel { title: title.to_string().into(), body: Some(body.to_string().into()), retry: None, busy: false }
@@ -335,12 +441,13 @@ pub struct DataTable {
     rows: Vec<Vec<Cell>>,
     paging: Option<Paging>,
     on_page: Option<Rc<dyn Fn(u32, &mut Window, &mut App)>>,
+    on_row: Option<Rc<dyn Fn(usize, &mut Window, &mut App)>>,
     empty: Option<AnyElement>,
 }
 
 impl DataTable {
     pub fn new(id: impl Into<SharedString>, columns: Vec<Column>) -> Self {
-        DataTable { id: id.into(), columns, rows: Vec::new(), paging: None, on_page: None, empty: None }
+        DataTable { id: id.into(), columns, rows: Vec::new(), paging: None, on_page: None, on_row: None, empty: None }
     }
     pub fn rows(mut self, rows: Vec<Vec<Cell>>) -> Self {
         self.rows = rows;
@@ -349,6 +456,11 @@ impl DataTable {
     pub fn paging(mut self, paging: Paging, on_page: impl Fn(u32, &mut Window, &mut App) + 'static) -> Self {
         self.paging = Some(paging);
         self.on_page = Some(Rc::new(on_page));
+        self
+    }
+    /// Makes a row clickable; `f` gets the row's position.
+    pub fn on_row_click(mut self, f: impl Fn(usize, &mut Window, &mut App) + 'static) -> Self {
+        self.on_row = Some(Rc::new(f));
         self
     }
     /// Shown instead of the rows when there are none.
@@ -393,10 +505,12 @@ impl RenderOnce for DataTable {
         } else {
             let hover = color(cx, Token::Muted);
             let table_id = self.id.clone();
+            let on_row = self.on_row.clone();
             div()
                 .flex()
                 .flex_col()
                 .children(self.rows.into_iter().enumerate().map(|(i, row)| {
+                    let on_row = on_row.clone();
                     div()
                         .id(SharedString::from(format!("{table_id}-row-{i}")))
                         .flex()
@@ -407,6 +521,12 @@ impl RenderOnce for DataTable {
                         .text_size(px(theme::TEXT_TABLE))
                         .text_color(color(cx, Token::Foreground))
                         .hover(move |s| s.bg(hover)) // row hover is instant (PRD_REDESIGN 10.4)
+                        .when(on_row.is_some(), |d| d.cursor_pointer())
+                        .on_click(move |_, window, cx| {
+                            if let Some(f) = &on_row {
+                                f(i, window, cx);
+                            }
+                        })
                         .children(row.into_iter().zip(self.columns.iter()).map(|(cell, col)| match cell {
                             Cell::Text(t) => cell_box(col, div().truncate().child(t)),
                             Cell::Element(e) => cell_box(col, e),

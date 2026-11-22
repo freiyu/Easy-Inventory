@@ -372,6 +372,26 @@ impl Client {
         Ok(self.get::<crate::models::DashboardSummary>("/dashboard/summary", &[])?.data)
     }
 
+    /// A page of items. `query` takes the same names as the web app: `page`, `pageSize`, `search`, `categoryId`, `subcategoryId`,
+    /// `stockStatus`, `status` (Admin), `supplierId`, `location`, `sort`. Empty values are left out.
+    pub fn items(&self, query: &[(&str, &str)]) -> Result<Success<Vec<crate::models::Item>>, ApiError> {
+        self.get("/items", query)
+    }
+
+    pub fn item(&self, id: i64) -> Result<crate::models::Item, ApiError> {
+        Ok(self.get::<crate::models::Item>(&format!("/items/{id}"), &[])?.data)
+    }
+
+    /// The item's photo file, or `NotFound` when it has none.
+    pub fn item_photo(&self, id: i64) -> Result<Vec<u8>, ApiError> {
+        self.get_bytes(&format!("/items/{id}/photo"))
+    }
+
+    /// Active categories or subcategories (`path` is `/categories` or `/subcategories`) as filter options.
+    pub fn name_options(&self, path: &str) -> Result<Vec<crate::models::NameOption>, ApiError> {
+        Ok(self.get::<Vec<crate::models::NameOption>>(path, &[("status", "Active"), ("pageSize", "500"), ("sort", "name:asc")])?.data)
+    }
+
     /// True when the server has no user yet and wants the first-run setup.
     pub fn needs_setup(&self) -> Result<bool, ApiError> {
         #[derive(Deserialize)]

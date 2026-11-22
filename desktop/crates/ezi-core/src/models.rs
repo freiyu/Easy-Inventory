@@ -98,6 +98,78 @@ pub struct DashboardSummary {
     pub staff: Option<StaffDashboard>,
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct Movement {
+    pub id: i64,
+    pub number: String,
+    /// `IN`, `OUT`, `ADJUSTMENT`, `LOAN_ISSUE`, `LOAN_RETURN` or `REVERSAL`.
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub date: String,
+    #[serde(rename = "quantityChange")]
+    pub quantity_change: i64,
+    #[serde(rename = "balanceAfter")]
+    pub balance_after: i64,
+    #[serde(rename = "userName")]
+    pub user_name: String,
+}
+
+/// An item as the API sends it. Staff get only the first group of fields (the server leaves the rest out, PRD 3.2).
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct Item {
+    pub id: i64,
+    pub name: String,
+    #[serde(rename = "categoryName")]
+    pub category_name: String,
+    #[serde(rename = "subcategoryName")]
+    pub subcategory_name: String,
+    pub unit: String,
+    /// `Active` or `Inactive`.
+    pub status: String,
+    #[serde(rename = "stockStatus")]
+    pub stock_status: StockStatus,
+    #[serde(rename = "availableForLoan")]
+    pub available_for_loan: i64,
+    /// The stored photo file name, null when there is no photo (v1.2).
+    #[serde(rename = "photoVersion")]
+    pub photo_version: Option<String>,
+    /// Item detail for Staff only (v1.2): the value to encode as a barcode. Never shown as text.
+    pub barcode: Option<String>,
+    // Admin only:
+    pub code: Option<String>,
+    #[serde(rename = "currentStock")]
+    pub current_stock: Option<i64>,
+    #[serde(rename = "minimumStock")]
+    pub minimum_stock: Option<i64>,
+    #[serde(rename = "lastPurchasePrice")]
+    pub last_purchase_price: Option<i64>,
+    #[serde(rename = "supplierName")]
+    pub supplier_name: Option<String>,
+    pub location: Option<String>,
+    pub notes: Option<String>,
+    #[serde(rename = "createdAt")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: Option<String>,
+    pub reserved: Option<i64>,
+    #[serde(default)]
+    pub movements: Vec<Movement>,
+}
+
+impl Item {
+    /// What to encode in the barcode: the code for Admin, the barcode value for Staff.
+    pub fn barcode_value(&self) -> Option<&str> {
+        self.code.as_deref().or(self.barcode.as_deref())
+    }
+}
+
+/// A category, subcategory or supplier option for a filter: only the id and the name.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct NameOption {
+    pub id: i64,
+    pub name: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -124,5 +196,19 @@ mod tests {
         assert_eq!((s.active_loans[0].status, s.active_loans[1].status), (LoanStatus::PendingApproval, LoanStatus::Overdue));
         assert_eq!((s.overdue_count, s.requestable, s.active_items), (1, 4, 6));
         assert_eq!(s.overdue_first.unwrap().days_overdue, 21);
+    }
+
+    #[test]
+    fn reads_an_admin_item_with_movements_and_a_staff_item_with_a_barcode() {
+        let admin = r#"{"id":1,"name":"Proyektor","categoryId":1,"categoryName":"Kantor","subcategoryId":1,"subcategoryName":"Elektronik","unit":"pcs","status":"Active","stockStatus":"Safe","availableForLoan":2,"photoVersion":"ab.png",
+          "code":"KTR-ELK-0001","currentStock":3,"minimumStock":1,"lastPurchasePrice":1000,"supplierId":1,"supplierName":"Toko","location":"Aula","notes":"","createdAt":"2026-11-22T00:00:00.000Z","updatedAt":"2026-11-22T00:00:00.000Z","reserved":1,
+          "movements":[{"id":4,"number":"ADJ-1","type":"ADJUSTMENT","date":"2026-11-22","quantityChange":3,"balanceAfter":3,"userName":"Admin"}]}"#;
+        let i: Item = serde_json::from_str(admin).unwrap();
+        assert_eq!((i.barcode_value(), i.current_stock, i.reserved, i.photo_version.as_deref()), (Some("KTR-ELK-0001"), Some(3), Some(1), Some("ab.png")));
+        assert_eq!((i.movements[0].kind.as_str(), i.movements[0].quantity_change), ("ADJUSTMENT", 3));
+        let staff = r#"{"id":1,"name":"Proyektor","categoryId":1,"categoryName":"Kantor","subcategoryId":1,"subcategoryName":"Elektronik","unit":"pcs","status":"Active","stockStatus":"Safe","availableForLoan":2,"photoVersion":null,"barcode":"KTR-ELK-0001"}"#;
+        let s: Item = serde_json::from_str(staff).unwrap();
+        assert_eq!((s.code.as_deref(), s.barcode_value(), s.current_stock), (None, Some("KTR-ELK-0001"), None));
+        assert!(s.movements.is_empty() && s.photo_version.is_none());
     }
 }

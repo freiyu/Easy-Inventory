@@ -15,3 +15,5 @@ ureq = { version = "3", default-features = false }
 [dev-dependencies]
 # A real HTTP server on a random local port stands in for the EZI server in the tests.
 tiny_http = "0.12"
+# An independent barcode reader (a port of ZXing): decodes what the encoder draws, so a wrong table or checksum shows up.
+rxing = { version = "0.8", default-features = false, features = ["encoding_rs"] }

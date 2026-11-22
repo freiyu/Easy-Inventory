@@ -31,6 +31,7 @@ strings! {
     errors_network, errors_signed_out, errors_rate_limited,
     auth_sign_in, auth_signing_in, auth_sign_in_title, auth_sign_in_intro, auth_setup_eyebrow, auth_setup_title, auth_setup_info, auth_setup_submit, auth_setup_done, auth_go_to_sign_in, auth_password_hint, auth_change_title, auth_change_forced_body, auth_change_submit, auth_change_done, auth_current_wrong, fields_email, fields_password, fields_current_password, fields_new_password, fields_confirm_password, fields_full_name, validation_email, validation_password_length, validation_password_match,
     dashboard_title, dashboard_admin_desc, dashboard_kpi_total, dashboard_kpi_total_caption, dashboard_kpi_stock, dashboard_kpi_stock_out, dashboard_kpi_stock_low, dashboard_kpi_approvals, dashboard_kpi_approvals_caption, dashboard_needs_attention, dashboard_view_all_items, dashboard_all_good, dashboard_col_item, dashboard_col_category, dashboard_col_stock, dashboard_col_minimum, dashboard_col_status, dashboard_my_active_loans, dashboard_my_loans_kpi, dashboard_available_kpi, dashboard_view_my_loans, dashboard_no_active_loans, dashboard_no_active_loans_body, dashboard_col_loan, dashboard_col_items, dashboard_col_due, status_stock_admin_safe, status_stock_admin_low, status_stock_admin_out, status_stock_staff_safe, status_stock_staff_low, status_stock_staff_out, status_loan_draft, status_loan_pending_approval, status_loan_approved, status_loan_rejected, status_loan_borrowed, status_loan_completed, status_loan_cancelled, status_loan_overdue,
+    items_title, items_desc_admin, items_desc_staff, items_search_placeholder, items_all_categories, items_all_subcategories, items_stock_status_filter, items_availability_filter, items_all_stock_status, items_all_availability, items_col_name, items_col_category, items_col_subcategory, items_col_stock, items_col_minimum, items_col_unit, items_col_availability, items_inactive_tag, items_empty_title, items_empty_filtered, items_empty_filtered_body, items_record_status_filter, items_active_only, items_inactive_only, items_all_records, items_details_card, items_stock_card, items_current_stock, items_minimum_stock, items_reserved, items_available_for_loan, items_last_price, items_movements, items_movements_empty, items_col_date, items_col_type, items_col_change, items_col_balance, items_col_ref, items_col_user, items_created_at, items_updated_at, items_staff_stock_note, items_barcode_card, items_photo_none, items_not_found_back, fields_category, fields_subcategory, fields_unit, fields_preferred_supplier, fields_location, common_notes, status_tx_type_in, status_tx_type_out, status_tx_type_adjustment, status_tx_type_loan_issue, status_tx_type_loan_return, status_tx_type_reversal,
     ui_language_id, ui_language_en, ui_server_address, ui_server_address_hint, ui_checking_server, ui_invalid_address, ui_timeout, ui_server_error, ui_setup_needed,
 }
 
@@ -93,6 +94,64 @@ pub const EN: Strings = Strings {
     status_loan_completed: "Completed",
     status_loan_cancelled: "Cancelled",
     status_loan_overdue: "Overdue",
+    items_title: "Items",
+    items_desc_admin: "Search, filter, and manage inventory items.",
+    items_desc_staff: "Check what is available before you request a loan.",
+    items_search_placeholder: "Search by name or code",
+    items_all_categories: "All categories",
+    items_all_subcategories: "All subcategories",
+    items_stock_status_filter: "Stock status",
+    items_availability_filter: "Availability",
+    items_all_stock_status: "All stock statuses",
+    items_all_availability: "All availability",
+    items_col_name: "Name",
+    items_col_category: "Category",
+    items_col_subcategory: "Subcategory",
+    items_col_stock: "Stock",
+    items_col_minimum: "Minimum",
+    items_col_unit: "Unit",
+    items_col_availability: "Availability",
+    items_inactive_tag: "Inactive",
+    items_empty_title: "No items yet",
+    items_empty_filtered: "No items match your filters",
+    items_empty_filtered_body: "Try a different search or clear the filters.",
+    items_record_status_filter: "Record status",
+    items_active_only: "Active items",
+    items_inactive_only: "Inactive items",
+    items_all_records: "Active and inactive",
+    items_details_card: "Item details",
+    items_stock_card: "Stock",
+    items_current_stock: "Current stock",
+    items_minimum_stock: "Minimum stock",
+    items_reserved: "Reserved by approved loans",
+    items_available_for_loan: "Available for loan",
+    items_last_price: "Last purchase price",
+    items_movements: "Recent stock movements",
+    items_movements_empty: "No stock movements yet.",
+    items_col_date: "Date",
+    items_col_type: "Type",
+    items_col_change: "Change",
+    items_col_balance: "Balance after",
+    items_col_ref: "Reference",
+    items_col_user: "User",
+    items_created_at: "Created",
+    items_updated_at: "Updated",
+    items_staff_stock_note: "Availability only. Ask an Admin for stock numbers.",
+    items_barcode_card: "Barcode",
+    items_photo_none: "No photo",
+    items_not_found_back: "Back to items",
+    fields_category: "Category",
+    fields_subcategory: "Subcategory",
+    fields_unit: "Unit",
+    fields_preferred_supplier: "Preferred supplier",
+    fields_location: "Storage location",
+    common_notes: "Note",
+    status_tx_type_in: "Incoming",
+    status_tx_type_out: "Outgoing",
+    status_tx_type_adjustment: "Adjustment",
+    status_tx_type_loan_issue: "Loan issue",
+    status_tx_type_loan_return: "Loan return",
+    status_tx_type_reversal: "Reversal",
     ui_language_id: "Bahasa Indonesia", ui_language_en: "English",
     auth_sign_in: "Sign in",
     auth_signing_in: "Signing in...",
@@ -187,6 +246,64 @@ pub const ID: Strings = Strings {
     status_loan_completed: "Selesai",
     status_loan_cancelled: "Dibatalkan",
     status_loan_overdue: "Terlambat",
+    items_title: "Barang",
+    items_desc_admin: "Cari, saring, dan kelola barang inventaris.",
+    items_desc_staff: "Cek barang yang tersedia sebelum mengajukan pinjam.",
+    items_search_placeholder: "Cari nama atau kode",
+    items_all_categories: "Semua area",
+    items_all_subcategories: "Semua jenis",
+    items_stock_status_filter: "Status stok",
+    items_availability_filter: "Ketersediaan",
+    items_all_stock_status: "Semua status stok",
+    items_all_availability: "Semua ketersediaan",
+    items_col_name: "Nama",
+    items_col_category: "Area",
+    items_col_subcategory: "Jenis",
+    items_col_stock: "Stok",
+    items_col_minimum: "Minimum",
+    items_col_unit: "Satuan",
+    items_col_availability: "Ketersediaan",
+    items_inactive_tag: "Nonaktif",
+    items_empty_title: "Belum ada barang",
+    items_empty_filtered: "Tidak ada barang yang cocok",
+    items_empty_filtered_body: "Coba kata kunci lain atau hapus filter.",
+    items_record_status_filter: "Status data",
+    items_active_only: "Barang aktif",
+    items_inactive_only: "Barang nonaktif",
+    items_all_records: "Aktif dan nonaktif",
+    items_details_card: "Detail barang",
+    items_stock_card: "Stok",
+    items_current_stock: "Stok sekarang",
+    items_minimum_stock: "Stok minimum",
+    items_reserved: "Disiapkan untuk peminjaman yang disetujui",
+    items_available_for_loan: "Bisa dipinjam",
+    items_last_price: "Harga beli terakhir",
+    items_movements: "Pergerakan stok terakhir",
+    items_movements_empty: "Belum ada pergerakan stok.",
+    items_col_date: "Tanggal",
+    items_col_type: "Jenis transaksi",
+    items_col_change: "Perubahan",
+    items_col_balance: "Sisa stok",
+    items_col_ref: "Referensi",
+    items_col_user: "Pengguna",
+    items_created_at: "Dibuat",
+    items_updated_at: "Diubah",
+    items_staff_stock_note: "Hanya ketersediaan. Tanyakan ke Admin untuk jumlah stok.",
+    items_barcode_card: "Barcode",
+    items_photo_none: "Belum ada foto",
+    items_not_found_back: "Kembali ke daftar barang",
+    fields_category: "Area",
+    fields_subcategory: "Jenis",
+    fields_unit: "Satuan",
+    fields_preferred_supplier: "Supplier langganan",
+    fields_location: "Tempat simpan",
+    common_notes: "Catatan",
+    status_tx_type_in: "Barang masuk",
+    status_tx_type_out: "Barang keluar",
+    status_tx_type_adjustment: "Penyesuaian",
+    status_tx_type_loan_issue: "Diserahkan (pinjam)",
+    status_tx_type_loan_return: "Dikembalikan (pinjam)",
+    status_tx_type_reversal: "Pembatalan",
     ui_language_id: "Bahasa Indonesia", ui_language_en: "English",
     auth_sign_in: "Masuk",
     auth_signing_in: "Sedang masuk...",
@@ -298,6 +415,21 @@ pub fn stock_label(lang: Lang, admin: bool, status: crate::models::StockStatus) 
     }
 }
 
+/// `IN`, `OUT`, `ADJUSTMENT`, `LOAN_ISSUE`, `LOAN_RETURN`, `REVERSAL` as the server sends them.
+pub fn tx_type_label(lang: Lang, kind: &str) -> String {
+    let s = strings(lang);
+    match kind {
+        "IN" => s.status_tx_type_in,
+        "OUT" => s.status_tx_type_out,
+        "ADJUSTMENT" => s.status_tx_type_adjustment,
+        "LOAN_ISSUE" => s.status_tx_type_loan_issue,
+        "LOAN_RETURN" => s.status_tx_type_loan_return,
+        "REVERSAL" => s.status_tx_type_reversal,
+        other => other,
+    }
+    .to_string()
+}
+
 pub fn loan_status_label(lang: Lang, status: crate::models::LoanStatus) -> &'static str {
     use crate::models::LoanStatus::*;
     let s = strings(lang);
@@ -406,6 +538,19 @@ mod tests {
     }
 
     #[test]
+    fn transaction_type_labels_equal_the_web_apps_labels() {
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../frontend/src/lib/");
+        for (lang, file) in [(Lang::En, "strings.ts"), (Lang::Id, "strings.id.ts")] {
+            let src = std::fs::read_to_string(format!("{dir}{file}")).unwrap();
+            let web = web_nested(&src, "txType");
+            for kind in ["IN", "OUT", "ADJUSTMENT", "LOAN_ISSUE", "LOAN_RETURN", "REVERSAL"] {
+                assert_eq!(tx_type_label(lang, kind), web[kind], "{file} {kind}");
+            }
+        }
+        assert_eq!(tx_type_label(Lang::En, "SOMETHING_NEW"), "SOMETHING_NEW");
+    }
+
+    #[test]
     fn counts_read_naturally() {
         assert_eq!(showing(Lang::En, 1, 8, 17), "Showing 1-8 of 17");
         assert_eq!(showing(Lang::Id, 9, 16, 17), "Menampilkan 9-16 dari 17");
@@ -451,7 +596,7 @@ mod tests {
         let id_src = std::fs::read_to_string(format!("{dir}strings.id.ts")).unwrap();
         let mut compared = 0;
         for (lang, src, ours) in [("en", &en_src, &EN), ("id", &id_src, &ID)] {
-            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard"] {
+            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items"] {
                 let web: HashMap<String, String> = web_section(src, section).into_iter().map(|(k, v)| (format!("{section}_{}", snake(&k)), v)).collect();
                 for (field, text) in ours.entries() {
                     if let Some(want) = web.get(field) {

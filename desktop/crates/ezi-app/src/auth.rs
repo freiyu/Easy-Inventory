@@ -19,6 +19,7 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 
 use crate::dashboard::Dashboard;
+use crate::items::ItemsPage;
 use crate::shell::{page_label, AppShell, PageBuilder};
 use crate::state::{color, state, t, AppState};
 use crate::widgets::{toast, FormField, ToastKind};
@@ -265,11 +266,14 @@ impl AuthGate {
             s.user_name = user.name.clone().into();
         });
         let client = self.client.clone().expect("a signed-in user has a client");
-        let dashboard = cx.new(|cx| Dashboard::new(client, cx));
+        let admin = user.role == ezi_core::api::Role::Admin;
+        let dashboard = cx.new(|cx| Dashboard::new(client.clone(), cx));
+        let items = cx.new(|cx| ItemsPage::new(client, admin, window, cx));
         let content: PageBuilder = {
-            let dashboard = dashboard.clone();
+            let (dashboard, items) = (dashboard.clone(), items.clone());
             Rc::new(move |page: Page, _window: &mut Window, cx: &mut App| match page {
                 Page::Dashboard => dashboard.clone().into_any_element(),
+                Page::Items => items.clone().into_any_element(),
                 // The screens of the next tasks replace this placeholder: just the page title.
                 other => div().text_size(px(theme::TEXT_TITLE)).font_weight(FontWeight::SEMIBOLD).child(page_label(t(cx), other)).into_any_element(),
             })
@@ -281,10 +285,10 @@ impl AuthGate {
                     gate.update(cx, |gate, cx| gate.sign_out(window, cx)).ok();
                 })
                 // The numbers are fetched again each time the Dashboard is opened.
-                .on_page(move |page, _window, cx| {
-                    if page == Page::Dashboard {
-                        dashboard.update(cx, |d, cx| d.refresh(cx));
-                    }
+                .on_page(move |page, _window, cx| match page {
+                    Page::Dashboard => dashboard.update(cx, |d, cx| d.refresh(cx)),
+                    Page::Items => items.update(cx, |i, cx| i.show_list(cx)),
+                    _ => {}
                 })
         });
         self.shell = Some(shell.into());

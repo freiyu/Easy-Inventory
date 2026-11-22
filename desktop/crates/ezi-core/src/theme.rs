@@ -147,6 +147,21 @@ pub const TEXT_TABLE: f32 = 14.0;
 pub const RADIUS: f32 = 8.0;
 pub const RADIUS_CARD: f32 = 12.0;
 
+/// A barcode is always dark bars on a light field, in both themes: scanners need that contrast.
+pub const BARCODE_INK: Rgb = Rgb(0, 0, 0);
+pub const BARCODE_PAPER: Rgb = Rgb(255, 255, 255);
+/// Height of a barcode and the empty space before and after it, in modules (Code 128 asks for at least 10).
+pub const BARCODE_HEIGHT: f32 = 56.0;
+pub const BARCODE_QUIET_MODULES: u32 = 10;
+/// Widths of the list filters (search box, category and subcategory, stock status, record status) and of the side cards of a detail page.
+pub const FILTER_SEARCH_WIDTH: f32 = 210.0;
+pub const FILTER_SELECT_WIDTH: f32 = 160.0;
+pub const FILTER_STOCK_WIDTH: f32 = 180.0;
+pub const FILTER_STATUS_WIDTH: f32 = 150.0;
+pub const SIDE_CARD_WIDTH: f32 = 280.0;
+/// Side of the square photo of an item.
+pub const PHOTO_SIZE: f32 = 144.0;
+
 // Spacing scale (Tailwind's, as the web app uses it): 1 = 4 px.
 pub const SPACE_HALF: f32 = 2.0;
 pub const SPACE_1: f32 = 4.0;
