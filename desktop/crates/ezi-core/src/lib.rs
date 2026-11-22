@@ -1,5 +1,8 @@
 //! EZI desktop client logic with no UI dependency. Everything here builds and is tested on any OS.
 
+pub mod api;
+pub mod settings;
+
 /// Shown in the window title.
 pub const APP_NAME: &str = "EZI";
 
