@@ -1,0 +1,16 @@
+# EZI desktop client (v1.2): a native Windows GUI that talks to the EZI server over its HTTP API.
+# Two crates on purpose: `ezi-core` has no UI dependency, so its logic (API client, models, barcode, i18n, tokens)
+# builds and is tested on any OS, including WSL. `ezi-app` is the GPUI window and is built and run on Windows.
+[workspace]
+resolver = "3"
+members = ["crates/ezi-core", "crates/ezi-app"]
+
+[workspace.package]
+version = "1.2.0"
+edition = "2024"
+license = "UNLICENSED"
+publish = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

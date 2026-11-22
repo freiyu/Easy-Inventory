@@ -1,0 +1,17 @@
+[package]
+name = "ezi-app"
+description = "EZI desktop client window (GPUI)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "ezi"
+path = "src/main.rs"
+
+[dependencies]
+ezi-core = { path = "../ezi-core" }
+# `=` pins the exact release: GPUI is pre-1.0 and breaks between versions (gpui README). gpui-kit pins the matching
+# GPUI snapshot (gpui-pre =0.3.12) and brings the component set (gpui-component 0.10.0). See docs/docs-1.2/DESKTOP-BUILD.md.
+gpui-kit = "=0.10.0"
