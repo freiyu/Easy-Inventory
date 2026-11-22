@@ -14,6 +14,7 @@ import { fail, logError, notFound } from "../http";
 import { paged, type Query } from "../list";
 import { BACKUP_RETENTION, t, type BackupFile } from "../shared";
 import type { SessionUser } from "./core";
+import { photoLines, restorePhotosFrom } from "./photos";
 
 type Kind = BackupFile["kind"];
 const SLUG: Record<Kind, string> = {
@@ -87,7 +88,12 @@ function client(cmd: string, args: string[], input?: Readable, output?: (stdout:
 
 const dump = (target: string, optionsFile: string) =>
   client(env.mysqldump, [`--defaults-extra-file=${optionsFile}`, "--single-transaction", "--no-tablespaces", "--default-character-set=utf8mb4", dbConfig.database],
-    undefined, (out) => pipeline(out, createGzip(), createWriteStream(target, { mode: 0o600 })));
+    undefined, (out) => pipeline(Readable.from(withPhotos(out)), createGzip(), createWriteStream(target, { mode: 0o600 })));
+
+async function* withPhotos(dumpOutput: Readable) {
+  yield* dumpOutput;
+  yield* photoLines(); // v1.2: item photos travel inside the same file
+}
 
 let queue: Promise<unknown> = Promise.resolve();
 
@@ -122,7 +128,7 @@ export function createBackup(actor: SessionUser | null, kind: Kind = "Manual"): 
 
 /**
  * Replaces the database behind `databaseUrl` with a backup file (.sql.gz): drops and re-creates the database, then
- * loads the dump with the command-line client. The host restore tool takes a "Before restore" backup first (PRD 2.6).
+ * loads the dump with the command-line client, then puts the photos stored in the file back (v1.2). The host restore tool takes a "Before restore" backup first (PRD 2.6).
  */
 export async function restoreDump(file: string, databaseUrl: string) {
   const u = new URL(databaseUrl);
@@ -136,6 +142,7 @@ export async function restoreDump(file: string, databaseUrl: string) {
   await mkdir(backupDir(), { recursive: true, mode: 0o700 });
   await withOptions(backupDir(), c, (options) =>
     client(env.mysql, [`--defaults-extra-file=${options}`, "--default-character-set=utf8mb4"], Readable.from(sql())));
+  await restorePhotosFrom(file); // after the database: a failed restore leaves the photo folder untouched
 }
 
 /** One automatic backup per day while EZI runs: checked at start and every hour. */

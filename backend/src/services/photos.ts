@@ -2,7 +2,10 @@
 // The file name is made here (random hex plus an extension taken from the file's own bytes), never from the client.
 // File writes happen outside the database transaction (it can be retried), so a failed write removes the new file again.
 import { randomBytes } from "node:crypto";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createInterface } from "node:readline";
+import { createGunzip } from "node:zlib";
 import path from "node:path";
 import type { Tx } from "../db";
 import { env } from "../env";
@@ -86,4 +89,35 @@ export async function itemPhotoFile(c: Ctx, itemId: number): Promise<string> {
   const file = photoFile(item.photoPath);
   if (!file) throw notFound();
   return file;
+}
+
+// ------------------------------------------------------------------ backup and restore
+// A backup stays ONE file (.sql.gz): after the dump, every photo is appended as a line "-- EZI-PHOTO <name> <base64>".
+// For MySQL those lines are comments, so the file still restores with any client and a plain download still has the photos.
+const MARK = "-- EZI-PHOTO ";
+
+/** The dump's trailing lines: one comment line per stored photo. shortcut: photos are read after the dump, so a photo replaced during the backup can be missing from it. */
+export async function* photoLines(): AsyncGenerator<string> {
+  yield "\n";
+  for (const name of await readdir(photoDir()).catch(() => [] as string[])) {
+    const file = photoFile(name);
+    if (file) yield `${MARK}${name} ${(await readFile(file)).toString("base64")}\n`;
+  }
+}
+
+/** Writes the photos found in a backup file back into the photo folder. Existing files with other names are left alone. Returns how many were restored. */
+export async function restorePhotosFrom(backup: string): Promise<number> {
+  const lines = createInterface({ input: createReadStream(backup).pipe(createGunzip()), crlfDelay: Infinity });
+  let restored = 0;
+  for await (const line of lines) {
+    if (!line.startsWith(MARK)) continue;
+    const [name, data] = line.slice(MARK.length).split(" ");
+    const file = name && data ? photoFile(name) : null;
+    const bytes = file ? Buffer.from(data, "base64") : null;
+    if (!file || !bytes || !sniffImage(bytes)) continue; // a name or content this service would never have made is skipped
+    await mkdir(photoDir(), { recursive: true });
+    await writeFile(file, bytes);
+    restored++;
+  }
+  return restored;
 }
