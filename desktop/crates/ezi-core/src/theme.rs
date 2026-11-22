@@ -147,6 +147,25 @@ pub const TEXT_TABLE: f32 = 14.0;
 pub const RADIUS: f32 = 8.0;
 pub const RADIUS_CARD: f32 = 12.0;
 
+// Spacing scale (Tailwind's, as the web app uses it): 1 = 4 px.
+pub const SPACE_HALF: f32 = 2.0;
+pub const SPACE_1: f32 = 4.0;
+pub const SPACE_1_5: f32 = 6.0;
+pub const SPACE_2: f32 = 8.0;
+pub const SPACE_3: f32 = 12.0;
+pub const SPACE_4: f32 = 16.0;
+pub const SPACE_6: f32 = 24.0;
+pub const SPACE_8: f32 = 32.0;
+// Fixed sizes of single widgets.
+pub const BADGE_HEIGHT: f32 = 24.0;
+pub const TABLE_FOOTER_HEIGHT: f32 = 48.0;
+pub const USER_ROW_HEIGHT: f32 = 48.0;
+/// Width of the green bar on the active sidebar item.
+pub const NAV_BAR_WIDTH: f32 = 3.0;
+pub const DIALOG_WIDTH: f32 = 480.0;
+/// Longest line of running text (about 65 characters at 15 px).
+pub const TEXT_MAX_WIDTH: f32 = 480.0;
+
 #[cfg(test)]
 mod tests {
     use super::*;
