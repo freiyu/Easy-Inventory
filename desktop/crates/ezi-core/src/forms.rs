@@ -4,8 +4,8 @@
 use std::collections::BTreeMap;
 
 use crate::api::Lang;
-use crate::i18n::{at_least, required, strings, too_long, whole_number};
-use crate::models::{GroupInput, ItemInput, SupplierInput};
+use crate::i18n::{at_least, greater_than_zero, required, strings, too_long, whole_number};
+use crate::models::{AdjustmentInput, GroupInput, ItemInput, StockLineInput, StockMoveInput, SupplierInput};
 
 /// Field key to message. An empty map means the form is valid.
 pub type Errors = BTreeMap<&'static str, String>;
@@ -151,6 +151,129 @@ pub fn item(lang: Lang, f: &ItemFields, creating: bool) -> Result<ItemInput, Err
     })
 }
 
+/// Field key to message for the forms with item lines: keys like `lines.0.quantity` are made as the form is checked.
+pub type FieldErrors = BTreeMap<String, String>;
+
+/// One line as typed or chosen.
+pub struct LineFields<'a> {
+    pub item_id: Option<i64>,
+    pub quantity: &'a str,
+    pub unit_price: &'a str,
+}
+
+/// A whole number of at least `min` (0 or 1), like the web's `wholeNumber`: empty is "required", `min` 1 says "greater than 0".
+fn whole_at_least(lang: Lang, label: &str, raw: &str, min: i64) -> Result<i64, String> {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return Err(required(lang, label));
+    }
+    if !raw.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(whole_number(lang, label));
+    }
+    match raw.parse::<i64>() {
+        Ok(n) if n >= min && n <= 1_000_000_000 => Ok(n),
+        _ if min == 0 => Err(at_least(lang, label, 0)),
+        _ => Err(greater_than_zero(lang, label)),
+    }
+}
+
+fn date_field(lang: Lang, raw: &str, e: &mut FieldErrors) {
+    let s = strings(lang);
+    if raw.trim().is_empty() {
+        e.insert("date".into(), required(lang, s.fields_date));
+    } else if !crate::format::is_date(raw.trim()) {
+        e.insert("date".into(), s.ui_invalid_date.to_string());
+    }
+}
+
+fn check_lines(lang: Lang, lines: &[LineFields], with_price: bool, e: &mut FieldErrors) -> Vec<StockLineInput> {
+    let s = strings(lang);
+    if lines.is_empty() {
+        e.insert("lines".into(), s.validation_at_least_one_line.to_string());
+    }
+    let mut out = Vec::new();
+    for (i, l) in lines.iter().enumerate() {
+        let mut ok = true;
+        if l.item_id.is_none() {
+            e.insert(format!("lines.{i}.itemId"), s.validation_select_item.to_string());
+            ok = false;
+        }
+        let quantity = whole_at_least(lang, s.fields_quantity, l.quantity, 1).map_err(|m| e.insert(format!("lines.{i}.quantity"), m)).ok();
+        let price = if with_price { whole_at_least(lang, s.fields_unit_price, l.unit_price, 0).map_err(|m| e.insert(format!("lines.{i}.unitPrice"), m)).ok() } else { Some(0) };
+        if let (true, Some(quantity), Some(price), Some(item_id)) = (ok, quantity, price, l.item_id) {
+            out.push(StockLineInput { item_id, quantity, unit_price: with_price.then_some(price) });
+        }
+    }
+    out
+}
+
+/// Incoming stock (`incomingSchema`): a date, a supplier, one or more lines with quantity and unit price.
+pub fn stock_in(lang: Lang, date: &str, supplier_id: Option<i64>, lines: &[LineFields], notes: &str, request_id: &str) -> Result<StockMoveInput, FieldErrors> {
+    let s = strings(lang);
+    let mut e = FieldErrors::new();
+    date_field(lang, date, &mut e);
+    if supplier_id.is_none() {
+        e.insert("supplierId".into(), s.validation_select_supplier.to_string());
+    }
+    let checked = check_lines(lang, lines, true, &mut e);
+    if !e.is_empty() {
+        return Err(e);
+    }
+    Ok(StockMoveInput { date: date.trim().to_string(), supplier_id, destination: None, lines: checked, notes: notes.trim().to_string(), client_request_id: request_id.to_string() })
+}
+
+/// Outgoing stock (`outgoingSchema`): a date, a destination, lines with a quantity.
+pub fn stock_out(lang: Lang, date: &str, destination: &str, lines: &[LineFields], notes: &str, request_id: &str) -> Result<StockMoveInput, FieldErrors> {
+    let s = strings(lang);
+    let mut e = FieldErrors::new();
+    date_field(lang, date, &mut e);
+    if destination.trim().is_empty() {
+        e.insert("destination".into(), required(lang, s.fields_destination));
+    }
+    let checked = check_lines(lang, lines, false, &mut e);
+    if !e.is_empty() {
+        return Err(e);
+    }
+    Ok(StockMoveInput { date: date.trim().to_string(), supplier_id: None, destination: Some(destination.trim().to_string()), lines: checked, notes: notes.trim().to_string(), client_request_id: request_id.to_string() })
+}
+
+/// A stock adjustment (`adjustmentSchema`): the counted stock must differ from the system stock.
+pub fn adjustment(lang: Lang, date: &str, item_id: Option<i64>, physical: &str, system_stock: i64, reason: &str, request_id: &str) -> Result<AdjustmentInput, FieldErrors> {
+    let s = strings(lang);
+    let mut e = FieldErrors::new();
+    date_field(lang, date, &mut e);
+    if item_id.is_none() {
+        e.insert("itemId".into(), s.validation_select_item.to_string());
+    }
+    let counted = whole_at_least(lang, s.fields_physical_stock, physical, 0).map_err(|m| e.insert("physical".into(), m)).ok();
+    if counted == Some(system_stock) && item_id.is_some() {
+        e.insert("physical".into(), s.validation_difference_zero.to_string());
+    }
+    if reason.trim().is_empty() {
+        e.insert("reason".into(), required(lang, s.fields_reason));
+    }
+    match (e.is_empty(), item_id, counted) {
+        (true, Some(item_id), Some(physical)) => Ok(AdjustmentInput { date: date.trim().to_string(), item_id, physical, reason: reason.trim().to_string(), client_request_id: request_id.to_string() }),
+        _ => Err(e),
+    }
+}
+
+/// A reason typed for a void, a rejection or a cancel (`reasonSchema`).
+pub fn reason(lang: Lang, text: &str) -> Result<String, FieldErrors> {
+    if text.trim().is_empty() {
+        return Err(FieldErrors::from([("reason".into(), required(lang, strings(lang).fields_reason))]));
+    }
+    Ok(text.trim().to_string())
+}
+
+/// A fresh id for one form (`clientRequestId`, at most 48 characters): time, process and a counter.
+pub fn new_request_id() -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
+    format!("ezi-{nanos:x}-{:x}-{:x}", std::process::id(), COUNTER.fetch_add(1, Ordering::Relaxed))
+}
+
 /// The raw values of the category and subcategory form (`categorySchema`). The code is three letters, kept in capitals.
 pub fn group(lang: Lang, name: &str, code: &str, description: &str, status: &str) -> Result<GroupInput, Errors> {
     let s = strings(lang);
@@ -211,6 +334,38 @@ fn active_or_inactive(status: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stock_forms_follow_the_web_schemas() {
+        let line = |item: Option<i64>, q: &'static str, p: &'static str| LineFields { item_id: item, quantity: q, unit_price: p };
+        let ok = stock_in(Lang::En, "2026-11-23", Some(4), &[line(Some(1), "2", "1500"), line(Some(2), " 3 ", "0")], " hi ", "rid").unwrap();
+        assert_eq!((ok.supplier_id, ok.lines.len(), ok.lines[0].quantity, ok.lines[0].unit_price, ok.lines[1].unit_price, ok.notes.as_str()), (Some(4), 2, 2, Some(1500), Some(0), "hi"));
+        let json = serde_json::to_value(&ok).unwrap();
+        assert!(json.get("destination").is_none() && json["lines"][0]["unitPrice"] == 1500 && json["clientRequestId"] == "rid", "{json}");
+
+        let e = stock_in(Lang::En, "", None, &[line(None, "", "x"), line(Some(1), "0", "-1")], "", "r").unwrap_err();
+        assert_eq!(e["date"], "Date is required.");
+        assert_eq!(e["supplierId"], "Select a supplier.");
+        assert_eq!((e["lines.0.itemId"].as_str(), e["lines.0.quantity"].as_str(), e["lines.0.unitPrice"].as_str()), ("Select an item.", "Quantity is required.", "Unit price (IDR) must be a whole number."));
+        assert_eq!((e["lines.1.quantity"].as_str(), e["lines.1.unitPrice"].as_str()), ("Quantity must be greater than 0.", "Unit price (IDR) must be a whole number."));
+        assert_eq!(stock_in(Lang::En, "2026-11-23", Some(1), &[], "", "r").unwrap_err()["lines"], "Add at least one item.");
+        assert_eq!(stock_in(Lang::Id, "2026-02-30", Some(1), &[line(Some(1), "1", "1")], "", "r").unwrap_err()["date"], "Pakai format tanggal TTTT-BB-HH.");
+
+        let out = stock_out(Lang::En, "2026-11-23", " Ruang A ", &[line(Some(1), "2", "")], "", "r").unwrap();
+        let json = serde_json::to_value(&out).unwrap();
+        assert!(json.get("supplierId").is_none() && json["destination"] == "Ruang A" && json["lines"][0].get("unitPrice").is_none(), "{json}");
+        assert_eq!(stock_out(Lang::En, "2026-11-23", " ", &[line(Some(1), "1", "")], "", "r").unwrap_err()["destination"], "Destination is required.");
+
+        let adj = adjustment(Lang::En, "2026-11-23", Some(1), "7", 3, " Opname ", "r").unwrap();
+        assert_eq!((adj.physical, adj.reason.as_str()), (7, "Opname"));
+        assert_eq!(adjustment(Lang::En, "2026-11-23", Some(1), "3", 3, "x", "r").unwrap_err()["physical"], "Physical stock equals system stock. There is nothing to adjust.");
+        let e = adjustment(Lang::En, "2026-11-23", None, "-1", 3, " ", "r").unwrap_err();
+        assert_eq!((e["itemId"].as_str(), e["physical"].as_str(), e["reason"].as_str()), ("Select an item.", "Physical stock must be a whole number.", "Reason is required."));
+        assert_eq!(reason(Lang::Id, "  ").unwrap_err()["reason"], "Alasan wajib diisi.");
+        assert_eq!(reason(Lang::En, " rusak ").unwrap(), "rusak");
+        let (a, b) = (new_request_id(), new_request_id());
+        assert!(a != b && a.len() <= 48, "{a}");
+    }
 
     #[test]
     fn category_and_supplier_forms_follow_the_web_schemas() {

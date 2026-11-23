@@ -7,10 +7,14 @@ mod gallery;
 mod item_form;
 mod item_import;
 mod items;
+mod lines;
 mod load;
 mod master;
+mod reason;
 mod shell;
 mod state;
+mod stock;
+mod stock_form;
 mod theme;
 mod widgets;
 

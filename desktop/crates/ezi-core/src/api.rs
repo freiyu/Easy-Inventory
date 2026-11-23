@@ -462,6 +462,35 @@ impl Client {
     }
 
     /// True when the server has no user yet and wants the first-run setup.
+    // Stock transactions (Admin only).
+
+    pub fn stock_transactions(&self, query: &[(&str, &str)]) -> Result<Success<Vec<crate::models::StockTx>>, ApiError> {
+        self.get("/stock/transactions", query)
+    }
+
+    pub fn stock_transaction(&self, id: i64) -> Result<crate::models::StockTx, ApiError> {
+        Ok(self.get::<crate::models::StockTx>(&format!("/stock/transactions/{id}"), &[])?.data)
+    }
+
+    /// Incoming (`kind` "in") or outgoing ("out") stock. An outgoing request over the stock is refused by the server.
+    pub fn stock_move(&self, kind: &str, body: &crate::models::StockMoveInput) -> Result<crate::models::StockTx, ApiError> {
+        Ok(self.post::<crate::models::StockTx, _>(&format!("/stock/{kind}"), body)?.data)
+    }
+
+    pub fn stock_adjust(&self, body: &crate::models::AdjustmentInput) -> Result<crate::models::StockTx, ApiError> {
+        Ok(self.post::<crate::models::StockTx, _>("/stock/adjustment", body)?.data)
+    }
+
+    pub fn void_stock(&self, id: i64, reason: &str) -> Result<crate::models::StockTx, ApiError> {
+        Ok(self.post::<crate::models::StockTx, _>(&format!("/stock/transactions/{id}/void"), &serde_json::json!({ "reason": reason }))?.data)
+    }
+
+    /// Active items for the item pickers of the forms, by name. shortcut: the first 500 (the server's page limit),
+    /// searched in the picker; upgrade to a server search when an office has more active items than that.
+    pub fn pickable_items(&self) -> Result<Vec<crate::models::Item>, ApiError> {
+        Ok(self.items(&[("status", "Active"), ("pageSize", "500"), ("sort", "name:asc")])?.data)
+    }
+
     pub fn needs_setup(&self) -> Result<bool, ApiError> {
         #[derive(Deserialize)]
         struct Status {

@@ -34,6 +34,8 @@ strings! {
     items_title, items_desc_admin, items_desc_staff, items_search_placeholder, items_all_categories, items_all_subcategories, items_stock_status_filter, items_availability_filter, items_all_stock_status, items_all_availability, items_col_name, items_col_category, items_col_subcategory, items_col_stock, items_col_minimum, items_col_unit, items_col_availability, items_inactive_tag, items_empty_title, items_empty_filtered, items_empty_filtered_body, items_record_status_filter, items_active_only, items_inactive_only, items_all_records, items_details_card, items_stock_card, items_current_stock, items_minimum_stock, items_reserved, items_available_for_loan, items_last_price, items_movements, items_movements_empty, items_col_date, items_col_type, items_col_change, items_col_balance, items_col_ref, items_col_user, items_created_at, items_updated_at, items_staff_stock_note, items_barcode_card, items_photo_none, items_not_found_back, fields_category, fields_subcategory, fields_unit, fields_preferred_supplier, fields_location, common_notes, status_tx_type_in, status_tx_type_out, status_tx_type_adjustment, status_tx_type_loan_issue, status_tx_type_loan_return, status_tx_type_reversal,
     items_add, items_edit, items_deactivate, items_activate, items_delete, items_add_title, items_edit_title, items_section_basic, items_section_stock, items_section_purchasing, items_field_code, items_field_name, items_code_hint, items_code_auto, items_opening_hint, items_opening_read_only, items_minimum_hint, items_no_supplier, items_save_item, items_saved_add, items_saved_edit, items_deactivate_body, items_activate_body, items_delete_body, items_deactivated, items_activated, items_deleted, items_field_photo, items_photo_hint, items_photo_remove, items_photo_selected, items_photo_save_failed, item_import_button, item_import_title, item_import_desc, item_import_file_label, item_import_reading, item_import_preview_title, item_import_col_line, item_import_col_result, item_import_status_ready, item_import_status_skipped, item_import_status_error, item_import_status_imported, item_import_another, item_import_backup_note, item_import_confirming, item_import_back_to_items, fields_name, fields_opening_stock, fields_minimum_stock, fields_last_price, fields_supplier, validation_select_category, validation_select_subcategory, validation_select_unit, validation_select_supplier, errors_photo_empty, errors_photo_type, errors_photo_too_big,
     common_export_excel, common_exporting,
+    fields_destination_hint,
+    stock_title, stock_description, stock_incoming, stock_outgoing, stock_adjustment, stock_search_placeholder, stock_all_types, stock_all_statuses, stock_col_number, stock_col_date, stock_col_type, stock_col_items, stock_col_party, stock_col_total, stock_col_user, stock_col_status, stock_empty_title, stock_empty_body, stock_empty_filtered, stock_view, stock_void, stock_in_title, stock_in_desc, stock_out_title, stock_out_desc, stock_adj_title, stock_adj_desc, stock_items_section, stock_out_items_section, stock_add_line, stock_remove_line, stock_note_field, stock_total_purchase, stock_save_in, stock_save_out, stock_save_adj, stock_select_supplier, stock_adj_item_hint, stock_difference_label, stock_no_change, stock_reason_hint, stock_details_card, stock_lines_card, stock_col_item, stock_col_qty, stock_col_change, stock_col_balance, stock_col_unit_price, stock_col_line_total, stock_reason_label, stock_recorded_at, stock_voided_by, stock_reversal_of, stock_linked_loan, stock_void_body, stock_void_confirm, stock_voided, stock_not_found_back, fields_date, fields_destination, fields_quantity, fields_unit_price, fields_reason, fields_physical_stock, fields_system_stock, fields_item, validation_select_item, validation_at_least_one_line, validation_difference_zero, ui_invalid_date, ui_pick_item, status_tx_status_posted, status_tx_status_voided,
     categories_title, categories_description, categories_tab_categories, categories_tab_subcategories, categories_add, categories_search_placeholder, categories_col_name, categories_col_code, categories_col_description, categories_col_items, categories_empty_title, categories_empty_body, categories_add_title, categories_edit_title, categories_save, categories_saved, categories_code_hint, categories_deactivate_body, categories_activate_body, categories_delete_body, categories_deactivated, categories_activated, categories_deleted, subcategories_add, subcategories_search_placeholder, subcategories_empty_title, subcategories_empty_body, subcategories_add_title, subcategories_edit_title, subcategories_save, subcategories_saved, subcategories_code_hint, subcategories_deactivate_body, subcategories_activate_body, subcategories_delete_body, subcategories_deactivated, subcategories_activated, subcategories_deleted, suppliers_title, suppliers_description, suppliers_add, suppliers_search_placeholder, suppliers_col_name, suppliers_col_contact, suppliers_col_phone, suppliers_col_email, suppliers_col_items, suppliers_empty_title, suppliers_empty_body, suppliers_add_title, suppliers_edit_title, suppliers_save, suppliers_saved, suppliers_deactivate_body, suppliers_activate_body, suppliers_delete_body, suppliers_deactivated, suppliers_activated, suppliers_deleted, fields_code, fields_description, fields_contact_person, fields_phone, fields_address, validation_category_code, items_barcode_download, ui_active_tag,
     ui_language_id, ui_language_en, ui_browse, ui_check_file, ui_file_path, ui_file_unreadable, ui_export_saved_to, ui_server_address, ui_server_address_hint, ui_checking_server, ui_invalid_address, ui_timeout, ui_server_error, ui_setup_needed,
 }
@@ -216,6 +218,80 @@ pub const EN: Strings = Strings {
     errors_photo_type: "The photo must be a JPEG, PNG or WebP image.",
     errors_photo_too_big: "The photo is too large. The limit is 2 MB.",
     common_export_excel: "Export Excel",
+    fields_destination_hint: "Person or department",
+    stock_title: "Stock transactions",
+    stock_description: "Every stock change is recorded here. Posted transactions are never edited; use Void to correct a mistake.",
+    stock_incoming: "+ Incoming stock",
+    stock_outgoing: "Outgoing stock",
+    stock_adjustment: "Adjustment",
+    stock_search_placeholder: "Search by number, item, or supplier",
+    stock_all_types: "All types",
+    stock_all_statuses: "All statuses",
+    stock_col_number: "Transaction",
+    stock_col_date: "Date",
+    stock_col_type: "Type",
+    stock_col_items: "Items",
+    stock_col_party: "Supplier / destination",
+    stock_col_total: "Total",
+    stock_col_user: "User",
+    stock_col_status: "Status",
+    stock_empty_title: "No stock transactions yet",
+    stock_empty_body: "Record incoming stock when you buy items.",
+    stock_empty_filtered: "No transactions match your filters",
+    stock_view: "View details",
+    stock_void: "Void transaction",
+    stock_in_title: "Incoming stock",
+    stock_in_desc: "Record items you bought. Stock increases when you save.",
+    stock_out_title: "Outgoing stock",
+    stock_out_desc: "Record items taken out of stock. Stock cannot go below zero.",
+    stock_adj_title: "Stock adjustment",
+    stock_adj_desc: "Use this when the physical count differs from the system.",
+    stock_items_section: "Items received",
+    stock_out_items_section: "Items taken out",
+    stock_add_line: "Add another item",
+    stock_remove_line: "Remove item",
+    stock_note_field: "Note",
+    stock_total_purchase: "Total purchase value",
+    stock_save_in: "Save incoming stock",
+    stock_save_out: "Save outgoing stock",
+    stock_save_adj: "Save adjustment",
+    stock_select_supplier: "Select a supplier",
+    stock_adj_item_hint: "Pick the item you counted.",
+    stock_difference_label: "Difference",
+    stock_no_change: "No change",
+    stock_reason_hint: "Explain why the count differs, for example a stock count or damaged goods.",
+    stock_details_card: "Details",
+    stock_lines_card: "Lines",
+    stock_col_item: "Item",
+    stock_col_qty: "Quantity",
+    stock_col_change: "Change",
+    stock_col_balance: "Balance after",
+    stock_col_unit_price: "Unit price",
+    stock_col_line_total: "Line total",
+    stock_reason_label: "Reason",
+    stock_recorded_at: "Recorded",
+    stock_voided_by: "Voided by reversal",
+    stock_reversal_of: "Reversal of",
+    stock_linked_loan: "Loan",
+    stock_void_body: "This creates a linked reversal and marks the original as voided. Stock changes back. This cannot be undone.",
+    stock_void_confirm: "Void transaction",
+    stock_voided: "Transaction voided.",
+    stock_not_found_back: "Back to transactions",
+    fields_date: "Date",
+    fields_destination: "Destination",
+    fields_quantity: "Quantity",
+    fields_unit_price: "Unit price (IDR)",
+    fields_reason: "Reason",
+    fields_physical_stock: "Physical stock",
+    fields_system_stock: "System stock",
+    fields_item: "Item",
+    validation_select_item: "Select an item.",
+    validation_at_least_one_line: "Add at least one item.",
+    validation_difference_zero: "Physical stock equals system stock. There is nothing to adjust.",
+    ui_invalid_date: "Use the date format YYYY-MM-DD.",
+    ui_pick_item: "Choose an item",
+    status_tx_status_posted: "Posted",
+    status_tx_status_voided: "Voided",
     categories_title: "Categories",
     categories_description: "Categories are areas, such as a building or room. Subcategories are kinds of item, and every category uses the same list. An item code joins both codes and a number, for example AUL-ELK-0001.",
     categories_tab_categories: "Categories",
@@ -502,6 +578,80 @@ pub const ID: Strings = Strings {
     errors_photo_type: "Foto harus berupa gambar JPEG, PNG atau WebP.",
     errors_photo_too_big: "Foto terlalu besar. Batasnya 2 MB.",
     common_export_excel: "Ekspor Excel",
+    fields_destination_hint: "Nama orang atau bagian",
+    stock_title: "Transaksi stok",
+    stock_description: "Setiap perubahan stok tercatat di sini. Transaksi yang sudah tercatat tidak diubah; pakai Batalkan transaksi untuk memperbaiki kesalahan.",
+    stock_incoming: "+ Barang masuk",
+    stock_outgoing: "Barang keluar",
+    stock_adjustment: "Penyesuaian stok",
+    stock_search_placeholder: "Cari nomor, barang, atau supplier",
+    stock_all_types: "Semua jenis transaksi",
+    stock_all_statuses: "Semua status",
+    stock_col_number: "Transaksi",
+    stock_col_date: "Tanggal",
+    stock_col_type: "Jenis transaksi",
+    stock_col_items: "Barang",
+    stock_col_party: "Supplier / tujuan",
+    stock_col_total: "Total",
+    stock_col_user: "Pengguna",
+    stock_col_status: "Status",
+    stock_empty_title: "Belum ada transaksi stok",
+    stock_empty_body: "Catat barang masuk saat membeli barang.",
+    stock_empty_filtered: "Tidak ada transaksi yang cocok",
+    stock_view: "Lihat detail",
+    stock_void: "Batalkan transaksi",
+    stock_in_title: "Barang masuk",
+    stock_in_desc: "Catat barang yang Anda beli. Stok bertambah saat disimpan.",
+    stock_out_title: "Barang keluar",
+    stock_out_desc: "Catat barang yang diambil dari stok. Stok tidak bisa kurang dari nol.",
+    stock_adj_title: "Penyesuaian stok",
+    stock_adj_desc: "Pakai ini kalau hitungan fisik berbeda dengan sistem.",
+    stock_items_section: "Barang yang diterima",
+    stock_out_items_section: "Barang yang keluar",
+    stock_add_line: "Tambah barang lain",
+    stock_remove_line: "Hapus baris",
+    stock_note_field: "Catatan",
+    stock_total_purchase: "Total nilai pembelian",
+    stock_save_in: "Simpan barang masuk",
+    stock_save_out: "Simpan barang keluar",
+    stock_save_adj: "Simpan penyesuaian",
+    stock_select_supplier: "Pilih supplier",
+    stock_adj_item_hint: "Pilih barang yang Anda hitung.",
+    stock_difference_label: "Selisih",
+    stock_no_change: "Tidak ada perubahan",
+    stock_reason_hint: "Jelaskan kenapa hitungannya berbeda, misalnya hasil stok opname atau barang rusak.",
+    stock_details_card: "Detail",
+    stock_lines_card: "Rincian barang",
+    stock_col_item: "Barang",
+    stock_col_qty: "Jumlah",
+    stock_col_change: "Perubahan",
+    stock_col_balance: "Sisa stok",
+    stock_col_unit_price: "Harga satuan",
+    stock_col_line_total: "Subtotal",
+    stock_reason_label: "Alasan",
+    stock_recorded_at: "Dicatat",
+    stock_voided_by: "Dibatalkan oleh",
+    stock_reversal_of: "Pembatalan dari",
+    stock_linked_loan: "Peminjaman",
+    stock_void_body: "Ini membuat transaksi pembatalan dan menandai transaksi asli sebagai dibatalkan. Stok kembali seperti sebelumnya. Tidak bisa diurungkan.",
+    stock_void_confirm: "Batalkan transaksi",
+    stock_voided: "Transaksi dibatalkan.",
+    stock_not_found_back: "Kembali ke transaksi",
+    fields_date: "Tanggal",
+    fields_destination: "Tujuan",
+    fields_quantity: "Jumlah",
+    fields_unit_price: "Harga satuan (Rp)",
+    fields_reason: "Alasan",
+    fields_physical_stock: "Stok fisik",
+    fields_system_stock: "Stok di sistem",
+    fields_item: "Barang",
+    validation_select_item: "Pilih barang.",
+    validation_at_least_one_line: "Tambahkan minimal satu barang.",
+    validation_difference_zero: "Stok fisik sama dengan stok di sistem. Tidak ada yang perlu disesuaikan.",
+    ui_invalid_date: "Pakai format tanggal TTTT-BB-HH.",
+    ui_pick_item: "Pilih barang",
+    status_tx_status_posted: "Tercatat",
+    status_tx_status_voided: "Dibatalkan",
     categories_title: "Area dan jenis",
     categories_description: "Area adalah tempat, misalnya gedung atau ruangan. Jenis adalah macam barang, dan semua area memakai daftar jenis yang sama. Kode barang gabungan kode area, kode jenis, dan nomor, misalnya AUL-ELK-0001.",
     categories_tab_categories: "Area",
@@ -794,6 +944,47 @@ pub fn showing(lang: Lang, from: u32, to: u32, total: u32) -> String {
     }
 }
 
+pub fn stock_more_items(lang: Lang, n: usize) -> String {
+    match lang { Lang::En => format!("+{n} more"), Lang::Id => format!("+{n} lainnya") }
+}
+
+/// "Incoming stock IN-0001 saved." for `kind` `IN`, `OUT` or `ADJUSTMENT`.
+pub fn stock_saved(lang: Lang, kind: &str, number: &str) -> String {
+    match (lang, kind) {
+        (Lang::En, "IN") => format!("Incoming stock {number} saved."),
+        (Lang::En, "OUT") => format!("Outgoing stock {number} saved."),
+        (Lang::En, _) => format!("Adjustment {number} saved."),
+        (Lang::Id, "IN") => format!("Barang masuk {number} disimpan."),
+        (Lang::Id, "OUT") => format!("Barang keluar {number} disimpan."),
+        (Lang::Id, _) => format!("Penyesuaian {number} disimpan."),
+    }
+}
+
+pub fn available_hint(lang: Lang, n: i64, unit: &str) -> String {
+    match lang { Lang::En => format!("Available: {n} {unit}"), Lang::Id => format!("Tersedia: {n} {unit}") }
+}
+
+pub fn reserved_note(lang: Lang, n: i64) -> String {
+    match lang { Lang::En => format!("{n} reserved by approved loans."), Lang::Id => format!("{n} disiapkan untuk peminjaman yang disetujui.") }
+}
+
+pub fn stock_detail_title(lang: Lang, number: &str) -> String {
+    match lang { Lang::En => format!("Transaction {number}"), Lang::Id => format!("Transaksi {number}") }
+}
+
+pub fn void_title(lang: Lang, number: &str) -> String {
+    match lang { Lang::En => format!("Void {number}?"), Lang::Id => format!("Batalkan {number}?") }
+}
+
+pub fn greater_than_zero(lang: Lang, label: &str) -> String {
+    match lang { Lang::En => format!("{label} must be greater than 0."), Lang::Id => format!("{label} harus lebih dari 0.") }
+}
+
+pub fn tx_status_label(lang: Lang, status: &str) -> &'static str {
+    let s = strings(lang);
+    if status == "Voided" { s.status_tx_status_voided } else { s.status_tx_status_posted }
+}
+
 /// The "Preferred for" count of a supplier: "1 item" / "2 items" / "3 barang".
 pub fn supplier_items_count(lang: Lang, n: i64) -> String {
     match lang { Lang::En => format!("{n} {}", plural(lang, n, "item", "items", "")), Lang::Id => format!("{n} barang") }
@@ -913,6 +1104,29 @@ mod tests {
     }
 
     #[test]
+    fn stock_texts_read_like_the_web_app() {
+        assert_eq!((stock_more_items(Lang::En, 2).as_str(), stock_more_items(Lang::Id, 2).as_str()), ("+2 more", "+2 lainnya"));
+        assert_eq!(stock_saved(Lang::En, "IN", "IN-0001"), "Incoming stock IN-0001 saved.");
+        assert_eq!(stock_saved(Lang::Id, "OUT", "OUT-0002"), "Barang keluar OUT-0002 disimpan.");
+        assert_eq!(stock_saved(Lang::En, "ADJUSTMENT", "ADJ-1"), "Adjustment ADJ-1 saved.");
+        assert_eq!((available_hint(Lang::En, 3, "pcs").as_str(), available_hint(Lang::Id, 3, "pcs").as_str()), ("Available: 3 pcs", "Tersedia: 3 pcs"));
+        assert_eq!(void_title(Lang::Id, "IN-1"), "Batalkan IN-1?");
+        assert_eq!(greater_than_zero(Lang::Id, "Jumlah"), "Jumlah harus lebih dari 0.");
+    }
+
+    #[test]
+    fn transaction_status_labels_equal_the_web_apps_labels() {
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../frontend/src/lib/");
+        for (lang, file) in [(Lang::En, "strings.ts"), (Lang::Id, "strings.id.ts")] {
+            let src = std::fs::read_to_string(format!("{dir}{file}")).unwrap();
+            let web = web_nested(&src, "txStatus");
+            for kind in ["Posted", "Voided"] {
+                assert_eq!(tx_status_label(lang, kind), web[kind], "{file} {kind}");
+            }
+        }
+    }
+
+    #[test]
     fn counts_read_naturally() {
         assert_eq!(showing(Lang::En, 1, 8, 17), "Showing 1-8 of 17");
         assert_eq!(showing(Lang::Id, 9, 16, 17), "Menampilkan 9-16 dari 17");
@@ -959,7 +1173,7 @@ mod tests {
         let id_src = std::fs::read_to_string(format!("{dir}strings.id.ts")).unwrap();
         let mut compared = 0;
         for (lang, src, ours) in [("en", &en_src, &EN), ("id", &id_src, &ID)] {
-            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport", "categories", "subcategories", "suppliers"] {
+            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport", "categories", "subcategories", "suppliers", "stock"] {
                 let web: HashMap<String, String> = web_section(src, section).into_iter().map(|(k, v)| (format!("{}_{}", snake(section), snake(&k)), v)).collect();
                 for (field, text) in ours.entries() {
                     if let Some(want) = web.get(field) {

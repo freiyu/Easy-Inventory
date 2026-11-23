@@ -227,6 +227,99 @@ pub struct SupplierInput {
     pub status: String,
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct StockLine {
+    #[serde(rename = "itemId")]
+    pub item_id: i64,
+    #[serde(rename = "itemName")]
+    pub item_name: String,
+    pub unit: String,
+    #[serde(rename = "quantityChange")]
+    pub quantity_change: i64,
+    #[serde(rename = "balanceAfter")]
+    pub balance_after: i64,
+    #[serde(rename = "unitPrice")]
+    pub unit_price: Option<i64>,
+    pub total: Option<i64>,
+}
+
+/// A stock transaction as the list and the detail show it (`StockTxDto` in `frontend/src/lib/api/stock.ts`).
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct StockTx {
+    pub id: i64,
+    pub number: String,
+    /// `IN`, `OUT`, `ADJUSTMENT`, `LOAN_ISSUE`, `LOAN_RETURN` or `REVERSAL`.
+    #[serde(rename = "type")]
+    pub kind: String,
+    /// `Posted` or `Voided`.
+    pub status: String,
+    pub date: String,
+    #[serde(rename = "userName")]
+    pub user_name: String,
+    pub reason: String,
+    pub notes: String,
+    /// Supplier for IN, destination for OUT, reason for ADJUSTMENT and REVERSAL.
+    pub party: String,
+    /// Sum of line totals (IN only).
+    pub total: i64,
+    #[serde(rename = "reversalOfId")]
+    pub reversal_of_id: Option<i64>,
+    #[serde(rename = "reversalOfNumber")]
+    pub reversal_of_number: Option<String>,
+    #[serde(rename = "voidedById")]
+    pub voided_by_id: Option<i64>,
+    #[serde(rename = "voidedByNumber")]
+    pub voided_by_number: Option<String>,
+    #[serde(rename = "loanNumber")]
+    pub loan_number: Option<String>,
+    pub lines: Vec<StockLine>,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "allowedActions", default)]
+    pub allowed_actions: Vec<String>,
+}
+
+impl StockTx {
+    pub fn can_void(&self) -> bool {
+        self.allowed_actions.iter().any(|a| a == "void")
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct StockLineInput {
+    #[serde(rename = "itemId")]
+    pub item_id: i64,
+    pub quantity: i64,
+    #[serde(rename = "unitPrice", skip_serializing_if = "Option::is_none")]
+    pub unit_price: Option<i64>,
+}
+
+/// Body of incoming stock (`supplier_id` set) and outgoing stock (`destination` set).
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct StockMoveInput {
+    pub date: String,
+    #[serde(rename = "supplierId", skip_serializing_if = "Option::is_none")]
+    pub supplier_id: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub destination: Option<String>,
+    pub lines: Vec<StockLineInput>,
+    pub notes: String,
+    /// One per form, so a second click or a retry cannot post the same transaction twice.
+    #[serde(rename = "clientRequestId")]
+    pub client_request_id: String,
+}
+
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct AdjustmentInput {
+    pub date: String,
+    #[serde(rename = "itemId")]
+    pub item_id: i64,
+    pub physical: i64,
+    pub reason: String,
+    #[serde(rename = "clientRequestId")]
+    pub client_request_id: String,
+}
+
 /// The body of create and update item, as the server expects it (`itemSchema` in `backend/src/schemas.ts`).
 #[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
 pub struct ItemInput {

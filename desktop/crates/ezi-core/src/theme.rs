@@ -161,6 +161,10 @@ pub const FILTER_STATUS_WIDTH: f32 = 150.0;
 pub const SIDE_CARD_WIDTH: f32 = 280.0;
 /// Widest a form may be: about 65 characters of text (PRD_REDESIGN.md 10.2).
 pub const FORM_MAX_WIDTH: f32 = 560.0;
+/// The columns of an item line (`LinesEditor`): quantity, unit price, and the gap that lines the remove button up with the inputs.
+pub const LINE_QUANTITY_WIDTH: f32 = 130.0;
+pub const LINE_PRICE_WIDTH: f32 = 150.0;
+pub const LINE_REMOVE_OFFSET: f32 = 26.0;
 /// Side of the square photo of an item.
 pub const PHOTO_SIZE: f32 = 144.0;
 

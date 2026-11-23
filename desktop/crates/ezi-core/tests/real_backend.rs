@@ -6,7 +6,7 @@
 use ezi_core::api::{Client, ErrorCode, Password, Role};
 use ezi_core::api::Lang;
 use ezi_core::forms;
-use ezi_core::models::{GroupInput, GroupRow, ImportStatus, ItemInput, SupplierInput, SupplierRow};
+use ezi_core::models::{AdjustmentInput, GroupInput, GroupRow, ImportStatus, ItemInput, StockLineInput, StockMoveInput, SupplierInput, SupplierRow};
 use serde_json::{json, Value};
 
 const PNG: [u8; 8] = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -187,6 +187,47 @@ fn the_client_works_against_the_real_backend() {
     assert_eq!(admin.delete_record("/suppliers", rust_supplier[0].id).unwrap_err().code(), Some(&ErrorCode::Conflict), "a supplier that items use cannot be deleted");
     assert_eq!(staff.save_record("/suppliers", None, &supplier("Nope", "")).unwrap_err().code(), Some(&ErrorCode::Forbidden));
     assert_eq!(staff.get::<Vec<GroupRow>>("/suppliers", &[]).unwrap_err().code(), Some(&ErrorCode::Forbidden), "Staff cannot list suppliers");
+
+    // Stock transactions through the typed calls: incoming, outgoing, the refusal of an outgoing request over the stock,
+    // an adjustment, the list filters and the void with its reason. Staff may not use any of it.
+    let today = ezi_core::format::today();
+    let lines = |q: i64, p: Option<i64>| vec![StockLineInput { item_id: id, quantity: q, unit_price: p }];
+    let mv = |lines: Vec<StockLineInput>, supplier: Option<i64>, destination: Option<&str>| StockMoveInput {
+        date: today.clone(), supplier_id: supplier, destination: destination.map(String::from), lines, notes: "uji".into(), client_request_id: forms::new_request_id(),
+    };
+    let stock_before = admin.item(id).unwrap().current_stock.unwrap();
+    let incoming = admin.stock_move("in", &mv(lines(5, Some(2000)), sup["id"].as_i64(), None)).unwrap();
+    assert_eq!((incoming.kind.as_str(), incoming.status.as_str(), incoming.total, incoming.lines[0].balance_after), ("IN", "Posted", 10_000, stock_before + 5));
+    assert!(incoming.can_void());
+    let same_request = mv(lines(1, Some(1)), sup["id"].as_i64(), None);
+    let first = admin.stock_move("in", &same_request).unwrap();
+    let repeat = admin.stock_move("in", &same_request).unwrap();
+    assert_eq!(first.id, repeat.id, "the same clientRequestId never posts twice");
+    let outgoing = admin.stock_move("out", &mv(lines(2, None), None, Some("Ruang A"))).unwrap();
+    assert_eq!((outgoing.kind.as_str(), outgoing.party.as_str(), outgoing.lines[0].quantity_change), ("OUT", "Ruang A", -2));
+    let too_many = admin.stock_move("out", &mv(lines(1_000_000, None), None, Some("Ruang A"))).unwrap_err();
+    assert_eq!(too_many.code(), Some(&ErrorCode::InsufficientStock), "{too_many:?}");
+    assert!(too_many.fields().contains_key("lines.0.quantity"), "the message lands on the quantity of the line: {:?}", too_many.fields());
+    let now = admin.item(id).unwrap().current_stock.unwrap();
+    assert_eq!(now, stock_before + 5 + 1 - 2, "the refused request changed nothing");
+    let adjust = admin.stock_adjust(&AdjustmentInput { date: today.clone(), item_id: id, physical: now + 4, reason: "Opname".into(), client_request_id: forms::new_request_id() }).unwrap();
+    assert_eq!((adjust.kind.as_str(), adjust.lines[0].quantity_change, adjust.reason.as_str()), ("ADJUSTMENT", 4, "Opname"));
+    let bad_adjust = admin.stock_adjust(&AdjustmentInput { date: today.clone(), item_id: id, physical: now + 4, reason: "Lagi".into(), client_request_id: forms::new_request_id() }).unwrap_err();
+    assert!(matches!(bad_adjust.code(), Some(ErrorCode::Validation | ErrorCode::Conflict)), "an adjustment that changes nothing is refused: {bad_adjust:?}");
+    let listed = admin.stock_transactions(&[("type", "OUT"), ("search", "Proyektor"), ("pageSize", "8")]).unwrap();
+    assert!(listed.data.iter().all(|t| t.kind == "OUT") && listed.data.iter().any(|t| t.id == outgoing.id), "type and search filters");
+    assert!(listed.meta.is_some());
+    assert_eq!(admin.stock_transaction(outgoing.id).unwrap().number, outgoing.number);
+    assert_eq!(admin.stock_transaction(9_999_999).unwrap_err().code(), Some(&ErrorCode::NotFound));
+    let voided = admin.void_stock(outgoing.id, "Salah catat").unwrap();
+    assert_eq!((voided.id, voided.status.as_str(), voided.can_void()), (outgoing.id, "Voided", false), "the answer is the original, now voided");
+    let reversal_number = voided.voided_by_number.clone().expect("the original names its reversal");
+    let reversal = admin.stock_transaction(voided.voided_by_id.unwrap()).unwrap();
+    assert_eq!((reversal.kind.as_str(), reversal.number.as_str(), reversal.reversal_of_number.as_deref()), ("REVERSAL", reversal_number.as_str(), Some(outgoing.number.as_str())));
+    assert_eq!(admin.stock_transaction(outgoing.id).unwrap().status, "Voided");
+    assert_eq!(admin.void_stock(outgoing.id, "Lagi").unwrap_err().code(), Some(&ErrorCode::BusinessRule), "a voided transaction cannot be voided again");
+    assert_eq!(staff.stock_transactions(&[]).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    assert_eq!(staff.stock_move("out", &mv(lines(1, None), None, Some("x"))).unwrap_err().code(), Some(&ErrorCode::Forbidden));
 
     // Logout ends the session on the server too.
     admin.logout().unwrap();
