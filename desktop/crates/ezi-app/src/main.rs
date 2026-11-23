@@ -16,6 +16,7 @@ mod load;
 mod loan_form;
 mod loans;
 mod master;
+mod motion;
 mod profile;
 mod purchase_form;
 mod purchase_lines;
@@ -106,7 +107,12 @@ fn main() {
             } else {
                 cx.new(|cx| auth::AuthGate::new(window, cx, settings_path.clone())).into()
             };
-            cx.new(|_| Launcher { child })
+            // Reduced motion: read now, and again each time the window is activated (the person may have changed the setting).
+            motion::refresh(cx);
+            cx.new(|cx| {
+                cx.observe_window_activation(window, |_, _, cx| motion::refresh(cx)).detach();
+                Launcher { child }
+            })
         })
         .expect("failed to open window");
     });

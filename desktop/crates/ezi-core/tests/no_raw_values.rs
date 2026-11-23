@@ -53,3 +53,21 @@ fn no_raw_pixel_sizes_in_the_ui_code() {
     }
     assert!(found.is_empty(), "sizes must be constants of ezi_core::theme: {found:#?}");
 }
+
+#[test]
+fn no_raw_durations_or_curves_outside_the_motion_module() {
+    // Durations and curves are tokens of `ezi_core::motion`; only `motion.rs` of the app turns them into animations.
+    let mut found = Vec::new();
+    for (name, src) in source_files() {
+        if name == "motion.rs" {
+            continue;
+        }
+        for (n, line) in code_lines(&src) {
+            let raw = ["Duration::from_", "Duration::new(", "Animation::new(", "with_easing(", "cubic_bezier(", "ease_out_quint", "ease_in_out(", "bounce(", "pulsating_between(", "quadratic("];
+            if raw.iter().any(|r| line.contains(r)) {
+                found.push(format!("{name}:{n}: {}", line.trim()));
+            }
+        }
+    }
+    assert!(found.is_empty(), "use ezi_core::motion tokens and crate::motion::animation: {found:#?}");
+}

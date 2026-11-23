@@ -8,6 +8,7 @@ pub mod format;
 pub mod photo;
 pub mod i18n;
 pub mod models;
+pub mod motion;
 pub mod nav;
 pub mod settings;
 pub mod theme;
