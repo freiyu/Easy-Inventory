@@ -20,13 +20,17 @@ use gpui_kit::*;
 
 use crate::dashboard::Dashboard;
 use crate::items::ItemsPage;
+use crate::activity::ActivityPage;
+use crate::backup::BackupPage;
 use crate::expenses::ExpensesPage;
 use crate::loans::LoansPage;
 use crate::master::{Kind, MasterPage};
+use crate::profile::ProfilePage;
 use crate::purchases::PurchasesPage;
 use crate::reports::ReportsPage;
 use crate::stock::StockPage;
-use crate::shell::{page_label, AppShell, PageBuilder};
+use crate::users::UsersPage;
+use crate::shell::{AppShell, PageBuilder};
 use crate::state::{color, state, t, AppState};
 use crate::widgets::{toast, FormField, StatePanel, ToastKind};
 
@@ -53,6 +57,9 @@ struct AdminPages {
     stock: Entity<StockPage>,
     expenses: Entity<ExpensesPage>,
     reports: Entity<ReportsPage>,
+    backup: Entity<BackupPage>,
+    users: Entity<UsersPage>,
+    activity: Entity<ActivityPage>,
 }
 
 pub struct AuthGate {
@@ -288,6 +295,7 @@ impl AuthGate {
         let items = cx.new(|cx| ItemsPage::new(client.clone(), admin, window, cx));
         let loans = cx.new(|cx| LoansPage::new(client.clone(), admin, window, cx));
         let purchases = cx.new(|cx| PurchasesPage::new(client.clone(), admin, window, cx));
+        let profile = cx.new(|cx| ProfilePage::new(client.clone(), window, cx));
         // The master data screens are Admin only: Staff never get the entities (the server refuses them anyway).
         let master = admin.then(|| {
             let categories = cx.new(|cx| MasterPage::new(client.clone(), Kind::Category, window, cx));
@@ -295,10 +303,13 @@ impl AuthGate {
             let stock = cx.new(|cx| StockPage::new(client.clone(), window, cx));
             let expenses = cx.new(|cx| ExpensesPage::new(client.clone(), window, cx));
             let reports = cx.new(|cx| ReportsPage::new(client.clone(), window, cx));
-            AdminPages { categories, suppliers, stock, expenses, reports }
+            let backup = cx.new(|cx| BackupPage::new(client.clone(), cx));
+            let users = cx.new(|cx| UsersPage::new(client.clone(), window, cx));
+            let activity = cx.new(|cx| ActivityPage::new(client.clone(), window, cx));
+            AdminPages { categories, suppliers, stock, expenses, reports, backup, users, activity }
         });
         let content: PageBuilder = {
-            let (dashboard, items, loans, purchases, master) = (dashboard.clone(), items.clone(), loans.clone(), purchases.clone(), master.clone());
+            let (dashboard, items, loans, purchases, profile, master) = (dashboard.clone(), items.clone(), loans.clone(), purchases.clone(), profile.clone(), master.clone());
             Rc::new(move |page: Page, _window: &mut Window, cx: &mut App| match page {
                 // A page the role cannot use shows "no access", even if it were reached some other way.
                 p if !ezi_core::nav::can_access(state(cx).role, p) => StatePanel::no_access(cx).into_any_element(),
@@ -306,13 +317,15 @@ impl AuthGate {
                 Page::Items => items.clone().into_any_element(),
                 Page::Loans => loans.clone().into_any_element(),
                 Page::Purchases => purchases.clone().into_any_element(),
+                Page::Profile => profile.clone().into_any_element(),
                 Page::Categories => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.categories.clone().into_any_element()),
                 Page::Suppliers => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.suppliers.clone().into_any_element()),
                 Page::Stock => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.stock.clone().into_any_element()),
                 Page::Expenses => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.expenses.clone().into_any_element()),
                 Page::Reports => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.reports.clone().into_any_element()),
-                // The screens of the next tasks replace this placeholder: just the page title.
-                other => div().text_size(px(theme::TEXT_TITLE)).font_weight(FontWeight::SEMIBOLD).child(page_label(t(cx), other)).into_any_element(),
+                Page::Backup => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.backup.clone().into_any_element()),
+                Page::Users => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.users.clone().into_any_element()),
+                Page::ActivityLog => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.activity.clone().into_any_element()),
             })
         };
         let gate = cx.entity().downgrade();
@@ -327,19 +340,22 @@ impl AuthGate {
                     Page::Items => items.update(cx, |i, cx| i.show_list(cx)),
                     Page::Loans => loans.update(cx, |p, cx| p.show_list(window, cx)),
                     Page::Purchases => purchases.update(cx, |p, cx| p.show_list(window, cx)),
+                    Page::Profile => profile.update(cx, |p, cx| p.refresh(cx)),
                     // The Admin screens fetch their rows again each time they are opened.
-                    Page::Categories | Page::Suppliers | Page::Stock | Page::Expenses | Page::Reports => {
+                    Page::Categories | Page::Suppliers | Page::Stock | Page::Expenses | Page::Reports | Page::Backup | Page::Users | Page::ActivityLog => {
                         if let Some(admin) = &master {
                             match page {
                                 Page::Categories => admin.categories.update(cx, |p, cx| p.show_list(cx)),
                                 Page::Suppliers => admin.suppliers.update(cx, |p, cx| p.show_list(cx)),
                                 Page::Stock => admin.stock.update(cx, |p, cx| p.show_list(cx)),
                                 Page::Expenses => admin.expenses.update(cx, |p, cx| p.refresh(cx)),
-                                _ => admin.reports.update(cx, |p, cx| p.reload(window, cx)),
+                                Page::Reports => admin.reports.update(cx, |p, cx| p.reload(window, cx)),
+                                Page::Backup => admin.backup.update(cx, |p, cx| p.refresh(cx)),
+                                Page::Users => admin.users.update(cx, |p, cx| p.show_list(cx)),
+                                _ => admin.activity.update(cx, |p, cx| p.reload(window, cx)),
                             }
                         }
                     }
-                    _ => {}
                 })
         });
         self.shell = Some(shell.into());

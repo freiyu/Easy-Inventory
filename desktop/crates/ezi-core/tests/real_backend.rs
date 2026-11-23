@@ -356,6 +356,62 @@ fn the_client_works_against_the_real_backend() {
     assert_eq!(staff.report_stock(&[]).unwrap_err().code(), Some(&ErrorCode::Forbidden));
     assert_eq!(staff.export_report("loans", &[]).unwrap_err().code(), Some(&ErrorCode::Forbidden));
 
+    // Users: create (a temporary password comes back once), edit, reset, deactivate and activate, with the server's rules;
+    // the activity log and its filters; a backup made, listed and downloaded; one's own password changed on My Profile.
+    let new_user = |name: &str, email: &str, role: &str| forms::user(Lang::En, name, email, role).unwrap();
+    let temp = admin.save_user(None, &new_user("Budi Uji", "budi@rust.test", "Staff")).unwrap().expect("a new user gets a temporary password");
+    assert!(temp.len() >= 8, "{temp}");
+    let people = admin.users(&[("search", "Budi"), ("pageSize", "10")]).unwrap().data;
+    assert_eq!((people.len(), people[0].role.as_str(), people[0].status.as_str(), people[0].must_change_password), (1, "Staff", "Active", true));
+    let budi = people[0].id;
+    let dup = admin.save_user(None, &new_user("Budi Dua", "budi@rust.test", "Staff")).unwrap_err();
+    assert!(matches!(dup.code(), Some(ErrorCode::Conflict | ErrorCode::Validation)), "a repeated email is refused: {dup:?}");
+    assert!(dup.fields().contains_key("email") || !dup.to_string().is_empty());
+    let last_admin = admin.set_user_active(admin_id, false).unwrap_err();
+    assert_eq!(last_admin.code(), Some(&ErrorCode::BusinessRule), "the last active Admin cannot be deactivated: {last_admin:?}");
+    let demote = admin.save_user(Some(admin_id), &new_user("Admin Rust", "admin@rust.test", "Staff")).unwrap_err();
+    assert_eq!(demote.code(), Some(&ErrorCode::BusinessRule), "nor made Staff: {demote:?}");
+    assert_eq!(admin.save_user(Some(budi), &new_user("Budi Ubah", "budi@rust.test", "Admin")).unwrap(), None, "an edit gives no password");
+    assert_eq!(admin.users(&[("role", "Admin"), ("search", "Budi")]).unwrap().data.len(), 1, "the role filter and the edit");
+    let reset = admin.reset_password(budi).unwrap();
+    assert!(reset.len() >= 8 && reset != temp, "a reset makes a new temporary password");
+    admin.set_user_active(budi, false).unwrap();
+    assert_eq!(admin.users(&[("status", "Inactive"), ("search", "Budi")]).unwrap().data.len(), 1);
+    admin.set_user_active(budi, true).unwrap();
+    assert_eq!(admin.users(&[("status", "Active"), ("search", "Budi")]).unwrap().data.len(), 1);
+    assert_eq!(staff.users(&[]).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    assert_eq!(staff.save_user(None, &new_user("X", "x@rust.test", "Admin")).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+
+    let modules = admin.activity_modules().unwrap();
+    assert!(!modules.is_empty(), "the modules for the filter");
+    let log = admin.activity(&[("pageSize", "100"), ("sort", "time:desc")]).unwrap();
+    assert!(!log.data.is_empty() && log.meta.as_ref().is_some_and(|m| m.total > 0), "the log has entries for everything above");
+    let one_module = admin.activity(&[("module", &modules[0]), ("pageSize", "100")]).unwrap().data;
+    assert!(!one_module.is_empty() && one_module.iter().all(|a| a.module == modules[0]), "the module filter");
+    let by_user = admin.activity(&[("userId", &admin_id.to_string()), ("pageSize", "100")]).unwrap().data;
+    assert!(!by_user.is_empty() && by_user.iter().all(|a| a.user_name.as_deref() == Some("Admin Rust")), "the user filter");
+    assert!(admin.activity(&[("from", "2000-01-01"), ("to", "2000-01-02")]).unwrap().data.is_empty(), "the date filter");
+    assert_eq!(staff.activity(&[]).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+
+    let backup = admin.create_backup().unwrap();
+    assert!(backup.file_name.ends_with(".sql") || backup.file_name.contains("backup"), "{}", backup.file_name);
+    assert_eq!(backup.kind, "Manual");
+    let listed = admin.backups(&[("pageSize", "1"), ("sort", "created:desc")]).unwrap();
+    assert_eq!((listed.data[0].id, listed.meta.is_some()), (backup.id, true), "the newest backup is the one just made");
+    let file = admin.download_backup(backup.id).unwrap();
+    assert!(!file.bytes.is_empty() && file.file_name == backup.file_name, "the backup file downloads under its name");
+    assert_eq!(staff.create_backup().unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    assert_eq!(staff.download_backup(backup.id).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+
+    let me_now = staff.me().unwrap();
+    assert_eq!((me_now.name.as_str(), me_now.email.as_str(), me_now.last_login_at.is_some()), ("Staf Rust", "staf@rust.test", true), "My Profile reads the account");
+    let wrong = staff.change_password(Some(&Password::new("not-the-password")), &Password::new("staf-pass-2")).unwrap_err();
+    assert!(wrong.fields().contains_key("current") || !wrong.to_string().is_empty(), "a wrong current password is refused: {wrong:?}");
+    staff.change_password(Some(&Password::new("staf-pass-1")), &Password::new("staf-pass-2")).unwrap();
+    let again = Client::new(&url).unwrap();
+    assert!(again.login("staf@rust.test", &Password::new("staf-pass-1")).is_err(), "the old password no longer works");
+    assert!(again.login("staf@rust.test", &Password::new("staf-pass-2")).is_ok(), "the new one does");
+
     // Logout ends the session on the server too.
     admin.logout().unwrap();
     assert!(!admin.has_session());

@@ -28,6 +28,11 @@ pub fn format_date(value: &str) -> String {
     if with_time.len() == 16 && with_time != value { with_time[..10].to_string() } else { value.to_string() }
 }
 
+/// `1536` (KB) becomes `1.5 MB`, `300` becomes `300 KB`, like the web `formatSize`.
+pub fn format_size(kb: i64) -> String {
+    if kb >= 1024 { format!("{:.1} MB", kb as f64 / 1024.0) } else { format!("{kb} KB") }
+}
+
 /// `2026-10-23` becomes `2026-10`.
 pub fn month_key(date: &str) -> &str {
     date.get(..7).unwrap_or(date)
@@ -150,6 +155,11 @@ mod tests {
         assert_eq!((day_diff("2026-11-22", "2026-11-25"), day_diff("2026-12-30", "2027-01-02"), day_diff("x", "2026-01-01")), (Some(3), Some(3), None));
         assert!(is_date(&today()) && is_date(&days_from_today(7)));
         assert_eq!(day_diff(&today(), &days_from_today(7)), Some(7));
+    }
+
+    #[test]
+    fn sizes_read_like_the_web_app() {
+        assert_eq!((format_size(300).as_str(), format_size(1023).as_str(), format_size(1024).as_str(), format_size(1536).as_str()), ("300 KB", "1023 KB", "1.0 MB", "1.5 MB"));
     }
 
     #[test]

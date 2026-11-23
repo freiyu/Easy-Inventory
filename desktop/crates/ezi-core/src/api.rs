@@ -166,6 +166,8 @@ pub struct SessionUser {
     pub role: Role,
     #[serde(rename = "mustChangePassword")]
     pub must_change_password: bool,
+    #[serde(rename = "lastLoginAt", default)]
+    pub last_login_at: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
@@ -587,6 +589,49 @@ impl Client {
     /// The Excel file of a report (`stock`, `movements` or `loans`) with the filters and sort that are on screen.
     pub fn export_report(&self, report: &str, query: &[(&str, &str)]) -> Result<Download, ApiError> {
         self.get_file(&format!("/reports/{report}/export"), query)
+    }
+
+    // Users, activity log and backups (Admin only).
+
+    pub fn users(&self, query: &[(&str, &str)]) -> Result<Success<Vec<crate::models::User>>, ApiError> {
+        self.get("/users", query)
+    }
+
+    /// Creates the user (`id` None, the answer has the temporary password) or updates them.
+    pub fn save_user(&self, id: Option<i64>, input: &crate::models::UserInput) -> Result<Option<String>, ApiError> {
+        match id {
+            Some(id) => self.put::<serde_json::Value, _>(&format!("/users/{id}"), input).map(|_| None),
+            None => Ok(Some(self.post::<crate::models::TempPassword, _>("/users", input)?.data.temp_password)),
+        }
+    }
+
+    pub fn set_user_active(&self, id: i64, active: bool) -> Result<(), ApiError> {
+        self.set_record_active("/users", id, active)
+    }
+
+    /// A new temporary password for the user, shown once.
+    pub fn reset_password(&self, id: i64) -> Result<String, ApiError> {
+        Ok(self.post_empty::<crate::models::TempPassword>(&format!("/users/{id}/reset-password"))?.data.temp_password)
+    }
+
+    pub fn activity(&self, query: &[(&str, &str)]) -> Result<Success<Vec<crate::models::ActivityRow>>, ApiError> {
+        self.get("/activity-log", query)
+    }
+
+    pub fn activity_modules(&self) -> Result<Vec<String>, ApiError> {
+        Ok(self.get::<Vec<String>>("/activity-log/modules", &[])?.data)
+    }
+
+    pub fn backups(&self, query: &[(&str, &str)]) -> Result<Success<Vec<crate::models::BackupFile>>, ApiError> {
+        self.get("/backup/database", query)
+    }
+
+    pub fn create_backup(&self) -> Result<crate::models::BackupFile, ApiError> {
+        Ok(self.post_empty::<crate::models::BackupFile>("/backup/database")?.data)
+    }
+
+    pub fn download_backup(&self, id: i64) -> Result<Download, ApiError> {
+        self.get_file(&format!("/backup/database/{id}/download"), &[])
     }
 
     pub fn needs_setup(&self) -> Result<bool, ApiError> {

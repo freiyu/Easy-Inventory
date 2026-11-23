@@ -627,6 +627,67 @@ pub struct LoanReportRow {
     pub status: LoanStatus,
 }
 
+/// A user as the Admin list shows them.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct User {
+    pub id: i64,
+    pub name: String,
+    pub email: String,
+    /// `Admin` or `Staff`.
+    pub role: String,
+    /// `Active` or `Inactive`.
+    pub status: String,
+    #[serde(rename = "mustChangePassword")]
+    pub must_change_password: bool,
+    #[serde(rename = "lastLoginAt")]
+    pub last_login_at: Option<String>,
+}
+
+/// The body of create and update user (`userSchema`). The password is made by the server and shown once.
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct UserInput {
+    pub name: String,
+    pub email: String,
+    pub role: String,
+}
+
+/// What creating a user or resetting a password gives back: a temporary password, to be handed over in person.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct TempPassword {
+    pub user: Option<User>,
+    #[serde(rename = "tempPassword")]
+    pub temp_password: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct ActivityRow {
+    pub id: i64,
+    #[serde(rename = "userName")]
+    pub user_name: Option<String>,
+    pub action: String,
+    pub module: String,
+    pub reference: String,
+    pub metadata: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+}
+
+/// How many backup files the server keeps (`BACKUP_RETENTION` in `frontend/src/lib/constants.ts`; a test compares).
+pub const BACKUP_RETENTION: u32 = 14;
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct BackupFile {
+    pub id: i64,
+    #[serde(rename = "fileName")]
+    pub file_name: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    /// `Automatic`, `Manual`, `Before update`, `Before import` or `Before restore`.
+    pub kind: String,
+    #[serde(rename = "sizeKb")]
+    pub size_kb: i64,
+}
+
 /// The body of create and update item, as the server expects it (`itemSchema` in `backend/src/schemas.ts`).
 #[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
 pub struct ItemInput {
@@ -701,6 +762,14 @@ pub struct ImportReport {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_backup_retention_equals_the_web_apps() {
+        let ts = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../frontend/src/lib/constants.ts")).unwrap();
+        let line = ts.lines().find(|l| l.starts_with("export const BACKUP_RETENTION")).expect("BACKUP_RETENTION in constants.ts");
+        let n: u32 = line.split('=').nth(1).unwrap().trim().trim_end_matches(';').parse().unwrap();
+        assert_eq!(n, BACKUP_RETENTION);
+    }
 
     #[test]
     fn reads_the_admin_dashboard_the_server_sends() {

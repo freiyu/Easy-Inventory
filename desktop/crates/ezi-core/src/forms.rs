@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use crate::api::Lang;
 use crate::i18n::{at_least, greater_than_zero, required, strings, too_long, whole_number};
-use crate::models::{AdjustmentInput, GroupInput, ItemInput, LoanInput, NewItemInput, PurchaseInput, PurchaseLineInput, ReceiveInput, ReceiveLineInput, ReturnInput, StockLineInput, StockMoveInput, SupplierInput};
+use crate::models::{UserInput, AdjustmentInput, GroupInput, ItemInput, LoanInput, NewItemInput, PurchaseInput, PurchaseLineInput, ReceiveInput, ReceiveLineInput, ReturnInput, StockLineInput, StockMoveInput, SupplierInput};
 
 /// Field key to message. An empty map means the form is valid.
 pub type Errors = BTreeMap<&'static str, String>;
@@ -418,6 +418,34 @@ pub fn expense_range_error(lang: Lang, from: &str, to: &str) -> Option<&'static 
     (months(to) - months(from) >= 12).then_some(s.expenses_range_too_long)
 }
 
+/// A user (`userSchema`): a name, an email that looks like one, and a role. The server makes the password.
+pub fn user(lang: Lang, name: &str, email: &str, role: &str) -> Result<UserInput, Errors> {
+    let s = strings(lang);
+    let mut e = Errors::new();
+    if name.trim().is_empty() {
+        e.insert("name", required(lang, s.fields_full_name));
+    }
+    if email.trim().is_empty() {
+        e.insert("email", required(lang, s.fields_email));
+    } else if !looks_like_email(email.trim()) {
+        e.insert("email", s.validation_email.to_string());
+    }
+    if !e.is_empty() {
+        return Err(e);
+    }
+    Ok(UserInput { name: name.trim().to_string(), email: email.trim().to_string(), role: if role == "Admin" { "Admin" } else { "Staff" }.to_string() })
+}
+
+/// The change of one's own password on My Profile: the current password is required here (the forced change after a
+/// temporary password has none, see `change_password`), then the same length and match rules.
+pub fn profile_password(lang: Lang, current: &str, password: &str, confirm: &str) -> Errors {
+    let mut e = change_password(lang, password, confirm);
+    if current.is_empty() {
+        e.insert("current", strings(lang).auth_current_wrong.to_string());
+    }
+    e
+}
+
 /// A reason typed for a void, a rejection or a cancel (`reasonSchema`).
 pub fn reason(lang: Lang, text: &str) -> Result<String, FieldErrors> {
     if text.trim().is_empty() {
@@ -575,6 +603,20 @@ mod tests {
         assert_eq!(expense_range_error(Lang::En, "2025-11-01", "2026-10-31"), None, "11 months apart is allowed");
         assert!(expense_range_error(Lang::En, "2025-11-01", "2026-11-01").is_some(), "12 months apart is too long");
         assert_eq!((expense_range_error(Lang::En, "", "2026-11-01"), expense_range_error(Lang::En, "2026-11-0", "2026-11-01")), (None, None), "an unfinished date is not an error yet");
+    }
+
+    #[test]
+    fn user_and_profile_password_forms_follow_the_web() {
+        let ok = user(Lang::En, " Ani ", " ani@kantor.id ", "Admin").unwrap();
+        assert_eq!((ok.name.as_str(), ok.email.as_str(), ok.role.as_str()), ("Ani", "ani@kantor.id", "Admin"));
+        assert_eq!(user(Lang::En, "A", "a@b.co", "whatever").unwrap().role, "Staff", "anything but Admin is Staff");
+        let e = user(Lang::En, " ", "nope", "Staff").unwrap_err();
+        assert_eq!((e["name"].as_str(), e["email"].as_str()), ("Full name is required.", "Enter a valid email address."));
+        assert_eq!(user(Lang::En, "A", "", "Staff").unwrap_err()["email"], "Email is required.");
+        assert!(profile_password(Lang::En, "old-pass-1", "newpass123", "newpass123").is_empty());
+        let e = profile_password(Lang::En, "", "short", "other");
+        assert_eq!((e["current"].as_str(), e["password"].as_str()), ("Enter your current password.", "Password must be at least 8 characters."));
+        assert!(profile_password(Lang::En, "x", "newpass123", "newpass124").contains_key("confirm"));
     }
 
     #[test]

@@ -1,7 +1,9 @@
 // Hide the console window in release builds on Windows.
 #![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
+mod activity;
 mod auth;
+mod backup;
 mod dashboard;
 mod expenses;
 mod gallery;
@@ -13,6 +15,7 @@ mod load;
 mod loan_form;
 mod loans;
 mod master;
+mod profile;
 mod purchase_form;
 mod purchase_lines;
 mod purchases;
@@ -23,6 +26,7 @@ mod state;
 mod stock;
 mod stock_form;
 mod theme;
+mod users;
 mod widgets;
 
 use std::rc::Rc;

@@ -34,6 +34,7 @@ strings! {
     items_title, items_desc_admin, items_desc_staff, items_search_placeholder, items_all_categories, items_all_subcategories, items_stock_status_filter, items_availability_filter, items_all_stock_status, items_all_availability, items_col_name, items_col_category, items_col_subcategory, items_col_stock, items_col_minimum, items_col_unit, items_col_availability, items_inactive_tag, items_empty_title, items_empty_filtered, items_empty_filtered_body, items_record_status_filter, items_active_only, items_inactive_only, items_all_records, items_details_card, items_stock_card, items_current_stock, items_minimum_stock, items_reserved, items_available_for_loan, items_last_price, items_movements, items_movements_empty, items_col_date, items_col_type, items_col_change, items_col_balance, items_col_ref, items_col_user, items_created_at, items_updated_at, items_staff_stock_note, items_barcode_card, items_photo_none, items_not_found_back, fields_category, fields_subcategory, fields_unit, fields_preferred_supplier, fields_location, common_notes, status_tx_type_in, status_tx_type_out, status_tx_type_adjustment, status_tx_type_loan_issue, status_tx_type_loan_return, status_tx_type_reversal,
     items_add, items_edit, items_deactivate, items_activate, items_delete, items_add_title, items_edit_title, items_section_basic, items_section_stock, items_section_purchasing, items_field_code, items_field_name, items_code_hint, items_code_auto, items_opening_hint, items_opening_read_only, items_minimum_hint, items_no_supplier, items_save_item, items_saved_add, items_saved_edit, items_deactivate_body, items_activate_body, items_delete_body, items_deactivated, items_activated, items_deleted, items_field_photo, items_photo_hint, items_photo_remove, items_photo_selected, items_photo_save_failed, item_import_button, item_import_title, item_import_desc, item_import_file_label, item_import_reading, item_import_preview_title, item_import_col_line, item_import_col_result, item_import_status_ready, item_import_status_skipped, item_import_status_error, item_import_status_imported, item_import_another, item_import_backup_note, item_import_confirming, item_import_back_to_items, fields_name, fields_opening_stock, fields_minimum_stock, fields_last_price, fields_supplier, validation_select_category, validation_select_subcategory, validation_select_unit, validation_select_supplier, errors_photo_empty, errors_photo_type, errors_photo_too_big,
     common_export_excel, common_exporting,
+    backup_title, backup_description, backup_backup_now, backup_creating, backup_warning, backup_last_backup, backup_last_caption, backup_kept, backup_available, backup_col_file, backup_col_created, backup_col_type, backup_col_size, backup_download, backup_downloading, backup_restore_note, backup_empty_title, backup_empty_body, users_title, users_description, users_add, users_search_placeholder, users_all_roles, users_caption, users_col_name, users_col_email, users_col_role, users_col_status, users_col_last_login, users_never, users_must_change, users_empty_title, users_add_title, users_edit_title, users_add_desc, users_save, users_saved, users_role_hint, users_edit, users_reset_password, users_deactivate, users_activate, users_deactivate_body, users_activate_body, users_reset_body, users_deactivated, users_activated, users_temp_title, users_temp_close, activity_title, activity_description, activity_search_placeholder, activity_all_modules, activity_all_users, activity_caption, activity_col_time, activity_col_user, activity_col_action, activity_col_module, activity_col_ref, activity_col_details, activity_empty_title, activity_empty_filtered, activity_system, profile_title, profile_description, profile_account, profile_last_login, profile_password_card, profile_password_body, fields_role, status_backup_kind_automatic, status_backup_kind_manual, status_backup_kind_before_update, status_backup_kind_before_import, status_backup_kind_before_restore,
     expenses_title, expenses_description, expenses_this_month, expenses_last12, expenses_range_invalid, expenses_range_too_long, expenses_total_value, expenses_total_caption, expenses_purchase_count, expenses_purchase_caption, expenses_by_month, expenses_col_month, expenses_col_purchases, expenses_col_value, expenses_caption, expenses_empty_title, expenses_empty_body, expenses_empty_action, reports_title, reports_description, reports_tab_stock, reports_tab_movements, reports_tab_loans, reports_search_stock, reports_search_movements, reports_search_loans, reports_col_code, reports_col_item, reports_col_category, reports_col_unit, reports_col_stock, reports_col_minimum, reports_col_status, reports_col_date, reports_col_type, reports_col_change, reports_col_balance, reports_col_user, reports_col_ref, reports_col_loan, reports_col_borrower, reports_col_loan_date, reports_col_expected, reports_col_returned, reports_stock_caption, reports_movements_caption, reports_loans_caption, reports_empty_title, reports_empty_body, reports_all_loan_statuses, reports_overdue_highlight, common_from, common_to,
     purchases_title, purchases_desc_admin, purchases_desc_staff, purchases_new, purchases_search_placeholder, purchases_all_requesters, purchases_caption, purchases_tab_all, purchases_tab_closed, purchases_col_number, purchases_col_requester, purchases_col_items, purchases_col_needed_by, purchases_col_status, purchases_empty_title, purchases_empty_admin_body, purchases_empty_staff_body, purchases_empty_filtered, purchases_detail_title, purchases_items_card, purchases_col_item, purchases_col_qty, purchases_col_stock_now, purchases_col_minimum, purchases_col_last_price, purchases_created_on, purchases_needed_by, purchases_reason, purchases_note, purchases_approved_by, purchases_rejected_by, purchases_reject_reason, purchases_received_on, purchases_received_by, purchases_transaction, purchases_progress, purchases_step_done, purchases_step_current, purchases_step_upcoming, purchases_step_submitted, purchases_step_approved, purchases_step_approved_body, purchases_step_received, purchases_step_received_body, purchases_draft_note, purchases_rejected_note, purchases_cancelled_note, purchases_approve_info, purchases_own_request, purchases_approve, purchases_reject, purchases_receive, purchases_cancel, purchases_submit, purchases_edit_draft, purchases_approved, purchases_rejected, purchases_received, purchases_cancelled, purchases_submitted, purchases_draft_saved, purchases_reject_body, purchases_reject_confirm, purchases_receive_body, purchases_receive_new_items_note, purchases_new_item_tag, purchases_line_existing, purchases_line_new, purchases_new_item_hint, purchases_pick_category, purchases_pick_subcategory, purchases_pick_unit, purchases_receive_confirm, purchases_receive_total, purchases_receipt_voided, purchases_cancel_body, purchases_new_title, purchases_edit_title, purchases_form_desc, purchases_section_items, purchases_how_new, purchases_section_when, purchases_section_why, purchases_requester_hint, purchases_add_line, purchases_save_draft, purchases_how_title, purchases_how1, purchases_how2, purchases_how3, purchases_how4, purchases_not_found_back, fields_needed_by, fields_requester, fields_received_date, fields_item_name, validation_select_requester, status_purchase_draft, status_purchase_pending_approval, status_purchase_approved, status_purchase_rejected, status_purchase_received, status_purchase_cancelled,
     loans_title, loans_desc_admin, loans_desc_staff, loans_new_admin, loans_new_staff, loans_search_placeholder, loans_all_borrowers, loans_caption, loans_tab_all, loans_tab_closed, loans_col_number, loans_col_borrower, loans_col_items, loans_col_loan_date, loans_col_expected, loans_col_status, loans_empty_title, loans_empty_admin_body, loans_empty_staff_body, loans_empty_filtered, loans_view, loans_detail_title, loans_items_card, loans_col_item, loans_col_qty, loans_col_stock_now, loans_col_available, loans_borrower, loans_requested_on, loans_loan_date, loans_expected_return, loans_purpose, loans_note, loans_approved_by, loans_rejected_by, loans_reject_reason, loans_issued_by, loans_returned_on, loans_received_by, loans_return_note, loans_progress, loans_step_done, loans_step_current, loans_step_upcoming, loans_step_submitted, loans_step_approved, loans_step_approved_body, loans_step_borrowed, loans_step_borrowed_body, loans_step_completed, loans_step_completed_body, loans_draft_note, loans_rejected_note, loans_cancelled_note, loans_own_request, loans_approve, loans_reject, loans_issue, loans_record_return, loans_cancel, loans_cancel_request, loans_submit, loans_edit_draft, loans_approved, loans_rejected, loans_issued, loans_returned, loans_cancelled, loans_submitted, loans_draft_saved, loans_reject_body, loans_reject_confirm, loans_issue_body, loans_issue_confirm, loans_return_body, loans_return_confirm, loans_cancel_body, loans_new_title, loans_new_request_title, loans_edit_title, loans_form_desc, loans_section_items, loans_section_when, loans_section_why, loans_borrower_hint, loans_add_line, loans_save_draft, loans_not_found_back, fields_loan_date, fields_expected_return, fields_return_date, fields_purpose, fields_return_note, fields_borrower, validation_select_borrower, validation_expected_after_loan,
@@ -221,6 +222,82 @@ pub const EN: Strings = Strings {
     errors_photo_type: "The photo must be a JPEG, PNG or WebP image.",
     errors_photo_too_big: "The photo is too large. The limit is 2 MB.",
     common_export_excel: "Export Excel",
+    backup_title: "Database backup",
+    backup_description: "Create and download copies of the database.",
+    backup_backup_now: "Backup now",
+    backup_creating: "Creating backup...",
+    backup_warning: "Backups are stored on the host PC only. Download one regularly and copy it to a USB drive or another PC. If the host PC is lost without a copy, the data cannot be recovered.",
+    backup_last_backup: "Last backup",
+    backup_last_caption: "Automatic backups run once a day",
+    backup_kept: "Backups kept",
+    backup_available: "Available backups",
+    backup_col_file: "File name",
+    backup_col_created: "Created",
+    backup_col_type: "Type",
+    backup_col_size: "Size",
+    backup_download: "Download",
+    backup_downloading: "Downloading...",
+    backup_restore_note: "To restore a backup, use the EZI Restore tool on the host PC (Start Menu). It cannot be done from this page.",
+    backup_empty_title: "No backups yet",
+    backup_empty_body: "Create the first backup now.",
+    users_title: "User management",
+    users_description: "Add people, change roles, and reset passwords.",
+    users_add: "+ Add user",
+    users_search_placeholder: "Search by name or email",
+    users_all_roles: "All roles",
+    users_caption: "Users",
+    users_col_name: "Name",
+    users_col_email: "Email",
+    users_col_role: "Role",
+    users_col_status: "Status",
+    users_col_last_login: "Last sign-in",
+    users_never: "Never",
+    users_must_change: "Must change password",
+    users_empty_title: "No users",
+    users_add_title: "Add user",
+    users_edit_title: "Edit user",
+    users_add_desc: "A temporary password is generated. The person must change it at first sign-in.",
+    users_save: "Save user",
+    users_saved: "User saved.",
+    users_role_hint: "Admin manages everything. Staff can request loans and view items.",
+    users_edit: "Edit user",
+    users_reset_password: "Reset password",
+    users_deactivate: "Deactivate",
+    users_activate: "Activate",
+    users_deactivate_body: "They can no longer sign in. Their history stays. You can activate them again.",
+    users_activate_body: "They can sign in again.",
+    users_reset_body: "A new temporary password is shown once. They must change it at next sign-in.",
+    users_deactivated: "User deactivated.",
+    users_activated: "User activated.",
+    users_temp_title: "Temporary password",
+    users_temp_close: "I have copied it",
+    activity_title: "Activity log",
+    activity_description: "Who did what, newest first. Entries cannot be edited or deleted.",
+    activity_search_placeholder: "Search action, reference, or user",
+    activity_all_modules: "All modules",
+    activity_all_users: "All users",
+    activity_caption: "Activity log",
+    activity_col_time: "Time",
+    activity_col_user: "User",
+    activity_col_action: "Action",
+    activity_col_module: "Module",
+    activity_col_ref: "Reference",
+    activity_col_details: "Details",
+    activity_empty_title: "No activity yet",
+    activity_empty_filtered: "No entries match your filters",
+    activity_system: "System",
+    profile_title: "My profile",
+    profile_description: "Your account details and password.",
+    profile_account: "Account",
+    profile_last_login: "Last sign-in",
+    profile_password_card: "Change password",
+    profile_password_body: "Choose a password you do not use anywhere else.",
+    fields_role: "Role",
+    status_backup_kind_automatic: "Automatic",
+    status_backup_kind_manual: "Manual",
+    status_backup_kind_before_update: "Before update",
+    status_backup_kind_before_import: "Before import",
+    status_backup_kind_before_restore: "Before restore",
     expenses_title: "Expense summary",
     expenses_description: "A simple summary of purchases. Voided purchases are not counted.",
     expenses_this_month: "This month",
@@ -833,6 +910,82 @@ pub const ID: Strings = Strings {
     errors_photo_type: "Foto harus berupa gambar JPEG, PNG atau WebP.",
     errors_photo_too_big: "Foto terlalu besar. Batasnya 2 MB.",
     common_export_excel: "Ekspor Excel",
+    backup_title: "Cadangan data",
+    backup_description: "Buat dan unduh salinan database.",
+    backup_backup_now: "Cadangkan sekarang",
+    backup_creating: "Sedang mencadangkan...",
+    backup_warning: "Cadangan hanya tersimpan di PC server. Unduh secara rutin dan salin ke flashdisk atau PC lain. Kalau PC server hilang atau rusak tanpa salinan, data tidak bisa dikembalikan.",
+    backup_last_backup: "Cadangan terakhir",
+    backup_last_caption: "Cadangan otomatis dibuat sekali sehari",
+    backup_kept: "Cadangan yang disimpan",
+    backup_available: "Daftar cadangan",
+    backup_col_file: "Nama file",
+    backup_col_created: "Dibuat",
+    backup_col_type: "Tipe cadangan",
+    backup_col_size: "Ukuran",
+    backup_download: "Unduh",
+    backup_downloading: "Mengunduh...",
+    backup_restore_note: "Untuk memulihkan cadangan, pakai alat EZI Restore di PC server (Start Menu). Tidak bisa dari halaman ini.",
+    backup_empty_title: "Belum ada cadangan",
+    backup_empty_body: "Buat cadangan pertama sekarang.",
+    users_title: "Kelola pengguna",
+    users_description: "Tambah orang, ubah peran, dan reset password.",
+    users_add: "+ Tambah pengguna",
+    users_search_placeholder: "Cari nama atau email",
+    users_all_roles: "Semua peran",
+    users_caption: "Pengguna",
+    users_col_name: "Nama",
+    users_col_email: "Email",
+    users_col_role: "Peran",
+    users_col_status: "Status",
+    users_col_last_login: "Terakhir masuk",
+    users_never: "Belum pernah",
+    users_must_change: "Harus ganti password",
+    users_empty_title: "Belum ada pengguna",
+    users_add_title: "Tambah pengguna",
+    users_edit_title: "Ubah pengguna",
+    users_add_desc: "Password sementara dibuat otomatis. Orangnya harus menggantinya saat pertama masuk.",
+    users_save: "Simpan pengguna",
+    users_saved: "Pengguna disimpan.",
+    users_role_hint: "Admin mengelola semuanya. Staff bisa mengajukan pinjam dan melihat barang.",
+    users_edit: "Ubah pengguna",
+    users_reset_password: "Reset password",
+    users_deactivate: "Nonaktifkan",
+    users_activate: "Aktifkan",
+    users_deactivate_body: "Orang ini tidak bisa masuk lagi. Riwayatnya tetap ada. Bisa diaktifkan lagi.",
+    users_activate_body: "Orang ini bisa masuk lagi.",
+    users_reset_body: "Password sementara baru ditampilkan sekali. Orangnya harus menggantinya saat masuk berikutnya.",
+    users_deactivated: "Pengguna dinonaktifkan.",
+    users_activated: "Pengguna diaktifkan.",
+    users_temp_title: "Password sementara",
+    users_temp_close: "Sudah saya salin",
+    activity_title: "Riwayat aktivitas",
+    activity_description: "Siapa melakukan apa, yang terbaru di atas. Catatan tidak bisa diubah atau dihapus.",
+    activity_search_placeholder: "Cari aksi, referensi, atau pengguna",
+    activity_all_modules: "Semua modul",
+    activity_all_users: "Semua pengguna",
+    activity_caption: "Riwayat aktivitas",
+    activity_col_time: "Waktu",
+    activity_col_user: "Pengguna",
+    activity_col_action: "Aksi",
+    activity_col_module: "Modul",
+    activity_col_ref: "Referensi",
+    activity_col_details: "Detail",
+    activity_empty_title: "Belum ada aktivitas",
+    activity_empty_filtered: "Tidak ada catatan yang cocok",
+    activity_system: "Sistem",
+    profile_title: "Profil saya",
+    profile_description: "Data akun dan password Anda.",
+    profile_account: "Akun",
+    profile_last_login: "Terakhir masuk",
+    profile_password_card: "Ganti password",
+    profile_password_body: "Pakai password yang tidak Anda pakai di tempat lain.",
+    fields_role: "Peran",
+    status_backup_kind_automatic: "Otomatis",
+    status_backup_kind_manual: "Manual",
+    status_backup_kind_before_update: "Sebelum pembaruan",
+    status_backup_kind_before_import: "Sebelum impor",
+    status_backup_kind_before_restore: "Sebelum pemulihan",
     expenses_title: "Ringkasan pengeluaran",
     expenses_description: "Ringkasan sederhana pembelian barang. Pembelian yang dibatalkan tidak dihitung.",
     expenses_this_month: "Bulan ini",
@@ -1561,6 +1714,52 @@ pub fn report_rows(lang: Lang, n: i64) -> String {
     match lang { Lang::En => format!("{n} {}", plural(lang, n, "row", "rows", "")), Lang::Id => format!("{n} baris") }
 }
 
+pub fn backup_created(lang: Lang, name: &str) -> String {
+    match lang { Lang::En => format!("Backup {name} created."), Lang::Id => format!("Cadangan {name} dibuat.") }
+}
+
+/// "3 of 14" / "3 dari 14".
+pub fn backup_kept_value(lang: Lang, n: u32, max: u32) -> String {
+    match lang { Lang::En => format!("{n} of {max}"), Lang::Id => format!("{n} dari {max}") }
+}
+
+pub fn backup_kept_caption(lang: Lang, n: u32) -> String {
+    match lang { Lang::En => format!("The latest {n} are kept; older ones are removed"), Lang::Id => format!("{n} cadangan terbaru disimpan; yang lebih lama dihapus") }
+}
+
+/// The kind of a backup file as the server names it (`Automatic`, `Manual`, `Before update`, ...); an unknown kind is shown as it is.
+pub fn backup_kind_label(lang: Lang, kind: &str) -> String {
+    let s = strings(lang);
+    match kind {
+        "Automatic" => s.status_backup_kind_automatic,
+        "Manual" => s.status_backup_kind_manual,
+        "Before update" => s.status_backup_kind_before_update,
+        "Before import" => s.status_backup_kind_before_import,
+        "Before restore" => s.status_backup_kind_before_restore,
+        other => other,
+    }
+    .to_string()
+}
+
+pub fn user_deactivate_title(lang: Lang, n: &str) -> String {
+    deactivate_title(lang, n)
+}
+
+pub fn user_activate_title(lang: Lang, n: &str) -> String {
+    activate_title(lang, n)
+}
+
+pub fn user_reset_title(lang: Lang, n: &str) -> String {
+    match lang { Lang::En => format!("Reset password for {n}?"), Lang::Id => format!("Reset password {n}?") }
+}
+
+pub fn user_temp_body(lang: Lang, n: &str) -> String {
+    match lang {
+        Lang::En => format!("Give this password to {n} in person. It is shown only once, and they must change it at next sign-in."),
+        Lang::Id => format!("Berikan password ini langsung ke {n}. Password hanya ditampilkan sekali, dan harus diganti saat masuk berikutnya."),
+    }
+}
+
 /// The "Preferred for" count of a supplier: "1 item" / "2 items" / "3 barang".
 pub fn supplier_items_count(lang: Lang, n: i64) -> String {
     match lang { Lang::En => format!("{n} {}", plural(lang, n, "item", "items", "")), Lang::Id => format!("{n} barang") }
@@ -1736,6 +1935,24 @@ mod tests {
     }
 
     #[test]
+    fn backup_and_user_texts_equal_the_web_apps() {
+        assert_eq!((backup_created(Lang::En, "a.sql").as_str(), backup_created(Lang::Id, "a.sql").as_str()), ("Backup a.sql created.", "Cadangan a.sql dibuat."));
+        assert_eq!((backup_kept_value(Lang::En, 3, 14).as_str(), backup_kept_value(Lang::Id, 3, 14).as_str()), ("3 of 14", "3 dari 14"));
+        assert_eq!(backup_kept_caption(Lang::Id, 14), "14 cadangan terbaru disimpan; yang lebih lama dihapus");
+        assert_eq!((user_reset_title(Lang::En, "Ani").as_str(), user_reset_title(Lang::Id, "Ani").as_str()), ("Reset password for Ani?", "Reset password Ani?"));
+        assert_eq!(user_temp_body(Lang::En, "Ani"), "Give this password to Ani in person. It is shown only once, and they must change it at next sign-in.");
+        assert_eq!(backup_kind_label(Lang::En, "Something new"), "Something new");
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../frontend/src/lib/");
+        for (lang, file) in [(Lang::En, "strings.ts"), (Lang::Id, "strings.id.ts")] {
+            let src = std::fs::read_to_string(format!("{dir}{file}")).unwrap();
+            let web = web_nested(&src, "kinds");
+            for kind in ["Automatic", "Manual", "Before update", "Before import", "Before restore"] {
+                assert_eq!(backup_kind_label(lang, kind), web[kind], "{file} {kind}");
+            }
+        }
+    }
+
+    #[test]
     fn counts_read_naturally() {
         assert_eq!(showing(Lang::En, 1, 8, 17), "Showing 1-8 of 17");
         assert_eq!(showing(Lang::Id, 9, 16, 17), "Menampilkan 9-16 dari 17");
@@ -1782,7 +1999,7 @@ mod tests {
         let id_src = std::fs::read_to_string(format!("{dir}strings.id.ts")).unwrap();
         let mut compared = 0;
         for (lang, src, ours) in [("en", &en_src, &EN), ("id", &id_src, &ID)] {
-            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport", "categories", "subcategories", "suppliers", "stock", "loans", "purchases", "expenses", "reports"] {
+            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport", "categories", "subcategories", "suppliers", "stock", "loans", "purchases", "expenses", "reports", "backup", "users", "activity", "profile"] {
                 let web: HashMap<String, String> = web_section(src, section).into_iter().map(|(k, v)| (format!("{}_{}", snake(section), snake(&k)), v)).collect();
                 for (field, text) in ours.entries() {
                     if let Some(want) = web.get(field) {
