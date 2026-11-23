@@ -3,6 +3,7 @@
 
 mod auth;
 mod dashboard;
+mod expenses;
 mod gallery;
 mod item_form;
 mod item_import;
@@ -16,6 +17,7 @@ mod purchase_form;
 mod purchase_lines;
 mod purchases;
 mod reason;
+mod reports;
 mod shell;
 mod state;
 mod stock;

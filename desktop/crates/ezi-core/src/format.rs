@@ -28,6 +28,27 @@ pub fn format_date(value: &str) -> String {
     if with_time.len() == 16 && with_time != value { with_time[..10].to_string() } else { value.to_string() }
 }
 
+/// `2026-10-23` becomes `2026-10`.
+pub fn month_key(date: &str) -> &str {
+    date.get(..7).unwrap_or(date)
+}
+
+/// `2026-11` becomes `November 2026`. The web app writes the month names in English in both languages, so this does too.
+pub fn month_label(key: &str) -> String {
+    const NAMES: [&str; 12] = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    match key.split_once('-') {
+        Some((y, m)) => m.parse::<usize>().ok().and_then(|m| NAMES.get(m.wrapping_sub(1))).map_or_else(|| key.to_string(), |name| format!("{name} {y}")),
+        None => key.to_string(),
+    }
+}
+
+/// The first day of the month `n` months before today, `YYYY-MM-DD` (the expenses "last 12 months" button).
+pub fn first_day_months_back(n: i64) -> String {
+    let (y, m, _) = parse_date(&today()).unwrap_or((1970, 1, 1));
+    let index = y * 12 + (m - 1) - n;
+    format!("{:04}-{:02}-01", index.div_euclid(12), index.rem_euclid(12) + 1)
+}
+
 // The web app shows every date in Asia/Jakarta, which is UTC+7 all year (no daylight saving), so a fixed offset is exact.
 const JAKARTA_SECONDS: i64 = 7 * 3600;
 
@@ -129,6 +150,16 @@ mod tests {
         assert_eq!((day_diff("2026-11-22", "2026-11-25"), day_diff("2026-12-30", "2027-01-02"), day_diff("x", "2026-01-01")), (Some(3), Some(3), None));
         assert!(is_date(&today()) && is_date(&days_from_today(7)));
         assert_eq!(day_diff(&today(), &days_from_today(7)), Some(7));
+    }
+
+    #[test]
+    fn months_read_like_the_web_app() {
+        assert_eq!((month_key("2026-10-23"), month_label("2026-11"), month_label("2027-01"), month_label("bad")), ("2026-10", "November 2026".to_string(), "January 2027".to_string(), "bad".to_string()));
+        let (y, m) = (today()[..4].parse::<i64>().unwrap(), today()[5..7].parse::<i64>().unwrap());
+        let back = first_day_months_back(11);
+        let (by, bm) = (back[..4].parse::<i64>().unwrap(), back[5..7].parse::<i64>().unwrap());
+        assert_eq!((y * 12 + m) - (by * 12 + bm), 11, "{back}");
+        assert!(back.ends_with("-01") && first_day_months_back(0).ends_with("-01"));
     }
 
     #[test]

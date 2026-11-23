@@ -6,7 +6,7 @@
 use ezi_core::api::{Client, ErrorCode, Password, Role};
 use ezi_core::api::Lang;
 use ezi_core::forms::{self, ReceiveLineFields};
-use ezi_core::models::{AdjustmentInput, GroupInput, GroupRow, ImportStatus, ItemInput, LoanInput, LoanStatus, NewItemInput, PurchaseInput, PurchaseLineInput, PurchaseStatus, ReturnInput, StockLineInput, StockMoveInput, SupplierInput, SupplierRow};
+use ezi_core::models::{AdjustmentInput, GroupInput, GroupRow, ImportStatus, ItemInput, LoanInput, LoanStatus, NewItemInput, StockStatus, PurchaseInput, PurchaseLineInput, PurchaseStatus, ReturnInput, StockLineInput, StockMoveInput, SupplierInput, SupplierRow};
 use serde_json::{json, Value};
 
 const PNG: [u8; 8] = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -326,6 +326,35 @@ fn the_client_works_against_the_real_backend() {
     assert_eq!(admin.receive_purchase(draft.id, &receive_input(&today, supplier_id, "1800", "2")).unwrap_err().code(), Some(&ErrorCode::BusinessRule), "a request is received once");
     assert!(admin.purchase(draft.id).unwrap().allowed_actions.iter().all(|a| a != "receive"));
     assert_eq!(staff.purchase(9_999_999).unwrap_err().code(), Some(&ErrorCode::NotFound));
+
+    // Expenses and reports: the numbers the server adds up, the report filters, and the Excel file of a report.
+    let month = ezi_core::format::month_key(&today).to_string();
+    let range = ezi_core::format::first_day_months_back(0);
+    let summary = admin.expense_summary(&range, &today).unwrap();
+    assert!(summary.count >= 2 && summary.total > 0, "the receipts above are expenses: {summary:?}");
+    assert_eq!(summary.months.len(), 1, "one month in range");
+    assert_eq!((summary.months[0].month.as_str(), summary.months[0].count, summary.months[0].value), (month.as_str(), summary.count, summary.total), "the month row equals the total");
+    assert_eq!(admin.expense_summary("2000-01-01", "2000-01-31").unwrap().count, 0);
+    let too_long = admin.expense_summary("2020-01-01", &today).unwrap_err();
+    assert!(matches!(too_long.code(), Some(ErrorCode::Validation | ErrorCode::BusinessRule)), "{too_long:?}");
+    assert_eq!(forms::expense_range_error(Lang::En, "2020-01-01", &today).is_some(), true, "the form refuses the same range before asking");
+    let stock_report = admin.report_stock(&[("pageSize", "100"), ("sort", "code:asc")]).unwrap();
+    let all_items = admin.items(&[("pageSize", "100"), ("status", "Active")]).unwrap().data.len();
+    assert!(stock_report.data.len() >= all_items.min(1) && stock_report.meta.as_ref().is_some_and(|m| m.total as usize == stock_report.data.len()), "the stock report lists the items with their stock");
+    assert!(stock_report.data.iter().all(|i| i.code.is_some() && i.current_stock.is_some()), "Admin shape: code and stock present");
+    let low_only = admin.report_stock(&[("stockStatus", "Out"), ("pageSize", "100")]).unwrap().data;
+    assert!(low_only.iter().all(|i| i.stock_status == StockStatus::Out), "the stock status filter");
+    let movements = admin.report_movements(&[("type", "IN"), ("from", &range), ("to", &today), ("pageSize", "100")]).unwrap().data;
+    assert!(!movements.is_empty() && movements.iter().all(|m| m.kind == "IN" && m.quantity_change > 0), "movement filters: type and dates");
+    let loan_rows = admin.report_loans(&[("status", "Completed"), ("pageSize", "100")]).unwrap().data;
+    assert!(!loan_rows.is_empty() && loan_rows.iter().all(|l| l.status == LoanStatus::Completed && l.returned_at.is_some()), "the loans report, completed loans have a return date");
+    for report in ["stock", "movements", "loans"] {
+        let file = admin.export_report(report, &[("sort", if report == "stock" { "code:asc" } else { "date:desc" })]).unwrap();
+        assert!(file.file_name.ends_with(".xlsx") && file.bytes.starts_with(b"PK"), "{report}: {}", file.file_name);
+    }
+    assert_eq!(staff.expense_summary(&range, &today).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    assert_eq!(staff.report_stock(&[]).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    assert_eq!(staff.export_report("loans", &[]).unwrap_err().code(), Some(&ErrorCode::Forbidden));
 
     // Logout ends the session on the server too.
     admin.logout().unwrap();

@@ -579,6 +579,54 @@ pub struct ReceiveInput {
     pub notes: String,
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct ExpenseMonth {
+    pub month: String,
+    pub count: i64,
+    pub value: i64,
+}
+
+/// The expenses of a date range: the server adds the months up (PRD 4.7).
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct ExpenseSummary {
+    pub total: i64,
+    pub count: i64,
+    pub months: Vec<ExpenseMonth>,
+}
+
+/// One line of the stock movements report.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct MovementRow {
+    pub number: String,
+    pub date: String,
+    #[serde(rename = "itemName")]
+    pub item_name: String,
+    #[serde(rename = "type")]
+    pub kind: String,
+    #[serde(rename = "quantityChange")]
+    pub quantity_change: i64,
+    #[serde(rename = "balanceAfter")]
+    pub balance_after: i64,
+    #[serde(rename = "userName")]
+    pub user_name: String,
+}
+
+/// One line of the loans report.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct LoanReportRow {
+    pub number: String,
+    #[serde(rename = "borrowerName")]
+    pub borrower_name: String,
+    pub summary: String,
+    #[serde(rename = "loanDate")]
+    pub loan_date: String,
+    #[serde(rename = "expectedReturnDate")]
+    pub expected_return_date: String,
+    #[serde(rename = "returnedAt")]
+    pub returned_at: Option<String>,
+    pub status: LoanStatus,
+}
+
 /// The body of create and update item, as the server expects it (`itemSchema` in `backend/src/schemas.ts`).
 #[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
 pub struct ItemInput {

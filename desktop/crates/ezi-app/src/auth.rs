@@ -20,9 +20,11 @@ use gpui_kit::*;
 
 use crate::dashboard::Dashboard;
 use crate::items::ItemsPage;
+use crate::expenses::ExpensesPage;
 use crate::loans::LoansPage;
 use crate::master::{Kind, MasterPage};
 use crate::purchases::PurchasesPage;
+use crate::reports::ReportsPage;
 use crate::stock::StockPage;
 use crate::shell::{page_label, AppShell, PageBuilder};
 use crate::state::{color, state, t, AppState};
@@ -49,6 +51,8 @@ struct AdminPages {
     categories: Entity<MasterPage>,
     suppliers: Entity<MasterPage>,
     stock: Entity<StockPage>,
+    expenses: Entity<ExpensesPage>,
+    reports: Entity<ReportsPage>,
 }
 
 pub struct AuthGate {
@@ -289,7 +293,9 @@ impl AuthGate {
             let categories = cx.new(|cx| MasterPage::new(client.clone(), Kind::Category, window, cx));
             let suppliers = cx.new(|cx| MasterPage::new(client.clone(), Kind::Supplier, window, cx));
             let stock = cx.new(|cx| StockPage::new(client.clone(), window, cx));
-            AdminPages { categories, suppliers, stock }
+            let expenses = cx.new(|cx| ExpensesPage::new(client.clone(), window, cx));
+            let reports = cx.new(|cx| ReportsPage::new(client.clone(), window, cx));
+            AdminPages { categories, suppliers, stock, expenses, reports }
         });
         let content: PageBuilder = {
             let (dashboard, items, loans, purchases, master) = (dashboard.clone(), items.clone(), loans.clone(), purchases.clone(), master.clone());
@@ -303,6 +309,8 @@ impl AuthGate {
                 Page::Categories => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.categories.clone().into_any_element()),
                 Page::Suppliers => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.suppliers.clone().into_any_element()),
                 Page::Stock => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.stock.clone().into_any_element()),
+                Page::Expenses => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.expenses.clone().into_any_element()),
+                Page::Reports => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.reports.clone().into_any_element()),
                 // The screens of the next tasks replace this placeholder: just the page title.
                 other => div().text_size(px(theme::TEXT_TITLE)).font_weight(FontWeight::SEMIBOLD).child(page_label(t(cx), other)).into_any_element(),
             })
@@ -320,12 +328,14 @@ impl AuthGate {
                     Page::Loans => loans.update(cx, |p, cx| p.show_list(window, cx)),
                     Page::Purchases => purchases.update(cx, |p, cx| p.show_list(window, cx)),
                     // The Admin screens fetch their rows again each time they are opened.
-                    Page::Categories | Page::Suppliers | Page::Stock => {
+                    Page::Categories | Page::Suppliers | Page::Stock | Page::Expenses | Page::Reports => {
                         if let Some(admin) = &master {
                             match page {
                                 Page::Categories => admin.categories.update(cx, |p, cx| p.show_list(cx)),
                                 Page::Suppliers => admin.suppliers.update(cx, |p, cx| p.show_list(cx)),
-                                _ => admin.stock.update(cx, |p, cx| p.show_list(cx)),
+                                Page::Stock => admin.stock.update(cx, |p, cx| p.show_list(cx)),
+                                Page::Expenses => admin.expenses.update(cx, |p, cx| p.refresh(cx)),
+                                _ => admin.reports.update(cx, |p, cx| p.reload(window, cx)),
                             }
                         }
                     }

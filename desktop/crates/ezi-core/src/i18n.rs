@@ -34,6 +34,7 @@ strings! {
     items_title, items_desc_admin, items_desc_staff, items_search_placeholder, items_all_categories, items_all_subcategories, items_stock_status_filter, items_availability_filter, items_all_stock_status, items_all_availability, items_col_name, items_col_category, items_col_subcategory, items_col_stock, items_col_minimum, items_col_unit, items_col_availability, items_inactive_tag, items_empty_title, items_empty_filtered, items_empty_filtered_body, items_record_status_filter, items_active_only, items_inactive_only, items_all_records, items_details_card, items_stock_card, items_current_stock, items_minimum_stock, items_reserved, items_available_for_loan, items_last_price, items_movements, items_movements_empty, items_col_date, items_col_type, items_col_change, items_col_balance, items_col_ref, items_col_user, items_created_at, items_updated_at, items_staff_stock_note, items_barcode_card, items_photo_none, items_not_found_back, fields_category, fields_subcategory, fields_unit, fields_preferred_supplier, fields_location, common_notes, status_tx_type_in, status_tx_type_out, status_tx_type_adjustment, status_tx_type_loan_issue, status_tx_type_loan_return, status_tx_type_reversal,
     items_add, items_edit, items_deactivate, items_activate, items_delete, items_add_title, items_edit_title, items_section_basic, items_section_stock, items_section_purchasing, items_field_code, items_field_name, items_code_hint, items_code_auto, items_opening_hint, items_opening_read_only, items_minimum_hint, items_no_supplier, items_save_item, items_saved_add, items_saved_edit, items_deactivate_body, items_activate_body, items_delete_body, items_deactivated, items_activated, items_deleted, items_field_photo, items_photo_hint, items_photo_remove, items_photo_selected, items_photo_save_failed, item_import_button, item_import_title, item_import_desc, item_import_file_label, item_import_reading, item_import_preview_title, item_import_col_line, item_import_col_result, item_import_status_ready, item_import_status_skipped, item_import_status_error, item_import_status_imported, item_import_another, item_import_backup_note, item_import_confirming, item_import_back_to_items, fields_name, fields_opening_stock, fields_minimum_stock, fields_last_price, fields_supplier, validation_select_category, validation_select_subcategory, validation_select_unit, validation_select_supplier, errors_photo_empty, errors_photo_type, errors_photo_too_big,
     common_export_excel, common_exporting,
+    expenses_title, expenses_description, expenses_this_month, expenses_last12, expenses_range_invalid, expenses_range_too_long, expenses_total_value, expenses_total_caption, expenses_purchase_count, expenses_purchase_caption, expenses_by_month, expenses_col_month, expenses_col_purchases, expenses_col_value, expenses_caption, expenses_empty_title, expenses_empty_body, expenses_empty_action, reports_title, reports_description, reports_tab_stock, reports_tab_movements, reports_tab_loans, reports_search_stock, reports_search_movements, reports_search_loans, reports_col_code, reports_col_item, reports_col_category, reports_col_unit, reports_col_stock, reports_col_minimum, reports_col_status, reports_col_date, reports_col_type, reports_col_change, reports_col_balance, reports_col_user, reports_col_ref, reports_col_loan, reports_col_borrower, reports_col_loan_date, reports_col_expected, reports_col_returned, reports_stock_caption, reports_movements_caption, reports_loans_caption, reports_empty_title, reports_empty_body, reports_all_loan_statuses, reports_overdue_highlight, common_from, common_to,
     purchases_title, purchases_desc_admin, purchases_desc_staff, purchases_new, purchases_search_placeholder, purchases_all_requesters, purchases_caption, purchases_tab_all, purchases_tab_closed, purchases_col_number, purchases_col_requester, purchases_col_items, purchases_col_needed_by, purchases_col_status, purchases_empty_title, purchases_empty_admin_body, purchases_empty_staff_body, purchases_empty_filtered, purchases_detail_title, purchases_items_card, purchases_col_item, purchases_col_qty, purchases_col_stock_now, purchases_col_minimum, purchases_col_last_price, purchases_created_on, purchases_needed_by, purchases_reason, purchases_note, purchases_approved_by, purchases_rejected_by, purchases_reject_reason, purchases_received_on, purchases_received_by, purchases_transaction, purchases_progress, purchases_step_done, purchases_step_current, purchases_step_upcoming, purchases_step_submitted, purchases_step_approved, purchases_step_approved_body, purchases_step_received, purchases_step_received_body, purchases_draft_note, purchases_rejected_note, purchases_cancelled_note, purchases_approve_info, purchases_own_request, purchases_approve, purchases_reject, purchases_receive, purchases_cancel, purchases_submit, purchases_edit_draft, purchases_approved, purchases_rejected, purchases_received, purchases_cancelled, purchases_submitted, purchases_draft_saved, purchases_reject_body, purchases_reject_confirm, purchases_receive_body, purchases_receive_new_items_note, purchases_new_item_tag, purchases_line_existing, purchases_line_new, purchases_new_item_hint, purchases_pick_category, purchases_pick_subcategory, purchases_pick_unit, purchases_receive_confirm, purchases_receive_total, purchases_receipt_voided, purchases_cancel_body, purchases_new_title, purchases_edit_title, purchases_form_desc, purchases_section_items, purchases_how_new, purchases_section_when, purchases_section_why, purchases_requester_hint, purchases_add_line, purchases_save_draft, purchases_how_title, purchases_how1, purchases_how2, purchases_how3, purchases_how4, purchases_not_found_back, fields_needed_by, fields_requester, fields_received_date, fields_item_name, validation_select_requester, status_purchase_draft, status_purchase_pending_approval, status_purchase_approved, status_purchase_rejected, status_purchase_received, status_purchase_cancelled,
     loans_title, loans_desc_admin, loans_desc_staff, loans_new_admin, loans_new_staff, loans_search_placeholder, loans_all_borrowers, loans_caption, loans_tab_all, loans_tab_closed, loans_col_number, loans_col_borrower, loans_col_items, loans_col_loan_date, loans_col_expected, loans_col_status, loans_empty_title, loans_empty_admin_body, loans_empty_staff_body, loans_empty_filtered, loans_view, loans_detail_title, loans_items_card, loans_col_item, loans_col_qty, loans_col_stock_now, loans_col_available, loans_borrower, loans_requested_on, loans_loan_date, loans_expected_return, loans_purpose, loans_note, loans_approved_by, loans_rejected_by, loans_reject_reason, loans_issued_by, loans_returned_on, loans_received_by, loans_return_note, loans_progress, loans_step_done, loans_step_current, loans_step_upcoming, loans_step_submitted, loans_step_approved, loans_step_approved_body, loans_step_borrowed, loans_step_borrowed_body, loans_step_completed, loans_step_completed_body, loans_draft_note, loans_rejected_note, loans_cancelled_note, loans_own_request, loans_approve, loans_reject, loans_issue, loans_record_return, loans_cancel, loans_cancel_request, loans_submit, loans_edit_draft, loans_approved, loans_rejected, loans_issued, loans_returned, loans_cancelled, loans_submitted, loans_draft_saved, loans_reject_body, loans_reject_confirm, loans_issue_body, loans_issue_confirm, loans_return_body, loans_return_confirm, loans_cancel_body, loans_new_title, loans_new_request_title, loans_edit_title, loans_form_desc, loans_section_items, loans_section_when, loans_section_why, loans_borrower_hint, loans_add_line, loans_save_draft, loans_not_found_back, fields_loan_date, fields_expected_return, fields_return_date, fields_purpose, fields_return_note, fields_borrower, validation_select_borrower, validation_expected_after_loan,
     fields_destination_hint,
@@ -220,6 +221,59 @@ pub const EN: Strings = Strings {
     errors_photo_type: "The photo must be a JPEG, PNG or WebP image.",
     errors_photo_too_big: "The photo is too large. The limit is 2 MB.",
     common_export_excel: "Export Excel",
+    expenses_title: "Expense summary",
+    expenses_description: "A simple summary of purchases. Voided purchases are not counted.",
+    expenses_this_month: "This month",
+    expenses_last12: "Last 12 months",
+    expenses_range_invalid: "The end date cannot be before the start date.",
+    expenses_range_too_long: "Choose a range of 12 months or less.",
+    expenses_total_value: "Total purchase value",
+    expenses_total_caption: "Posted incoming stock in this period",
+    expenses_purchase_count: "Purchase transactions",
+    expenses_purchase_caption: "Incoming stock records",
+    expenses_by_month: "By month",
+    expenses_col_month: "Month",
+    expenses_col_purchases: "Purchases",
+    expenses_col_value: "Total value",
+    expenses_caption: "Purchases by month",
+    expenses_empty_title: "No purchases in this period",
+    expenses_empty_body: "Record incoming stock to see purchase totals here.",
+    expenses_empty_action: "+ Incoming stock",
+    reports_title: "Reports",
+    reports_description: "Three reports with filters. Export respects the filters you set.",
+    reports_tab_stock: "Stock",
+    reports_tab_movements: "Stock movements",
+    reports_tab_loans: "Loans",
+    reports_search_stock: "Search by name or code",
+    reports_search_movements: "Search by item, number, or user",
+    reports_search_loans: "Search by loan, borrower, or item",
+    reports_col_code: "Code",
+    reports_col_item: "Item",
+    reports_col_category: "Category",
+    reports_col_unit: "Unit",
+    reports_col_stock: "Stock",
+    reports_col_minimum: "Minimum",
+    reports_col_status: "Status",
+    reports_col_date: "Date",
+    reports_col_type: "Type",
+    reports_col_change: "Change",
+    reports_col_balance: "Balance after",
+    reports_col_user: "User",
+    reports_col_ref: "Reference",
+    reports_col_loan: "Loan",
+    reports_col_borrower: "Borrower",
+    reports_col_loan_date: "Loan date",
+    reports_col_expected: "Expected return",
+    reports_col_returned: "Returned",
+    reports_stock_caption: "Stock report",
+    reports_movements_caption: "Stock movements report",
+    reports_loans_caption: "Loans report",
+    reports_empty_title: "No rows match your filters",
+    reports_empty_body: "Change or clear the filters to see more.",
+    reports_all_loan_statuses: "All statuses",
+    reports_overdue_highlight: "Overdue loans are marked with an Overdue badge.",
+    common_from: "From",
+    common_to: "To",
     purchases_title: "Purchase requests",
     purchases_desc_admin: "Approve requests, then record the items when they arrive.",
     purchases_desc_staff: "Ask for items that are running low or missing. An Admin buys them.",
@@ -779,6 +833,59 @@ pub const ID: Strings = Strings {
     errors_photo_type: "Foto harus berupa gambar JPEG, PNG atau WebP.",
     errors_photo_too_big: "Foto terlalu besar. Batasnya 2 MB.",
     common_export_excel: "Ekspor Excel",
+    expenses_title: "Ringkasan pengeluaran",
+    expenses_description: "Ringkasan sederhana pembelian barang. Pembelian yang dibatalkan tidak dihitung.",
+    expenses_this_month: "Bulan ini",
+    expenses_last12: "12 bulan terakhir",
+    expenses_range_invalid: "Tanggal akhir tidak boleh sebelum tanggal awal.",
+    expenses_range_too_long: "Pilih rentang paling lama 12 bulan.",
+    expenses_total_value: "Total nilai pembelian",
+    expenses_total_caption: "Barang masuk yang tercatat di periode ini",
+    expenses_purchase_count: "Transaksi pembelian",
+    expenses_purchase_caption: "Catatan barang masuk",
+    expenses_by_month: "Per bulan",
+    expenses_col_month: "Bulan",
+    expenses_col_purchases: "Pembelian",
+    expenses_col_value: "Total nilai",
+    expenses_caption: "Pembelian per bulan",
+    expenses_empty_title: "Tidak ada pembelian di periode ini",
+    expenses_empty_body: "Catat barang masuk supaya total pembelian muncul di sini.",
+    expenses_empty_action: "+ Barang masuk",
+    reports_title: "Laporan",
+    reports_description: "Tiga laporan dengan filter. Ekspor mengikuti filter yang Anda pilih.",
+    reports_tab_stock: "Stok",
+    reports_tab_movements: "Pergerakan stok",
+    reports_tab_loans: "Peminjaman",
+    reports_search_stock: "Cari nama atau kode",
+    reports_search_movements: "Cari barang, nomor, atau pengguna",
+    reports_search_loans: "Cari nomor, peminjam, atau barang",
+    reports_col_code: "Kode",
+    reports_col_item: "Barang",
+    reports_col_category: "Area",
+    reports_col_unit: "Satuan",
+    reports_col_stock: "Stok",
+    reports_col_minimum: "Minimum",
+    reports_col_status: "Status",
+    reports_col_date: "Tanggal",
+    reports_col_type: "Jenis transaksi",
+    reports_col_change: "Perubahan",
+    reports_col_balance: "Sisa stok",
+    reports_col_user: "Pengguna",
+    reports_col_ref: "Referensi",
+    reports_col_loan: "Peminjaman",
+    reports_col_borrower: "Peminjam",
+    reports_col_loan_date: "Tanggal pinjam",
+    reports_col_expected: "Rencana kembali",
+    reports_col_returned: "Dikembalikan",
+    reports_stock_caption: "Laporan stok",
+    reports_movements_caption: "Laporan pergerakan stok",
+    reports_loans_caption: "Laporan peminjaman",
+    reports_empty_title: "Tidak ada data yang cocok",
+    reports_empty_body: "Ubah atau hapus filter untuk melihat lebih banyak.",
+    reports_all_loan_statuses: "Semua status",
+    reports_overdue_highlight: "Peminjaman yang terlambat ditandai label Terlambat.",
+    common_from: "Dari",
+    common_to: "Sampai",
     purchases_title: "Pengajuan beli",
     purchases_desc_admin: "Setujui pengajuan, lalu catat barangnya saat datang.",
     purchases_desc_staff: "Ajukan barang yang hampir habis atau belum ada. Admin yang membelinya.",
@@ -1449,6 +1556,11 @@ pub fn purchase_status_label(lang: Lang, status: crate::models::PurchaseStatus) 
     }
 }
 
+/// "1 row" / "2 rows" / "3 baris": the row count above a report.
+pub fn report_rows(lang: Lang, n: i64) -> String {
+    match lang { Lang::En => format!("{n} {}", plural(lang, n, "row", "rows", "")), Lang::Id => format!("{n} baris") }
+}
+
 /// The "Preferred for" count of a supplier: "1 item" / "2 items" / "3 barang".
 pub fn supplier_items_count(lang: Lang, n: i64) -> String {
     match lang { Lang::En => format!("{n} {}", plural(lang, n, "item", "items", "")), Lang::Id => format!("{n} barang") }
@@ -1619,6 +1731,11 @@ mod tests {
     }
 
     #[test]
+    fn report_row_counts_read_like_the_web_app() {
+        assert_eq!((report_rows(Lang::En, 1).as_str(), report_rows(Lang::En, 2).as_str(), report_rows(Lang::Id, 3).as_str()), ("1 row", "2 rows", "3 baris"));
+    }
+
+    #[test]
     fn counts_read_naturally() {
         assert_eq!(showing(Lang::En, 1, 8, 17), "Showing 1-8 of 17");
         assert_eq!(showing(Lang::Id, 9, 16, 17), "Menampilkan 9-16 dari 17");
@@ -1665,7 +1782,7 @@ mod tests {
         let id_src = std::fs::read_to_string(format!("{dir}strings.id.ts")).unwrap();
         let mut compared = 0;
         for (lang, src, ours) in [("en", &en_src, &EN), ("id", &id_src, &ID)] {
-            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport", "categories", "subcategories", "suppliers", "stock", "loans", "purchases"] {
+            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport", "categories", "subcategories", "suppliers", "stock", "loans", "purchases", "expenses", "reports"] {
                 let web: HashMap<String, String> = web_section(src, section).into_iter().map(|(k, v)| (format!("{}_{}", snake(section), snake(&k)), v)).collect();
                 for (field, text) in ours.entries() {
                     if let Some(want) = web.get(field) {

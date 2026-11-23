@@ -403,6 +403,21 @@ pub fn receive(lang: Lang, date: &str, supplier_id: Option<i64>, lines: &[Receiv
     }
 }
 
+/// The check before asking for expenses (the server repeats it): the end is not before the start, and the range is under 12 months.
+/// None means the range is fine (or not complete yet).
+pub fn expense_range_error(lang: Lang, from: &str, to: &str) -> Option<&'static str> {
+    let s = strings(lang);
+    let (from, to) = (from.trim(), to.trim());
+    if from.is_empty() || to.is_empty() || !crate::format::is_date(from) || !crate::format::is_date(to) {
+        return None;
+    }
+    if to < from {
+        return Some(s.expenses_range_invalid);
+    }
+    let months = |d: &str| d[..4].parse::<i64>().unwrap_or(0) * 12 + d[5..7].parse::<i64>().unwrap_or(0);
+    (months(to) - months(from) >= 12).then_some(s.expenses_range_too_long)
+}
+
 /// A reason typed for a void, a rejection or a cancel (`reasonSchema`).
 pub fn reason(lang: Lang, text: &str) -> Result<String, FieldErrors> {
     if text.trim().is_empty() {
@@ -551,6 +566,15 @@ mod tests {
         let e = receive(Lang::En, "", None, &[ReceiveLineFields { is_new: true, unit_price: "x", minimum_stock: "" }, ReceiveLineFields { is_new: false, unit_price: "", minimum_stock: "" }], "").unwrap_err();
         assert_eq!((e["date"].as_str(), e["supplierId"].as_str()), ("Date received is required.", "Select a supplier."));
         assert_eq!((e["lines.0.unitPrice"].as_str(), e["lines.0.minimumStock"].as_str(), e["lines.1.unitPrice"].as_str()), ("Unit price (IDR) must be a whole number.", "Minimum stock is required.", "Unit price (IDR) is required."));
+    }
+
+    #[test]
+    fn the_expense_range_check_follows_the_web_page() {
+        assert_eq!(expense_range_error(Lang::En, "2026-11-01", "2026-11-23"), None);
+        assert_eq!(expense_range_error(Lang::En, "2026-11-23", "2026-11-01"), Some("The end date cannot be before the start date."));
+        assert_eq!(expense_range_error(Lang::En, "2025-11-01", "2026-10-31"), None, "11 months apart is allowed");
+        assert!(expense_range_error(Lang::En, "2025-11-01", "2026-11-01").is_some(), "12 months apart is too long");
+        assert_eq!((expense_range_error(Lang::En, "", "2026-11-01"), expense_range_error(Lang::En, "2026-11-0", "2026-11-01")), (None, None), "an unfinished date is not an error yet");
     }
 
     #[test]

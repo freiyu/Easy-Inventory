@@ -565,6 +565,30 @@ impl Client {
         Ok(self.get::<Vec<crate::models::UserOption>>("/users", &[("pageSize", "500"), ("sort", "name:asc")])?.data)
     }
 
+    // Expenses and reports (Admin only).
+
+    pub fn expense_summary(&self, from: &str, to: &str) -> Result<crate::models::ExpenseSummary, ApiError> {
+        Ok(self.get::<crate::models::ExpenseSummary>("/expenses/summary", &[("from", from), ("to", to)])?.data)
+    }
+
+    /// The stock report is the Admin item list with its own filters.
+    pub fn report_stock(&self, query: &[(&str, &str)]) -> Result<Success<Vec<crate::models::Item>>, ApiError> {
+        self.get("/reports/stock", query)
+    }
+
+    pub fn report_movements(&self, query: &[(&str, &str)]) -> Result<Success<Vec<crate::models::MovementRow>>, ApiError> {
+        self.get("/reports/movements", query)
+    }
+
+    pub fn report_loans(&self, query: &[(&str, &str)]) -> Result<Success<Vec<crate::models::LoanReportRow>>, ApiError> {
+        self.get("/reports/loans", query)
+    }
+
+    /// The Excel file of a report (`stock`, `movements` or `loans`) with the filters and sort that are on screen.
+    pub fn export_report(&self, report: &str, query: &[(&str, &str)]) -> Result<Download, ApiError> {
+        self.get_file(&format!("/reports/{report}/export"), query)
+    }
+
     pub fn needs_setup(&self) -> Result<bool, ApiError> {
         #[derive(Deserialize)]
         struct Status {

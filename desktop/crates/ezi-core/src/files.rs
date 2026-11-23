@@ -31,6 +31,15 @@ pub fn unique_path(dir: &Path, name: &str) -> PathBuf {
         .expect("an unused name exists")
 }
 
+/// Writes a downloaded file into the Downloads folder under its own name (never over an existing file) and says where it went.
+pub fn save_to_downloads(file_name: &str, bytes: &[u8]) -> Result<PathBuf, String> {
+    let dir = downloads_dir().ok_or_else(|| "no Downloads folder".to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = unique_path(&dir, file_name);
+    std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+    Ok(path)
+}
+
 /// `barcode-<item name>.png`, with the characters Windows does not allow in a file name replaced by `-`.
 /// The name of the item and not its code, so the file name never shows a code to Staff (same as the web app).
 pub fn barcode_png_name(item_name: &str) -> String {
