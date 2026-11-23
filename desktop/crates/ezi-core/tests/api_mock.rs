@@ -307,3 +307,28 @@ fn setup_status_and_first_admin_use_the_setup_endpoints() {
     assert_eq!(serde_json::from_slice::<Value>(&seen[1].body).unwrap(), json!({ "name": "Admin One", "email": "admin@test.example", "password": "first-pass-1" }));
     assert_eq!(seen[1].url, "/api/setup/first-admin");
 }
+
+#[test]
+fn the_item_choices_load_every_page_not_just_the_first_500() {
+    // 1,200 active items: the server gives 500, 500 and 200. The first version of the form stopped after 500.
+    let (addr, log) = serve(|s| {
+        let page: usize = s.url.split("page=").nth(1).and_then(|p| p.split('&').next()).and_then(|p| p.parse().ok()).unwrap_or(1);
+        let (from, to) = ((page - 1) * 500, (page * 500).min(1200));
+        let rows: Vec<Value> = (from..to).map(|i| json!({ "id": i, "name": format!("Barang {i:04}"), "categoryName": "K", "subcategoryName": "S", "unit": "pcs", "status": "Active", "stockStatus": "Safe", "availableForLoan": 1 })).collect();
+        json_reply(200, json!({ "success": true, "data": rows, "meta": { "page": page, "pageSize": 500, "total": 1200 } }))
+    });
+    let client = Client::new(&addr).unwrap();
+    let items = client.pickable_items().unwrap();
+    assert_eq!(items.len(), 1200);
+    assert_eq!((items[0].name.as_str(), items[1199].name.as_str()), ("Barang 0000", "Barang 1199"));
+    let urls: Vec<String> = log.lock().unwrap().iter().map(|s| s.url.clone()).collect();
+    assert_eq!(urls.len(), 3, "{urls:?}");
+    assert!(urls.iter().all(|u| u.contains("status=Active") && u.contains("pageSize=500")));
+}
+
+#[test]
+fn a_short_list_of_items_is_one_request() {
+    let (addr, log) = serve(|_| json_reply(200, json!({ "success": true, "data": [{ "id": 1, "name": "A", "categoryName": "K", "subcategoryName": "S", "unit": "pcs", "status": "Active", "stockStatus": "Safe", "availableForLoan": 1 }], "meta": { "page": 1, "pageSize": 500, "total": 1 } })));
+    assert_eq!(Client::new(&addr).unwrap().pickable_items().unwrap().len(), 1);
+    assert_eq!(log.lock().unwrap().len(), 1);
+}

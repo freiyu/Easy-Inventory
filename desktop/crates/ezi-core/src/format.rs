@@ -28,6 +28,11 @@ pub fn format_date(value: &str) -> String {
     if with_time.len() == 16 && with_time != value { with_time[..10].to_string() } else { value.to_string() }
 }
 
+/// The first letters of the first two words of a name, in capitals: `Admin Rust` becomes `AR` (the sidebar avatar).
+pub fn initials(name: &str) -> String {
+    name.split_whitespace().take(2).filter_map(|w| w.chars().next()).flat_map(char::to_uppercase).collect()
+}
+
 /// `1536` (KB) becomes `1.5 MB`, `300` becomes `300 KB`, like the web `formatSize`.
 pub fn format_size(kb: i64) -> String {
     if kb >= 1024 { format!("{:.1} MB", kb as f64 / 1024.0) } else { format!("{kb} KB") }
@@ -155,6 +160,11 @@ mod tests {
         assert_eq!((day_diff("2026-11-22", "2026-11-25"), day_diff("2026-12-30", "2027-01-02"), day_diff("x", "2026-01-01")), (Some(3), Some(3), None));
         assert!(is_date(&today()) && is_date(&days_from_today(7)));
         assert_eq!(day_diff(&today(), &days_from_today(7)), Some(7));
+    }
+
+    #[test]
+    fn initials_read_like_the_web_app() {
+        assert_eq!((initials("Admin Rust").as_str(), initials("staf").as_str(), initials("  ani budi  cahyo ").as_str(), initials("").as_str()), ("AR", "S", "AB", ""));
     }
 
     #[test]

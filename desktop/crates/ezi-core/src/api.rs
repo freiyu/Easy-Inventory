@@ -487,10 +487,22 @@ impl Client {
         Ok(self.post::<crate::models::StockTx, _>(&format!("/stock/transactions/{id}/void"), &serde_json::json!({ "reason": reason }))?.data)
     }
 
-    /// Active items for the item pickers of the forms, by name. shortcut: the first 500 (the server's page limit),
-    /// searched in the picker; upgrade to a server search when an office has more active items than that.
+    /// All active items for the item pickers of the forms, by name: page after page (500 each, the server's limit) until every
+    /// one is there, so an office with many items can still pick any of them (the web app had the same bug, S6-01).
+    /// shortcut: stops at 10,000 items; upgrade to a search on the server when an office has more.
     pub fn pickable_items(&self) -> Result<Vec<crate::models::Item>, ApiError> {
-        Ok(self.items(&[("status", "Active"), ("pageSize", "500"), ("sort", "name:asc")])?.data)
+        let mut all = Vec::new();
+        for page in 1..=20 {
+            let page = page.to_string();
+            let got = self.items(&[("status", "Active"), ("pageSize", "500"), ("sort", "name:asc"), ("page", &page)])?;
+            let total = got.meta.as_ref().map_or(got.data.len(), |m| m.total as usize);
+            let empty = got.data.is_empty();
+            all.extend(got.data);
+            if empty || all.len() >= total {
+                break;
+            }
+        }
+        Ok(all)
     }
 
     // Loans.

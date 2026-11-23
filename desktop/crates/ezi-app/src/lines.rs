@@ -1,7 +1,7 @@
 //! Item lines for incoming and outgoing stock (and, in the next tasks, loan requests): a searchable item choice,
 //! a quantity and, for incoming stock, a unit price. Several rows, each removable, and one button to add a row.
 //! Same rules and messages as the web `LinesEditor`; the form that owns it reads `lines()` and shows `set_errors`.
-//! shortcut: the item choices are the first 500 active items (see `Client::pickable_items`), and an item already on
+//! shortcut: an item already on
 //! another row is not hidden from the choice (the server refuses a repeated item with its own message).
 
 use ezi_core::api::Client;

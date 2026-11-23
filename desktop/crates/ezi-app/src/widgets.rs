@@ -87,6 +87,53 @@ pub fn loan_tone(status: ezi_core::models::LoanStatus) -> Tone {
     }
 }
 
+// ------------------------------------------------------------------ logo
+
+/// The owner's EZI mark on a green square, then the wordmark "EZI Inventory": the web `Logo`. `large` is the size of the sign-in screens.
+#[derive(IntoElement)]
+pub struct Logo {
+    large: bool,
+}
+
+impl Logo {
+    pub fn new(large: bool) -> Self {
+        Logo { large }
+    }
+}
+
+impl RenderOnce for Logo {
+    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let (square, text) = if self.large { (theme::LOGO_SIZE_LG, theme::TEXT_LOGO_LG) } else { (theme::LOGO_SIZE, theme::TEXT_LOGO) };
+        let s = t(cx);
+        div()
+            .flex()
+            .items_center()
+            .gap(px(theme::LOGO_GAP))
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .size(px(square))
+                    .flex_none()
+                    .rounded(px(theme::RADIUS_CARD))
+                    .bg(color(cx, Token::SidebarActiveIcon))
+                    .child(svg().path(crate::assets::MARK).size(px(square)).text_color(color(cx, Token::Background))),
+            )
+            .child(
+                div()
+                    .flex()
+                    .gap(px(theme::SPACE_1))
+                    .items_baseline()
+                    .text_size(px(text))
+                    .line_height(relative(1.0))
+                    .text_color(color(cx, Token::Foreground))
+                    .child(div().font_weight(FontWeight::EXTRA_BOLD).child(s.app_name))
+                    .child(div().font_weight(FontWeight::MEDIUM).child(s.app_product)),
+            )
+    }
+}
+
 // ------------------------------------------------------------------ barcode and photo
 
 /// A Code 128 barcode, drawn as filled bars. Always black on white (see `theme::BARCODE_INK`).

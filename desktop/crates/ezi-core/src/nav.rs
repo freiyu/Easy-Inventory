@@ -48,6 +48,25 @@ impl Page {
         }
     }
 
+    /// The Lucide icon of the page, by the name the web app imports (`icon: LayoutDashboard` in `nav.ts`; a test compares).
+    pub fn icon(self) -> &'static str {
+        match self {
+            Page::Dashboard => "LayoutDashboard",
+            Page::Items => "Package",
+            Page::Categories => "Tags",
+            Page::Suppliers => "Truck",
+            Page::Stock => "ArrowLeftRight",
+            Page::Loans => "HandHelping",
+            Page::Purchases => "ShoppingCart",
+            Page::Expenses => "Wallet",
+            Page::Reports => "FileBarChart",
+            Page::Backup => "DatabaseBackup",
+            Page::Users => "Users",
+            Page::ActivityLog => "ScrollText",
+            Page::Profile => "UserRound",
+        }
+    }
+
     /// Admin sidebar badges: Items = low + out count, Loans = overdue, Purchases = pending.
     pub fn has_badge(self) -> bool {
         matches!(self, Page::Items | Page::Loans | Page::Purchases)
@@ -59,6 +78,11 @@ impl Page {
             Page::Categories | Page::Suppliers | Page::Stock | Page::Expenses | Page::Reports | Page::Backup | Page::Users | Page::ActivityLog
         )
     }
+}
+
+/// The sidebar group headings are shown to Admin only, like the web sidebar (`showGroupLabels`).
+pub fn show_group_labels(role: Role) -> bool {
+    role == Role::Admin
 }
 
 pub fn can_access(role: Role, page: Page) -> bool {
@@ -107,6 +131,16 @@ mod tests {
         let groups: Vec<_> = sidebar(Role::Staff).into_iter().map(|(g, _)| g).collect();
         assert_eq!(groups, [None, Some(Group::Inventory), Some(Group::Operations), Some(Group::Admin)]); // Items, Loans/Purchases, Profile
         assert!(!can_access(Role::Staff, Page::Users) && can_access(Role::Admin, Page::Users));
+    }
+
+    #[test]
+    fn group_headings_are_for_admin_only_and_icons_equal_the_web_apps() {
+        assert!(show_group_labels(Role::Admin) && !show_group_labels(Role::Staff));
+        let ts = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../frontend/src/lib/nav.ts")).unwrap();
+        for page in flat(Role::Admin) {
+            let line = ts.lines().find(|l| l.contains(&format!("href: \"{}\"", page.href()))).unwrap_or_else(|| panic!("{} in nav.ts", page.href()));
+            assert!(line.contains(&format!("icon: {},", page.icon())), "{:?}: {line}", page);
+        }
     }
 
     /// The web app's nav.ts is the source: same pages, same roles, same order.

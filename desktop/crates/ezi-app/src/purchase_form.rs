@@ -82,6 +82,15 @@ impl PurchaseForm {
             on_done,
             _subscriptions: Vec::new(),
         };
+        // Enter in a field sends the form, like the web forms.
+        for input in [form.needed_by.clone(), form.reason.clone(), form.notes.clone()] {
+            let sub = cx.subscribe_in(&input, window, |this, _, ev: &InputEvent, window, cx| {
+                if let InputEvent::PressEnter { .. } = ev {
+                    this.save(true, window, cx);
+                }
+            });
+            form._subscriptions.push(sub);
+        }
         if admin {
             form.load_people(window, cx);
         }
@@ -260,6 +269,16 @@ impl ReceiveForm {
         }
         let preferred = purchase.lines.iter().find_map(|l| l.preferred_supplier_id);
         let mut form = ReceiveForm { client, purchase, suppliers: Load::Loading, supplier_select: None, supplier_pick: preferred, date, notes, prices, minimums, errors: FieldErrors::new(), form_error: None, busy: false, on_done, _subscriptions: subs };
+        // Enter in a field sends the form, like the web forms.
+        let inputs: Vec<Entity<InputState>> = [form.date.clone(), form.notes.clone()].into_iter().chain(form.prices.iter().cloned()).chain(form.minimums.iter().cloned()).collect();
+        for input in inputs {
+            let sub = cx.subscribe_in(&input, window, |this, _, ev: &InputEvent, window, cx| {
+                if let InputEvent::PressEnter { .. } = ev {
+                    this.save(window, cx);
+                }
+            });
+            form._subscriptions.push(sub);
+        }
         form.load_suppliers(window, cx);
         form
     }

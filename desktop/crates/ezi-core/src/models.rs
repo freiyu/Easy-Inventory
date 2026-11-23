@@ -92,8 +92,18 @@ pub struct StaffDashboard {
     pub active_items: i64,
 }
 
+/// The numbers on the Admin sidebar: Items = low plus out, Loans = overdue, Purchases = waiting for approval.
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq)]
+pub struct Badges {
+    pub items: i64,
+    pub loans: i64,
+    pub purchases: i64,
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 pub struct DashboardSummary {
+    #[serde(default)]
+    pub badges: Option<Badges>,
     pub admin: Option<AdminDashboard>,
     pub staff: Option<StaffDashboard>,
 }
@@ -781,6 +791,7 @@ mod tests {
         assert_eq!((a.pending_approvals, a.total_items(), a.stock.out, a.stock.low), (3, 8, 2, 1));
         assert_eq!((a.needs_attention[0].stock_status, a.needs_attention[0].current_stock), (StockStatus::Out, 0));
         assert!(d.staff.is_none());
+        assert_eq!(d.badges, Some(Badges { items: 2, loans: 0, purchases: 1 }), "the sidebar numbers come with the dashboard");
     }
 
     #[test]

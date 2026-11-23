@@ -32,7 +32,7 @@ use crate::stock::StockPage;
 use crate::users::UsersPage;
 use crate::shell::{AppShell, PageBuilder};
 use crate::state::{color, state, t, AppState};
-use crate::widgets::{toast, FormField, StatePanel, ToastKind};
+use crate::widgets::{toast, FormField, Logo, StatePanel, ToastKind};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Screen {
@@ -331,6 +331,7 @@ impl AuthGate {
         let gate = cx.entity().downgrade();
         let shell = cx.new(|_| {
             AppShell::new(content)
+                .client(client.clone())
                 .on_sign_out(move |window, cx| {
                     gate.update(cx, |gate, cx| gate.sign_out(window, cx)).ok();
                 })
@@ -358,6 +359,7 @@ impl AuthGate {
                     }
                 })
         });
+        shell.update(cx, |s, cx| s.refresh_badges(cx));
         self.shell = Some(shell.into());
         self.user = Some(user);
     }
@@ -497,7 +499,8 @@ impl Render for AuthGate {
                         div()
                             .flex()
                             .flex_col()
-                            .child(div().text_size(px(theme::TEXT_SECTION)).font_weight(FontWeight::BOLD).child(s.app_name))
+                            .gap(px(theme::SPACE_1))
+                            .child(Logo::new(true))
                             .child(div().text_size(px(theme::TEXT_TABLE)).text_color(muted).child(s.app_tagline)),
                     )
                     .children(eyebrow.map(|e| div().text_size(px(theme::TEXT_TABLE)).font_weight(FontWeight::SEMIBOLD).text_color(muted).child(e)))

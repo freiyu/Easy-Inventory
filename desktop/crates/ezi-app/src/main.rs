@@ -2,6 +2,7 @@
 #![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
 mod activity;
+mod assets;
 mod auth;
 mod backup;
 mod dashboard;
@@ -65,7 +66,7 @@ impl Render for Launcher {
 
 fn main() {
     // Lucide icons are embedded in the program (no network): the component library draws toast and spinner icons from them.
-    gpui_kit::application().with_assets(gpui_kit::assets::Assets).run(move |cx| {
+    gpui_kit::application().with_assets(assets::EziAssets).run(move |cx| {
         gpui_kit::init(cx);
 
         let pref = match dev("EZI_THEME").as_deref() {
@@ -91,6 +92,13 @@ fn main() {
         gpui_kit::open_window(options, cx, move |window, cx| {
             cx.set_global(AppState { lang, pref, mode: resolve(pref, window), role, user_name: "Admin Satu".into(), user_id: 0 });
             theme::apply(cx);
+            // "System" follows the operating system while the app runs, not only at start (B-05 in the Phase 5 bug log).
+            window.observe_window_appearance(|window, cx| {
+                if state::state(cx).pref == ThemePref::System {
+                    theme::set_pref(ThemePref::System, window, cx);
+                }
+            })
+            .detach();
             let child: AnyView = if gallery {
                 let gallery = cx.new(|cx| gallery::Gallery::new(window, cx));
                 let content: shell::PageBuilder = Rc::new(move |_page, _window, _cx| gallery.clone().into_any_element());

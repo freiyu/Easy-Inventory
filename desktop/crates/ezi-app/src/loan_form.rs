@@ -11,7 +11,7 @@ use ezi_core::i18n::{self, error_message};
 use ezi_core::models::{Loan, UserOption};
 use ezi_core::theme::{self, Token};
 use gpui_kit::component::button::*;
-use gpui_kit::component::input::{Input, InputState};
+use gpui_kit::component::input::{Input, InputEvent, InputState};
 use gpui_kit::component::select::{SearchableVec, Select, SelectEvent, SelectState};
 use gpui_kit::component::{Disableable, IndexPath};
 use gpui_kit::prelude::*;
@@ -85,6 +85,15 @@ impl LoanForm {
             on_done,
             _subscriptions: Vec::new(),
         };
+        // Enter in a field sends the form, like the web forms.
+        for input in [form.loan_date.clone(), form.expected.clone(), form.purpose.clone(), form.notes.clone()] {
+            let sub = cx.subscribe_in(&input, window, |this, _, ev: &InputEvent, window, cx| {
+                if let InputEvent::PressEnter { .. } = ev {
+                    this.save(true, window, cx);
+                }
+            });
+            form._subscriptions.push(sub);
+        }
         if admin {
             form.load_people(window, cx);
         }
@@ -243,13 +252,24 @@ pub struct ReturnForm {
     form_error: Option<SharedString>,
     busy: bool,
     on_done: Done,
+    _subscriptions: Vec<Subscription>,
 }
 
 impl ReturnForm {
     pub fn new(client: Arc<Client>, loan: Loan, on_done: Done, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let date = cx.new(|cx| InputState::new(window, cx).default_value(today()));
         let notes = cx.new(|cx| InputState::new(window, cx));
-        ReturnForm { client, loan, date, notes, errors: FieldErrors::new(), form_error: None, busy: false, on_done }
+        let mut form = ReturnForm { client, loan, date, notes, errors: FieldErrors::new(), form_error: None, busy: false, on_done, _subscriptions: Vec::new() };
+        // Enter in a field sends the form, like the web forms.
+        for input in [form.date.clone(), form.notes.clone()] {
+            let sub = cx.subscribe_in(&input, window, |this, _, ev: &InputEvent, window, cx| {
+                if let InputEvent::PressEnter { .. } = ev {
+                    this.save(window, cx);
+                }
+            });
+            form._subscriptions.push(sub);
+        }
+        form
     }
 
     fn save(&mut self, window: &mut Window, cx: &mut Context<Self>) {

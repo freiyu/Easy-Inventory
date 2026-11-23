@@ -182,9 +182,20 @@ pub const SPACE_8: f32 = 32.0;
 // Fixed sizes of single widgets.
 pub const BADGE_HEIGHT: f32 = 24.0;
 pub const TABLE_FOOTER_HEIGHT: f32 = 48.0;
-pub const USER_ROW_HEIGHT: f32 = 48.0;
+pub const USER_ROW_HEIGHT: f32 = 64.0;
 /// Width of the green bar on the active sidebar item.
 pub const NAV_BAR_WIDTH: f32 = 3.0;
+/// The sidebar pictures (`app-shell.tsx`): the logo square and its wordmark, the page icon, the short active bar, the user avatar.
+pub const LOGO_SIZE: f32 = 32.0;
+pub const LOGO_SIZE_LG: f32 = 40.0;
+pub const TEXT_LOGO_LG: f32 = 24.0;
+pub const LOGO_GAP: f32 = 10.0;
+pub const TEXT_LOGO: f32 = 20.0;
+pub const LOGO_ROW_HEIGHT: f32 = 56.0;
+pub const NAV_ICON: f32 = 16.0;
+pub const NAV_BAR_HEIGHT: f32 = 16.0;
+pub const AVATAR_SIZE: f32 = 36.0;
+pub const BADGE_MIN_WIDTH: f32 = 24.0;
 pub const DIALOG_WIDTH: f32 = 480.0;
 /// The sign-in, setup and change-password card.
 pub const AUTH_CARD_WIDTH: f32 = 420.0;

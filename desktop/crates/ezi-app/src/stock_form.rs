@@ -81,6 +81,15 @@ impl MoveForm {
             on_done,
             _subscriptions: Vec::new(),
         };
+        // Enter in a field sends the form, like the web forms.
+        for input in [form.date.clone(), form.destination.clone(), form.notes.clone()] {
+            let sub = cx.subscribe_in(&input, window, |this, _, ev: &InputEvent, window, cx| {
+                if let InputEvent::PressEnter { .. } = ev {
+                    this.save(window, cx);
+                }
+            });
+            form._subscriptions.push(sub);
+        }
         if mode == LineMode::In {
             form.load_suppliers(window, cx);
         }
@@ -248,6 +257,15 @@ impl AdjustForm {
             }
         });
         let mut form = AdjustForm { client, items: Load::Loading, labels: Vec::new(), select: None, pick: None, date, physical, reason, errors: FieldErrors::new(), form_error: None, busy: false, request_id: forms::new_request_id(), on_done, _subscriptions: vec![sub] };
+        // Enter in a field sends the form, like the web forms.
+        for input in [form.date.clone(), form.physical.clone(), form.reason.clone()] {
+            let sub = cx.subscribe_in(&input, window, |this, _, ev: &InputEvent, window, cx| {
+                if let InputEvent::PressEnter { .. } = ev {
+                    this.save(window, cx);
+                }
+            });
+            form._subscriptions.push(sub);
+        }
         form.load_items(window, cx);
         form
     }

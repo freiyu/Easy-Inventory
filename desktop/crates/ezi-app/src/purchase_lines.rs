@@ -1,7 +1,7 @@
 //! Item lines of a purchase request. Each line is an existing item or a new one (name, area, kind, unit): a new item
 //! becomes a real item, with a code the server generates, only when the request is received (BR-31, BR-32). Same fields,
 //! rules and messages as the web `LinesEditor` in purchase mode.
-//! shortcut: the item choices are the first 500 active items (see `Client::pickable_items`).
+//! The item choices are every active item (see `Client::pickable_items`).
 
 use std::sync::Arc;
 
