@@ -9,6 +9,8 @@ mod item_import;
 mod items;
 mod lines;
 mod load;
+mod loan_form;
+mod loans;
 mod master;
 mod reason;
 mod shell;
@@ -78,7 +80,7 @@ fn main() {
             ..Default::default()
         };
         gpui_kit::open_window(options, cx, move |window, cx| {
-            cx.set_global(AppState { lang, pref, mode: resolve(pref, window), role, user_name: "Admin Satu".into() });
+            cx.set_global(AppState { lang, pref, mode: resolve(pref, window), role, user_name: "Admin Satu".into(), user_id: 0 });
             theme::apply(cx);
             let child: AnyView = if gallery {
                 let gallery = cx.new(|cx| gallery::Gallery::new(window, cx));

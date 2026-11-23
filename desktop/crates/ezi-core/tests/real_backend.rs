@@ -6,7 +6,7 @@
 use ezi_core::api::{Client, ErrorCode, Password, Role};
 use ezi_core::api::Lang;
 use ezi_core::forms;
-use ezi_core::models::{AdjustmentInput, GroupInput, GroupRow, ImportStatus, ItemInput, StockLineInput, StockMoveInput, SupplierInput, SupplierRow};
+use ezi_core::models::{AdjustmentInput, GroupInput, GroupRow, ImportStatus, ItemInput, LoanInput, LoanStatus, ReturnInput, StockLineInput, StockMoveInput, SupplierInput, SupplierRow};
 use serde_json::{json, Value};
 
 const PNG: [u8; 8] = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -228,6 +228,58 @@ fn the_client_works_against_the_real_backend() {
     assert_eq!(admin.void_stock(outgoing.id, "Lagi").unwrap_err().code(), Some(&ErrorCode::BusinessRule), "a voided transaction cannot be voided again");
     assert_eq!(staff.stock_transactions(&[]).unwrap_err().code(), Some(&ErrorCode::Forbidden));
     assert_eq!(staff.stock_move("out", &mv(lines(1, None), None, Some("x"))).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+
+    // Loans through the typed calls: Staff request for themselves, the Admin approves, issues and takes the return in full.
+    // The server's rules come back as its messages: over the available stock is refused, an Admin cannot approve their own request.
+    let staff_id = staff.me().unwrap().id;
+    let admin_id = me.id;
+    let loan_lines = |q: i64| vec![StockLineInput { item_id: id, quantity: q, unit_price: None }];
+    let input = |borrower: i64, q: i64, submit: bool, request: Option<&str>| LoanInput {
+        borrower_id: borrower, lines: loan_lines(q), loan_date: today.clone(), expected_return_date: ezi_core::format::days_from_today(3), purpose: "Rapat".into(), notes: "".into(), submit,
+        client_request_id: request.map(String::from),
+    };
+    let draft = staff.save_loan(None, &input(staff_id, 1, false, Some(&forms::new_request_id()))).unwrap();
+    assert_eq!((draft.status, draft.borrower_name.as_str(), draft.lines[0].quantity), (LoanStatus::Draft, "Staf Rust", 1));
+    assert!(draft.can("edit") && !draft.can("approve"), "{:?}", draft.allowed_actions);
+    assert!(draft.lines[0].current_stock.is_none(), "Staff get no stock numbers on a loan");
+    let edited = staff.save_loan(Some(draft.id), &LoanInput { purpose: "Rapat besar".into(), ..input(staff_id, 2, false, None) }).unwrap();
+    assert_eq!((edited.purpose.as_str(), edited.lines[0].quantity), ("Rapat besar", 2));
+    let same = forms::new_request_id();
+    let a = staff.save_loan(None, &input(staff_id, 1, false, Some(&same))).unwrap();
+    assert_eq!(staff.save_loan(None, &input(staff_id, 1, false, Some(&same))).unwrap().id, a.id, "the same request id never creates two loans");
+    staff.loan_action(a.id, "cancel").unwrap();
+    assert_eq!(staff.loan(a.id).unwrap().status, LoanStatus::Cancelled);
+    let for_other = staff.save_loan(None, &input(admin_id, 1, false, None)).unwrap_err();
+    assert_eq!(for_other.code(), Some(&ErrorCode::Forbidden), "Staff can only borrow for themselves: {for_other:?}");
+    let submitted = staff.loan_action(edited.id, "submit").unwrap();
+    assert_eq!(submitted.status, LoanStatus::PendingApproval);
+    assert_eq!(staff.loan_action(edited.id, "approve").unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    let theirs = admin.loan(edited.id).unwrap();
+    assert!(theirs.can("approve") && theirs.can("reject") && theirs.lines[0].current_stock.is_some(), "Admin see the stock on a loan: {:?}", theirs.allowed_actions);
+    let seen_by_staff = staff.loans(&[]).unwrap();
+    assert!(seen_by_staff.data.iter().all(|l| l.borrower_id == staff_id), "Staff see only their own loans");
+    let too_much = admin.save_loan(None, &input(admin_id, 1_000_000, true, None)).unwrap_err();
+    assert!(matches!(too_much.code(), Some(ErrorCode::InsufficientStock | ErrorCode::BusinessRule | ErrorCode::Conflict)), "over the available stock is refused: {too_much:?}");
+    let own = admin.save_loan(None, &input(admin_id, 1, true, None)).unwrap();
+    assert_eq!(admin.loan_action(own.id, "approve").unwrap_err().code(), Some(&ErrorCode::BusinessRule), "an Admin cannot approve their own request");
+    admin.loan_action(own.id, "cancel").unwrap();
+    let rejected_source = staff.save_loan(None, &input(staff_id, 1, true, None)).unwrap();
+    let rejected = admin.reject_loan(rejected_source.id, "Tidak ada keperluan").unwrap();
+    assert_eq!((rejected.status, rejected.reject_reason.as_str()), (LoanStatus::Rejected, "Tidak ada keperluan"));
+    let approved = admin.loan_action(edited.id, "approve").unwrap();
+    assert_eq!(approved.status, LoanStatus::Approved);
+    assert!(admin.item(id).unwrap().reserved.unwrap() >= 2, "approving reserves the quantity");
+    let borrowed = admin.loan_action(edited.id, "issue").unwrap();
+    assert_eq!(borrowed.status, LoanStatus::Borrowed);
+    let counts_for = |chip: &str| admin.loans(&[("status", chip), ("pageSize", "500")]).unwrap().data.len();
+    assert!(counts_for("Borrowed") >= 1 && counts_for("closed") >= 2, "the status filters the web page uses");
+    assert_eq!(admin.loans(&[("borrowerId", &staff_id.to_string())]).unwrap().data.iter().filter(|l| l.borrower_id != staff_id).count(), 0);
+    let early = admin.return_loan(edited.id, &ReturnInput { return_date: "2000-01-01".into(), notes: "".into() }).unwrap_err();
+    assert!(matches!(early.code(), Some(ErrorCode::Validation | ErrorCode::BusinessRule)), "a return before the loan date is refused: {early:?}");
+    let returned = admin.return_loan(edited.id, &ReturnInput { return_date: today.clone(), notes: "Lengkap".into() }).unwrap();
+    assert_eq!((returned.status, returned.return_notes.as_str(), returned.received_by_name.as_str()), (LoanStatus::Completed, "Lengkap", "Admin Rust"));
+    assert!(admin.loan(edited.id).unwrap().allowed_actions.iter().all(|a| a != "return"), "a loan is returned only once");
+    assert_eq!(staff.loan(9_999_999).unwrap_err().code(), Some(&ErrorCode::NotFound));
 
     // Logout ends the session on the server too.
     admin.logout().unwrap();

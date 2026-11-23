@@ -13,7 +13,7 @@ use ezi_core::theme::{self, Token};
 use gpui_kit::component::button::*;
 use gpui_kit::component::input::{Input, InputEvent, InputState};
 use gpui_kit::component::select::{SearchableVec, Select, SelectEvent, SelectState};
-use gpui_kit::component::Disableable;
+use gpui_kit::component::{Disableable, IndexPath};
 use gpui_kit::prelude::*;
 use gpui_kit::*;
 use std::sync::Arc;
@@ -57,6 +57,8 @@ impl LineValues {
 pub struct LinesEditor {
     client: Arc<Client>,
     mode: LineMode,
+    /// Rows to start with once the items are loaded (an edit form).
+    initial: Vec<(i64, i64)>,
     items: Load<Vec<Item>>,
     labels: Vec<String>,
     rows: Vec<Row>,
@@ -65,8 +67,9 @@ pub struct LinesEditor {
 }
 
 impl LinesEditor {
-    pub fn new(client: Arc<Client>, mode: LineMode, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let mut editor = LinesEditor { client, mode, items: Load::Loading, labels: Vec::new(), rows: Vec::new(), next_key: 0, errors: FieldErrors::new() };
+    /// `initial` is (item id, quantity) for an edit form; empty starts with one empty row.
+    pub fn new(client: Arc<Client>, mode: LineMode, initial: Vec<(i64, i64)>, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let mut editor = LinesEditor { client, mode, initial, items: Load::Loading, labels: Vec::new(), rows: Vec::new(), next_key: 0, errors: FieldErrors::new() };
         editor.load(window, cx);
         editor
     }
@@ -82,7 +85,20 @@ impl LinesEditor {
                     // The name and, for Admin, the code: two items with one name stay told apart.
                     this.labels = items.iter().map(|i| i.code.as_ref().map_or_else(|| i.name.clone(), |c| format!("{} ({c})", i.name))).collect();
                     if this.rows.is_empty() {
-                        this.add_row(window, cx);
+                        let initial = std::mem::take(&mut this.initial);
+                        this.items = Load::Ready(result.as_ref().map_or_else(|_| Vec::new(), |i| i.clone()));
+                        if initial.is_empty() {
+                            this.add_row(window, cx);
+                        }
+                        for (item_id, quantity) in initial {
+                            let index = result.as_ref().ok().and_then(|items| items.iter().position(|i| i.id == item_id));
+                            this.add_row(window, cx);
+                            if let (Some(index), Some(row)) = (index, this.rows.last_mut()) {
+                                row.pick = Some(index);
+                                row.select.update(cx, |sel, cx| sel.set_selected_index(Some(IndexPath::default().row(index)), window, cx));
+                                row.quantity.update(cx, |q, cx| q.set_value(quantity.to_string(), window, cx));
+                            }
+                        }
                     }
                 }
                 this.items = Load::from_result(result);

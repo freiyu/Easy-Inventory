@@ -20,6 +20,8 @@ pub struct AppState {
     pub mode: Mode,
     pub role: Role,
     pub user_name: SharedString,
+    /// The signed-in user's id: a Staff member borrows only for themselves.
+    pub user_id: i64,
 }
 
 impl Global for AppState {}

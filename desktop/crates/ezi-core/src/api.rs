@@ -491,6 +491,43 @@ impl Client {
         Ok(self.items(&[("status", "Active"), ("pageSize", "500"), ("sort", "name:asc")])?.data)
     }
 
+    // Loans.
+
+    pub fn loans(&self, query: &[(&str, &str)]) -> Result<Success<Vec<crate::models::Loan>>, ApiError> {
+        self.get("/loans", query)
+    }
+
+    pub fn loan(&self, id: i64) -> Result<crate::models::Loan, ApiError> {
+        Ok(self.get::<crate::models::Loan>(&format!("/loans/{id}"), &[])?.data)
+    }
+
+    /// Creates the loan (`id` None) or updates a draft; `input.submit` sends it for approval.
+    pub fn save_loan(&self, id: Option<i64>, input: &crate::models::LoanInput) -> Result<crate::models::Loan, ApiError> {
+        Ok(match id {
+            Some(id) => self.put::<crate::models::Loan, _>(&format!("/loans/{id}"), input)?.data,
+            None => self.post::<crate::models::Loan, _>("/loans", input)?.data,
+        })
+    }
+
+    /// `submit`, `cancel`, `approve` or `issue`: the loan moves on and the server says whether that is allowed now.
+    pub fn loan_action(&self, id: i64, action: &str) -> Result<crate::models::Loan, ApiError> {
+        Ok(self.post_empty::<crate::models::Loan>(&format!("/loans/{id}/{action}"))?.data)
+    }
+
+    pub fn reject_loan(&self, id: i64, reason: &str) -> Result<crate::models::Loan, ApiError> {
+        Ok(self.post::<crate::models::Loan, _>(&format!("/loans/{id}/reject"), &serde_json::json!({ "reason": reason }))?.data)
+    }
+
+    /// A loan is returned in full: there is no quantity to send.
+    pub fn return_loan(&self, id: i64, input: &crate::models::ReturnInput) -> Result<crate::models::Loan, ApiError> {
+        Ok(self.post::<crate::models::Loan, _>(&format!("/loans/{id}/return"), input)?.data)
+    }
+
+    /// Active people for the borrower choice. Admin only (Staff always borrow for themselves).
+    pub fn borrower_options(&self) -> Result<Vec<crate::models::UserOption>, ApiError> {
+        Ok(self.get::<Vec<crate::models::UserOption>>("/users", &[("status", "Active"), ("pageSize", "500"), ("sort", "name:asc")])?.data)
+    }
+
     pub fn needs_setup(&self) -> Result<bool, ApiError> {
         #[derive(Deserialize)]
         struct Status {

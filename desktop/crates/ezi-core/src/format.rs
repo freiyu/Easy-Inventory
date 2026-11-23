@@ -13,8 +13,8 @@ pub fn format_number(n: i64) -> String {
     if n < 0 { format!("-{out}") } else { out }
 }
 
-/// `2026-10-23` becomes `23/10/2026`. Anything else (empty, a timestamp) gives `-` or is returned as it came.
-/// shortcut: plain dates only; the screens that show timestamps add time-zone handling (Asia/Jakarta, UTC+7) when they need it.
+/// `2026-10-23` becomes `23/10/2026`; a UTC timestamp (`2026-11-23T17:30:00.000Z`) becomes the Jakarta date of that moment, like
+/// the web `formatDate`. Empty gives `-`; anything else is returned as it came.
 pub fn format_date(value: &str) -> String {
     let b = value.as_bytes();
     if value.is_empty() {
@@ -23,7 +23,9 @@ pub fn format_date(value: &str) -> String {
     if b.len() == 10 && b[4] == b'-' && b[7] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit()) {
         return format!("{}/{}/{}", &value[8..10], &value[5..7], &value[0..4]);
     }
-    value.to_string()
+    let with_time = format_date_time(value);
+    // Only a real timestamp grew a time part; keep the date of it.
+    if with_time.len() == 16 && with_time != value { with_time[..10].to_string() } else { value.to_string() }
 }
 
 // The web app shows every date in Asia/Jakarta, which is UTC+7 all year (no daylight saving), so a fixed offset is exact.
@@ -134,5 +136,6 @@ mod tests {
         assert_eq!(format_date("2026-10-23"), "23/10/2026");
         assert_eq!(format_date(""), "-");
         assert_eq!(format_date("not a date"), "not a date");
+        assert_eq!((format_date("2026-11-23T10:58:14.128Z").as_str(), format_date("2026-11-23T20:00:00.000Z").as_str()), ("23/11/2026", "24/11/2026"), "a timestamp shows its Jakarta date");
     }
 }

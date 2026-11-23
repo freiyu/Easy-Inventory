@@ -20,6 +20,7 @@ use gpui_kit::*;
 
 use crate::dashboard::Dashboard;
 use crate::items::ItemsPage;
+use crate::loans::LoansPage;
 use crate::master::{Kind, MasterPage};
 use crate::stock::StockPage;
 use crate::shell::{page_label, AppShell, PageBuilder};
@@ -274,11 +275,13 @@ impl AuthGate {
         cx.update_global::<AppState, _>(|s, _| {
             s.role = user.role;
             s.user_name = user.name.clone().into();
+            s.user_id = user.id;
         });
         let client = self.client.clone().expect("a signed-in user has a client");
         let admin = user.role == ezi_core::api::Role::Admin;
         let dashboard = cx.new(|cx| Dashboard::new(client.clone(), cx));
         let items = cx.new(|cx| ItemsPage::new(client.clone(), admin, window, cx));
+        let loans = cx.new(|cx| LoansPage::new(client.clone(), admin, window, cx));
         // The master data screens are Admin only: Staff never get the entities (the server refuses them anyway).
         let master = admin.then(|| {
             let categories = cx.new(|cx| MasterPage::new(client.clone(), Kind::Category, window, cx));
@@ -287,12 +290,13 @@ impl AuthGate {
             AdminPages { categories, suppliers, stock }
         });
         let content: PageBuilder = {
-            let (dashboard, items, master) = (dashboard.clone(), items.clone(), master.clone());
+            let (dashboard, items, loans, master) = (dashboard.clone(), items.clone(), loans.clone(), master.clone());
             Rc::new(move |page: Page, _window: &mut Window, cx: &mut App| match page {
                 // A page the role cannot use shows "no access", even if it were reached some other way.
                 p if !ezi_core::nav::can_access(state(cx).role, p) => StatePanel::no_access(cx).into_any_element(),
                 Page::Dashboard => dashboard.clone().into_any_element(),
                 Page::Items => items.clone().into_any_element(),
+                Page::Loans => loans.clone().into_any_element(),
                 Page::Categories => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.categories.clone().into_any_element()),
                 Page::Suppliers => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.suppliers.clone().into_any_element()),
                 Page::Stock => master.as_ref().map_or_else(|| div().into_any_element(), |a| a.stock.clone().into_any_element()),
@@ -307,9 +311,10 @@ impl AuthGate {
                     gate.update(cx, |gate, cx| gate.sign_out(window, cx)).ok();
                 })
                 // The numbers are fetched again each time the Dashboard is opened.
-                .on_page(move |page, _window, cx| match page {
+                .on_page(move |page, window, cx| match page {
                     Page::Dashboard => dashboard.update(cx, |d, cx| d.refresh(cx)),
                     Page::Items => items.update(cx, |i, cx| i.show_list(cx)),
+                    Page::Loans => loans.update(cx, |p, cx| p.show_list(window, cx)),
                     // The Admin screens fetch their rows again each time they are opened.
                     Page::Categories | Page::Suppliers | Page::Stock => {
                         if let Some(admin) = &master {

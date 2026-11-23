@@ -34,6 +34,7 @@ strings! {
     items_title, items_desc_admin, items_desc_staff, items_search_placeholder, items_all_categories, items_all_subcategories, items_stock_status_filter, items_availability_filter, items_all_stock_status, items_all_availability, items_col_name, items_col_category, items_col_subcategory, items_col_stock, items_col_minimum, items_col_unit, items_col_availability, items_inactive_tag, items_empty_title, items_empty_filtered, items_empty_filtered_body, items_record_status_filter, items_active_only, items_inactive_only, items_all_records, items_details_card, items_stock_card, items_current_stock, items_minimum_stock, items_reserved, items_available_for_loan, items_last_price, items_movements, items_movements_empty, items_col_date, items_col_type, items_col_change, items_col_balance, items_col_ref, items_col_user, items_created_at, items_updated_at, items_staff_stock_note, items_barcode_card, items_photo_none, items_not_found_back, fields_category, fields_subcategory, fields_unit, fields_preferred_supplier, fields_location, common_notes, status_tx_type_in, status_tx_type_out, status_tx_type_adjustment, status_tx_type_loan_issue, status_tx_type_loan_return, status_tx_type_reversal,
     items_add, items_edit, items_deactivate, items_activate, items_delete, items_add_title, items_edit_title, items_section_basic, items_section_stock, items_section_purchasing, items_field_code, items_field_name, items_code_hint, items_code_auto, items_opening_hint, items_opening_read_only, items_minimum_hint, items_no_supplier, items_save_item, items_saved_add, items_saved_edit, items_deactivate_body, items_activate_body, items_delete_body, items_deactivated, items_activated, items_deleted, items_field_photo, items_photo_hint, items_photo_remove, items_photo_selected, items_photo_save_failed, item_import_button, item_import_title, item_import_desc, item_import_file_label, item_import_reading, item_import_preview_title, item_import_col_line, item_import_col_result, item_import_status_ready, item_import_status_skipped, item_import_status_error, item_import_status_imported, item_import_another, item_import_backup_note, item_import_confirming, item_import_back_to_items, fields_name, fields_opening_stock, fields_minimum_stock, fields_last_price, fields_supplier, validation_select_category, validation_select_subcategory, validation_select_unit, validation_select_supplier, errors_photo_empty, errors_photo_type, errors_photo_too_big,
     common_export_excel, common_exporting,
+    loans_title, loans_desc_admin, loans_desc_staff, loans_new_admin, loans_new_staff, loans_search_placeholder, loans_all_borrowers, loans_caption, loans_tab_all, loans_tab_closed, loans_col_number, loans_col_borrower, loans_col_items, loans_col_loan_date, loans_col_expected, loans_col_status, loans_empty_title, loans_empty_admin_body, loans_empty_staff_body, loans_empty_filtered, loans_view, loans_detail_title, loans_items_card, loans_col_item, loans_col_qty, loans_col_stock_now, loans_col_available, loans_borrower, loans_requested_on, loans_loan_date, loans_expected_return, loans_purpose, loans_note, loans_approved_by, loans_rejected_by, loans_reject_reason, loans_issued_by, loans_returned_on, loans_received_by, loans_return_note, loans_progress, loans_step_done, loans_step_current, loans_step_upcoming, loans_step_submitted, loans_step_approved, loans_step_approved_body, loans_step_borrowed, loans_step_borrowed_body, loans_step_completed, loans_step_completed_body, loans_draft_note, loans_rejected_note, loans_cancelled_note, loans_own_request, loans_approve, loans_reject, loans_issue, loans_record_return, loans_cancel, loans_cancel_request, loans_submit, loans_edit_draft, loans_approved, loans_rejected, loans_issued, loans_returned, loans_cancelled, loans_submitted, loans_draft_saved, loans_reject_body, loans_reject_confirm, loans_issue_body, loans_issue_confirm, loans_return_body, loans_return_confirm, loans_cancel_body, loans_new_title, loans_new_request_title, loans_edit_title, loans_form_desc, loans_section_items, loans_section_when, loans_section_why, loans_borrower_hint, loans_add_line, loans_save_draft, loans_not_found_back, fields_loan_date, fields_expected_return, fields_return_date, fields_purpose, fields_return_note, fields_borrower, validation_select_borrower, validation_expected_after_loan,
     fields_destination_hint,
     stock_title, stock_description, stock_incoming, stock_outgoing, stock_adjustment, stock_search_placeholder, stock_all_types, stock_all_statuses, stock_col_number, stock_col_date, stock_col_type, stock_col_items, stock_col_party, stock_col_total, stock_col_user, stock_col_status, stock_empty_title, stock_empty_body, stock_empty_filtered, stock_view, stock_void, stock_in_title, stock_in_desc, stock_out_title, stock_out_desc, stock_adj_title, stock_adj_desc, stock_items_section, stock_out_items_section, stock_add_line, stock_remove_line, stock_note_field, stock_total_purchase, stock_save_in, stock_save_out, stock_save_adj, stock_select_supplier, stock_adj_item_hint, stock_difference_label, stock_no_change, stock_reason_hint, stock_details_card, stock_lines_card, stock_col_item, stock_col_qty, stock_col_change, stock_col_balance, stock_col_unit_price, stock_col_line_total, stock_reason_label, stock_recorded_at, stock_voided_by, stock_reversal_of, stock_linked_loan, stock_void_body, stock_void_confirm, stock_voided, stock_not_found_back, fields_date, fields_destination, fields_quantity, fields_unit_price, fields_reason, fields_physical_stock, fields_system_stock, fields_item, validation_select_item, validation_at_least_one_line, validation_difference_zero, ui_invalid_date, ui_pick_item, status_tx_status_posted, status_tx_status_voided,
     categories_title, categories_description, categories_tab_categories, categories_tab_subcategories, categories_add, categories_search_placeholder, categories_col_name, categories_col_code, categories_col_description, categories_col_items, categories_empty_title, categories_empty_body, categories_add_title, categories_edit_title, categories_save, categories_saved, categories_code_hint, categories_deactivate_body, categories_activate_body, categories_delete_body, categories_deactivated, categories_activated, categories_deleted, subcategories_add, subcategories_search_placeholder, subcategories_empty_title, subcategories_empty_body, subcategories_add_title, subcategories_edit_title, subcategories_save, subcategories_saved, subcategories_code_hint, subcategories_deactivate_body, subcategories_activate_body, subcategories_delete_body, subcategories_deactivated, subcategories_activated, subcategories_deleted, suppliers_title, suppliers_description, suppliers_add, suppliers_search_placeholder, suppliers_col_name, suppliers_col_contact, suppliers_col_phone, suppliers_col_email, suppliers_col_items, suppliers_empty_title, suppliers_empty_body, suppliers_add_title, suppliers_edit_title, suppliers_save, suppliers_saved, suppliers_deactivate_body, suppliers_activate_body, suppliers_delete_body, suppliers_deactivated, suppliers_activated, suppliers_deleted, fields_code, fields_description, fields_contact_person, fields_phone, fields_address, validation_category_code, items_barcode_download, ui_active_tag,
@@ -218,6 +219,102 @@ pub const EN: Strings = Strings {
     errors_photo_type: "The photo must be a JPEG, PNG or WebP image.",
     errors_photo_too_big: "The photo is too large. The limit is 2 MB.",
     common_export_excel: "Export Excel",
+    loans_title: "Loans",
+    loans_desc_admin: "Approve requests, hand over items, and record returns.",
+    loans_desc_staff: "Your loan requests and the items you have borrowed.",
+    loans_new_admin: "+ New loan",
+    loans_new_staff: "+ New loan request",
+    loans_search_placeholder: "Search loan, borrower, or item",
+    loans_all_borrowers: "All borrowers",
+    loans_caption: "Loans",
+    loans_tab_all: "All",
+    loans_tab_closed: "Rejected or cancelled",
+    loans_col_number: "Loan number",
+    loans_col_borrower: "Borrower",
+    loans_col_items: "Items",
+    loans_col_loan_date: "Loan date",
+    loans_col_expected: "Expected return",
+    loans_col_status: "Status",
+    loans_empty_title: "No loans yet",
+    loans_empty_admin_body: "Loans appear here once someone requests an item.",
+    loans_empty_staff_body: "Request an item when you need to borrow it.",
+    loans_empty_filtered: "No loans match your filters",
+    loans_view: "View details",
+    loans_detail_title: "Loan details",
+    loans_items_card: "Items requested",
+    loans_col_item: "Item",
+    loans_col_qty: "Quantity",
+    loans_col_stock_now: "Stock now",
+    loans_col_available: "Available for loan",
+    loans_borrower: "Borrower",
+    loans_requested_on: "Requested on",
+    loans_loan_date: "Loan date",
+    loans_expected_return: "Expected return",
+    loans_purpose: "Purpose",
+    loans_note: "Note",
+    loans_approved_by: "Approved by",
+    loans_rejected_by: "Rejected by",
+    loans_reject_reason: "Rejection reason",
+    loans_issued_by: "Issued by",
+    loans_returned_on: "Returned on",
+    loans_received_by: "Received by",
+    loans_return_note: "Return note",
+    loans_progress: "Progress",
+    loans_step_done: " (done)",
+    loans_step_current: " (current step)",
+    loans_step_upcoming: " (upcoming)",
+    loans_step_submitted: "Submitted",
+    loans_step_approved: "Approved",
+    loans_step_approved_body: "Stock is reserved for this loan.",
+    loans_step_borrowed: "Borrowed",
+    loans_step_borrowed_body: "Items are handed over and stock is reduced.",
+    loans_step_completed: "Completed",
+    loans_step_completed_body: "All items are back in stock.",
+    loans_draft_note: "This request is still a draft. Submit it to send it for approval.",
+    loans_rejected_note: "This request was rejected. See the reason in the details.",
+    loans_cancelled_note: "This loan was cancelled. Any reserved stock was released.",
+    loans_own_request: "This is your own request. Another Admin must approve or reject it.",
+    loans_approve: "Approve loan",
+    loans_reject: "Reject",
+    loans_issue: "Issue items",
+    loans_record_return: "Record return",
+    loans_cancel: "Cancel loan",
+    loans_cancel_request: "Cancel request",
+    loans_submit: "Submit request",
+    loans_edit_draft: "Edit draft",
+    loans_approved: "Loan approved. Stock is reserved.",
+    loans_rejected: "Loan rejected.",
+    loans_issued: "Items issued. Stock was reduced.",
+    loans_returned: "Return recorded. Stock was restored.",
+    loans_cancelled: "Loan cancelled.",
+    loans_submitted: "Request submitted for approval.",
+    loans_draft_saved: "Draft saved.",
+    loans_reject_body: "The borrower will see your reason. Nothing is reserved.",
+    loans_reject_confirm: "Reject loan",
+    loans_issue_body: "Stock is reduced now and the loan becomes Borrowed. Check the items before you confirm.",
+    loans_issue_confirm: "Issue items",
+    loans_return_body: "All issued quantities go back to stock. Partial returns are not supported. If something is lost or damaged, record a stock adjustment afterwards.",
+    loans_return_confirm: "Record return",
+    loans_cancel_body: "The request is closed and any reserved stock is released. This cannot be undone.",
+    loans_new_title: "New loan",
+    loans_new_request_title: "New loan request",
+    loans_edit_title: "Edit draft",
+    loans_form_desc: "Choose the items, dates, and purpose. An Admin approves the request.",
+    loans_section_items: "Items to borrow",
+    loans_section_when: "When",
+    loans_section_why: "Why",
+    loans_borrower_hint: "You can create a loan on behalf of another person.",
+    loans_add_line: "Add another item",
+    loans_save_draft: "Save as draft",
+    loans_not_found_back: "Back to loans",
+    fields_loan_date: "Loan date",
+    fields_expected_return: "Expected return date",
+    fields_return_date: "Return date",
+    fields_purpose: "Purpose",
+    fields_return_note: "Return note",
+    fields_borrower: "Borrower",
+    validation_select_borrower: "Select a borrower.",
+    validation_expected_after_loan: "Expected return date cannot be before the loan date.",
     fields_destination_hint: "Person or department",
     stock_title: "Stock transactions",
     stock_description: "Every stock change is recorded here. Posted transactions are never edited; use Void to correct a mistake.",
@@ -578,6 +675,102 @@ pub const ID: Strings = Strings {
     errors_photo_type: "Foto harus berupa gambar JPEG, PNG atau WebP.",
     errors_photo_too_big: "Foto terlalu besar. Batasnya 2 MB.",
     common_export_excel: "Ekspor Excel",
+    loans_title: "Peminjaman",
+    loans_desc_admin: "Setujui pengajuan, serahkan barang, dan catat pengembalian.",
+    loans_desc_staff: "Pengajuan pinjam Anda dan barang yang sedang Anda pinjam.",
+    loans_new_admin: "+ Peminjaman baru",
+    loans_new_staff: "+ Ajukan pinjam",
+    loans_search_placeholder: "Cari nomor, peminjam, atau barang",
+    loans_all_borrowers: "Semua peminjam",
+    loans_caption: "Peminjaman",
+    loans_tab_all: "Semua",
+    loans_tab_closed: "Ditolak atau dibatalkan",
+    loans_col_number: "Nomor pinjam",
+    loans_col_borrower: "Peminjam",
+    loans_col_items: "Barang",
+    loans_col_loan_date: "Tanggal pinjam",
+    loans_col_expected: "Rencana kembali",
+    loans_col_status: "Status",
+    loans_empty_title: "Belum ada peminjaman",
+    loans_empty_admin_body: "Peminjaman muncul di sini setelah ada yang mengajukan pinjam.",
+    loans_empty_staff_body: "Ajukan pinjam kalau Anda butuh barang.",
+    loans_empty_filtered: "Tidak ada peminjaman yang cocok",
+    loans_view: "Lihat detail",
+    loans_detail_title: "Detail peminjaman",
+    loans_items_card: "Barang yang dipinjam",
+    loans_col_item: "Barang",
+    loans_col_qty: "Jumlah",
+    loans_col_stock_now: "Stok sekarang",
+    loans_col_available: "Bisa dipinjam",
+    loans_borrower: "Peminjam",
+    loans_requested_on: "Diajukan pada",
+    loans_loan_date: "Tanggal pinjam",
+    loans_expected_return: "Rencana kembali",
+    loans_purpose: "Keperluan",
+    loans_note: "Catatan",
+    loans_approved_by: "Disetujui oleh",
+    loans_rejected_by: "Ditolak oleh",
+    loans_reject_reason: "Alasan ditolak",
+    loans_issued_by: "Diserahkan oleh",
+    loans_returned_on: "Dikembalikan pada",
+    loans_received_by: "Diterima oleh",
+    loans_return_note: "Catatan pengembalian",
+    loans_progress: "Progres",
+    loans_step_done: " (selesai)",
+    loans_step_current: " (langkah sekarang)",
+    loans_step_upcoming: " (berikutnya)",
+    loans_step_submitted: "Diajukan",
+    loans_step_approved: "Disetujui",
+    loans_step_approved_body: "Stok sudah disiapkan untuk peminjaman ini.",
+    loans_step_borrowed: "Sedang dipinjam",
+    loans_step_borrowed_body: "Barang sudah diserahkan dan stok berkurang.",
+    loans_step_completed: "Selesai",
+    loans_step_completed_body: "Semua barang sudah kembali ke stok.",
+    loans_draft_note: "Pengajuan ini masih draf. Ajukan supaya dikirim untuk disetujui.",
+    loans_rejected_note: "Pengajuan ini ditolak. Lihat alasannya di detail.",
+    loans_cancelled_note: "Peminjaman ini dibatalkan. Stok yang sempat disiapkan sudah dilepas.",
+    loans_own_request: "Ini pengajuan Anda sendiri. Admin lain yang harus menyetujui atau menolaknya.",
+    loans_approve: "Setujui peminjaman",
+    loans_reject: "Tolak",
+    loans_issue: "Serahkan barang",
+    loans_record_return: "Catat pengembalian",
+    loans_cancel: "Batalkan peminjaman",
+    loans_cancel_request: "Batalkan pengajuan",
+    loans_submit: "Ajukan",
+    loans_edit_draft: "Ubah draf",
+    loans_approved: "Peminjaman disetujui. Stok sudah disiapkan.",
+    loans_rejected: "Peminjaman ditolak.",
+    loans_issued: "Barang diserahkan. Stok berkurang.",
+    loans_returned: "Pengembalian dicatat. Stok kembali.",
+    loans_cancelled: "Peminjaman dibatalkan.",
+    loans_submitted: "Pengajuan dikirim untuk disetujui.",
+    loans_draft_saved: "Draf disimpan.",
+    loans_reject_body: "Peminjam akan melihat alasan Anda. Tidak ada stok yang disiapkan.",
+    loans_reject_confirm: "Tolak peminjaman",
+    loans_issue_body: "Stok langsung berkurang dan status jadi Sedang dipinjam. Cek barangnya sebelum konfirmasi.",
+    loans_issue_confirm: "Serahkan barang",
+    loans_return_body: "Semua barang yang diserahkan kembali ke stok. Pengembalian sebagian tidak bisa. Kalau ada yang hilang atau rusak, catat penyesuaian stok setelahnya.",
+    loans_return_confirm: "Catat pengembalian",
+    loans_cancel_body: "Pengajuan ditutup dan stok yang disiapkan dilepas. Tidak bisa diurungkan.",
+    loans_new_title: "Peminjaman baru",
+    loans_new_request_title: "Ajukan pinjam",
+    loans_edit_title: "Ubah draf",
+    loans_form_desc: "Pilih barang, tanggal, dan keperluan. Admin yang menyetujui pengajuan.",
+    loans_section_items: "Barang yang dipinjam",
+    loans_section_when: "Kapan",
+    loans_section_why: "Untuk apa",
+    loans_borrower_hint: "Anda bisa membuat peminjaman atas nama orang lain.",
+    loans_add_line: "Tambah barang lain",
+    loans_save_draft: "Simpan sebagai draf",
+    loans_not_found_back: "Kembali ke peminjaman",
+    fields_loan_date: "Tanggal pinjam",
+    fields_expected_return: "Rencana tanggal kembali",
+    fields_return_date: "Tanggal dikembalikan",
+    fields_purpose: "Keperluan",
+    fields_return_note: "Catatan pengembalian",
+    fields_borrower: "Peminjam",
+    validation_select_borrower: "Pilih peminjam.",
+    validation_expected_after_loan: "Tanggal kembali tidak boleh sebelum tanggal pinjam.",
     fields_destination_hint: "Nama orang atau bagian",
     stock_title: "Transaksi stok",
     stock_description: "Setiap perubahan stok tercatat di sini. Transaksi yang sudah tercatat tidak diubah; pakai Batalkan transaksi untuk memperbaiki kesalahan.",
@@ -985,6 +1178,40 @@ pub fn tx_status_label(lang: Lang, status: &str) -> &'static str {
     if status == "Voided" { s.status_tx_status_voided } else { s.status_tx_status_posted }
 }
 
+pub fn loan_reject_title(lang: Lang, n: &str) -> String {
+    match lang { Lang::En => format!("Reject {n}?"), Lang::Id => format!("Tolak {n}?") }
+}
+
+pub fn loan_issue_title(lang: Lang, n: &str) -> String {
+    match lang { Lang::En => format!("Hand over items for {n}?"), Lang::Id => format!("Serahkan barang untuk {n}?") }
+}
+
+pub fn loan_return_title(lang: Lang, n: &str) -> String {
+    match lang { Lang::En => format!("Record return for {n}"), Lang::Id => format!("Catat pengembalian {n}") }
+}
+
+pub fn loan_cancel_title(lang: Lang, n: &str) -> String {
+    match lang { Lang::En => format!("Cancel {n}?"), Lang::Id => format!("Batalkan {n}?") }
+}
+
+pub fn loan_overdue_note(lang: Lang, days: i64) -> String {
+    match lang {
+        Lang::En => format!("This loan is {days} {} overdue. Ask the borrower to return the items.", plural(lang, days, "day", "days", "")),
+        Lang::Id => format!("Peminjaman ini terlambat {days} hari. Minta peminjam mengembalikan barangnya."),
+    }
+}
+
+pub fn loan_approve_info(lang: Lang, units: i64) -> String {
+    match lang {
+        Lang::En => format!("Approving reserves the requested quantity ({units} {}). Stock is reduced when you issue the items.", plural(lang, units, "unit", "units", "")),
+        Lang::Id => format!("Kalau disetujui, {units} unit yang diminta disiapkan. Stok baru berkurang saat barang diserahkan."),
+    }
+}
+
+pub fn loan_step_submitted_body(lang: Lang, who: &str, date: &str) -> String {
+    match lang { Lang::En => format!("Requested by {who} on {date}."), Lang::Id => format!("Diajukan oleh {who} pada {date}.") }
+}
+
 /// The "Preferred for" count of a supplier: "1 item" / "2 items" / "3 barang".
 pub fn supplier_items_count(lang: Lang, n: i64) -> String {
     match lang { Lang::En => format!("{n} {}", plural(lang, n, "item", "items", "")), Lang::Id => format!("{n} barang") }
@@ -1127,6 +1354,18 @@ mod tests {
     }
 
     #[test]
+    fn loan_texts_read_like_the_web_app() {
+        assert_eq!((loan_reject_title(Lang::En, "LN-1").as_str(), loan_reject_title(Lang::Id, "LN-1").as_str()), ("Reject LN-1?", "Tolak LN-1?"));
+        assert_eq!(loan_issue_title(Lang::Id, "LN-1"), "Serahkan barang untuk LN-1?");
+        assert_eq!(loan_return_title(Lang::En, "LN-1"), "Record return for LN-1");
+        assert_eq!(loan_cancel_title(Lang::Id, "LN-1"), "Batalkan LN-1?");
+        assert_eq!((loan_overdue_note(Lang::En, 1).as_str(), loan_overdue_note(Lang::En, 3).as_str()), ("This loan is 1 day overdue. Ask the borrower to return the items.", "This loan is 3 days overdue. Ask the borrower to return the items."));
+        assert_eq!(loan_overdue_note(Lang::Id, 3), "Peminjaman ini terlambat 3 hari. Minta peminjam mengembalikan barangnya.");
+        assert_eq!(loan_approve_info(Lang::En, 1), "Approving reserves the requested quantity (1 unit). Stock is reduced when you issue the items.");
+        assert_eq!(loan_step_submitted_body(Lang::Id, "Ani", "01/11/2026"), "Diajukan oleh Ani pada 01/11/2026.");
+    }
+
+    #[test]
     fn counts_read_naturally() {
         assert_eq!(showing(Lang::En, 1, 8, 17), "Showing 1-8 of 17");
         assert_eq!(showing(Lang::Id, 9, 16, 17), "Menampilkan 9-16 dari 17");
@@ -1173,7 +1412,7 @@ mod tests {
         let id_src = std::fs::read_to_string(format!("{dir}strings.id.ts")).unwrap();
         let mut compared = 0;
         for (lang, src, ours) in [("en", &en_src, &EN), ("id", &id_src, &ID)] {
-            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport", "categories", "subcategories", "suppliers", "stock"] {
+            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport", "categories", "subcategories", "suppliers", "stock", "loans"] {
                 let web: HashMap<String, String> = web_section(src, section).into_iter().map(|(k, v)| (format!("{}_{}", snake(section), snake(&k)), v)).collect();
                 for (field, text) in ours.entries() {
                     if let Some(want) = web.get(field) {

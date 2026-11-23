@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use crate::api::Lang;
 use crate::i18n::{at_least, greater_than_zero, required, strings, too_long, whole_number};
-use crate::models::{AdjustmentInput, GroupInput, ItemInput, StockLineInput, StockMoveInput, SupplierInput};
+use crate::models::{AdjustmentInput, GroupInput, ItemInput, LoanInput, ReturnInput, StockLineInput, StockMoveInput, SupplierInput};
 
 /// Field key to message. An empty map means the form is valid.
 pub type Errors = BTreeMap<&'static str, String>;
@@ -178,11 +178,14 @@ fn whole_at_least(lang: Lang, label: &str, raw: &str, min: i64) -> Result<i64, S
 }
 
 fn date_field(lang: Lang, raw: &str, e: &mut FieldErrors) {
-    let s = strings(lang);
+    date_field_as(lang, "date", strings(lang).fields_date, raw, e);
+}
+
+fn date_field_as(lang: Lang, key: &str, label: &str, raw: &str, e: &mut FieldErrors) {
     if raw.trim().is_empty() {
-        e.insert("date".into(), required(lang, s.fields_date));
+        e.insert(key.into(), required(lang, label));
     } else if !crate::format::is_date(raw.trim()) {
-        e.insert("date".into(), s.ui_invalid_date.to_string());
+        e.insert(key.into(), strings(lang).ui_invalid_date.to_string());
     }
 }
 
@@ -256,6 +259,54 @@ pub fn adjustment(lang: Lang, date: &str, item_id: Option<i64>, physical: &str, 
         (true, Some(item_id), Some(physical)) => Ok(AdjustmentInput { date: date.trim().to_string(), item_id, physical, reason: reason.trim().to_string(), client_request_id: request_id.to_string() }),
         _ => Err(e),
     }
+}
+
+/// A loan request or draft (`loanSchema`): borrower, lines with a quantity, both dates, a purpose. Nothing here decides
+/// whether the stock is enough: that is the server's rule (BR-08) and comes back as its message.
+#[allow(clippy::too_many_arguments)]
+pub fn loan(lang: Lang, borrower_id: Option<i64>, lines: &[LineFields], loan_date: &str, expected: &str, purpose: &str, notes: &str, submit: bool, request_id: Option<&str>) -> Result<LoanInput, FieldErrors> {
+    let s = strings(lang);
+    let mut e = FieldErrors::new();
+    if borrower_id.is_none() {
+        e.insert("borrowerId".into(), s.validation_select_borrower.to_string());
+    }
+    let checked = check_lines(lang, lines, false, &mut e);
+    for (key, raw, label) in [("loanDate", loan_date, s.fields_loan_date), ("expectedReturnDate", expected, s.fields_expected_return)] {
+        if raw.trim().is_empty() {
+            e.insert(key.into(), required(lang, label));
+        } else if !crate::format::is_date(raw.trim()) {
+            e.insert(key.into(), s.ui_invalid_date.to_string());
+        }
+    }
+    if !e.contains_key("loanDate") && !e.contains_key("expectedReturnDate") && expected.trim() < loan_date.trim() {
+        e.insert("expectedReturnDate".into(), s.validation_expected_after_loan.to_string());
+    }
+    if purpose.trim().is_empty() {
+        e.insert("purpose".into(), required(lang, s.fields_purpose));
+    }
+    match (e.is_empty(), borrower_id) {
+        (true, Some(borrower_id)) => Ok(LoanInput {
+            borrower_id,
+            lines: checked,
+            loan_date: loan_date.trim().to_string(),
+            expected_return_date: expected.trim().to_string(),
+            purpose: purpose.trim().to_string(),
+            notes: notes.trim().to_string(),
+            submit,
+            client_request_id: request_id.map(String::from),
+        }),
+        _ => Err(e),
+    }
+}
+
+/// The return of a loan (`returnSchema`): a date and an optional note. The date limits are the server's.
+pub fn loan_return(lang: Lang, date: &str, notes: &str) -> Result<ReturnInput, FieldErrors> {
+    let mut e = FieldErrors::new();
+    date_field_as(lang, "returnDate", strings(lang).fields_return_date, date, &mut e);
+    if !e.is_empty() {
+        return Err(e);
+    }
+    Ok(ReturnInput { return_date: date.trim().to_string(), notes: notes.trim().to_string() })
 }
 
 /// A reason typed for a void, a rejection or a cancel (`reasonSchema`).
@@ -365,6 +416,25 @@ mod tests {
         assert_eq!(reason(Lang::En, " rusak ").unwrap(), "rusak");
         let (a, b) = (new_request_id(), new_request_id());
         assert!(a != b && a.len() <= 48, "{a}");
+    }
+
+    #[test]
+    fn loan_forms_follow_the_web_schemas() {
+        let line = |item: Option<i64>, q: &'static str| LineFields { item_id: item, quantity: q, unit_price: "" };
+        let ok = loan(Lang::En, Some(2), &[line(Some(1), "2")], "2026-11-23", "2026-11-26", " Rapat ", "", false, Some("rid")).unwrap();
+        let json = serde_json::to_value(&ok).unwrap();
+        assert!(json["submit"] == false && json["clientRequestId"] == "rid" && json["purpose"] == "Rapat" && json["lines"][0].get("unitPrice").is_none(), "{json}");
+        let update = loan(Lang::En, Some(2), &[line(Some(1), "2")], "2026-11-23", "2026-11-23", "x", "", true, None).unwrap();
+        assert!(serde_json::to_value(&update).unwrap().get("clientRequestId").is_none(), "an update sends no request id; same-day return is allowed");
+        let e = loan(Lang::En, None, &[], "", "2026-11-26", " ", "", true, None).unwrap_err();
+        assert_eq!((e["borrowerId"].as_str(), e["lines"].as_str(), e["loanDate"].as_str(), e["purpose"].as_str()), ("Select a borrower.", "Add at least one item.", "Loan date is required.", "Purpose is required."));
+        let e = loan(Lang::En, Some(1), &[line(Some(1), "1")], "2026-11-26", "2026-11-23", "x", "", true, None).unwrap_err();
+        assert_eq!(e["expectedReturnDate"], "Expected return date cannot be before the loan date.");
+        assert_eq!(loan(Lang::Id, Some(1), &[line(Some(1), "1")], "2026-11-26", "2026-11-23", "x", "", true, None).unwrap_err()["expectedReturnDate"], "Tanggal kembali tidak boleh sebelum tanggal pinjam.");
+        let r = loan_return(Lang::En, " 2026-11-24 ", " ok ").unwrap();
+        assert_eq!((r.return_date.as_str(), r.notes.as_str()), ("2026-11-24", "ok"));
+        assert_eq!(loan_return(Lang::En, "", "").unwrap_err()["returnDate"], "Return date is required.");
+        assert_eq!(loan_return(Lang::En, "24-11-2026", "").unwrap_err()["returnDate"], "Use the date format YYYY-MM-DD.");
     }
 
     #[test]

@@ -62,7 +62,7 @@ impl MoveForm {
         let date = cx.new(|cx| InputState::new(window, cx).default_value(today()));
         let destination = cx.new(|cx| InputState::new(window, cx));
         let notes = cx.new(|cx| InputState::new(window, cx));
-        let lines = cx.new(|cx| LinesEditor::new(client.clone(), mode, window, cx));
+        let lines = cx.new(|cx| LinesEditor::new(client.clone(), mode, Vec::new(), window, cx));
         // The lines editor shows its own total and errors; this form only asks it to redraw nothing more.
         let mut form = MoveForm {
             client,

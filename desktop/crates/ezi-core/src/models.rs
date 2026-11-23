@@ -320,6 +320,115 @@ pub struct AdjustmentInput {
     pub client_request_id: String,
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct LoanLine {
+    #[serde(rename = "itemId")]
+    pub item_id: i64,
+    #[serde(rename = "itemName")]
+    pub item_name: String,
+    pub unit: String,
+    pub quantity: i64,
+    /// Admin only: stock on hand and what can still be lent.
+    #[serde(rename = "currentStock")]
+    pub current_stock: Option<i64>,
+    #[serde(rename = "availableForLoan")]
+    pub available_for_loan: Option<i64>,
+}
+
+/// A loan as the list and the detail show it (`LoanDto` in `frontend/src/lib/api/loans.ts`).
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct Loan {
+    pub id: i64,
+    pub number: String,
+    #[serde(rename = "borrowerId")]
+    pub borrower_id: i64,
+    #[serde(rename = "borrowerName")]
+    pub borrower_name: String,
+    /// The stored status; `Overdue` is only in `display_status`.
+    pub status: LoanStatus,
+    #[serde(rename = "displayStatus")]
+    pub display_status: LoanStatus,
+    #[serde(rename = "daysOverdue")]
+    pub days_overdue: i64,
+    #[serde(rename = "returnFloor")]
+    pub return_floor: String,
+    #[serde(rename = "itemsSummary")]
+    pub items_summary: String,
+    #[serde(rename = "loanDate")]
+    pub loan_date: String,
+    #[serde(rename = "expectedReturnDate")]
+    pub expected_return_date: String,
+    pub purpose: String,
+    pub notes: String,
+    #[serde(rename = "rejectReason")]
+    pub reject_reason: String,
+    #[serde(rename = "approvedBy")]
+    pub approved_by: Option<i64>,
+    #[serde(rename = "approvedByName")]
+    pub approved_by_name: String,
+    #[serde(rename = "approvedAt")]
+    pub approved_at: Option<String>,
+    #[serde(rename = "issuedBy")]
+    pub issued_by: Option<i64>,
+    #[serde(rename = "issuedByName")]
+    pub issued_by_name: String,
+    #[serde(rename = "issuedAt")]
+    pub issued_at: Option<String>,
+    #[serde(rename = "returnedAt")]
+    pub returned_at: Option<String>,
+    #[serde(rename = "receivedBy")]
+    pub received_by: Option<i64>,
+    #[serde(rename = "receivedByName")]
+    pub received_by_name: String,
+    #[serde(rename = "returnNotes")]
+    pub return_notes: String,
+    pub lines: Vec<LoanLine>,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    /// What the signed-in user may do with this loan now: `edit`, `submit`, `cancel`, `approve`, `reject`, `issue`, `return`.
+    #[serde(rename = "allowedActions", default)]
+    pub allowed_actions: Vec<String>,
+}
+
+impl Loan {
+    pub fn can(&self, action: &str) -> bool {
+        self.allowed_actions.iter().any(|a| a == action)
+    }
+}
+
+/// Body of create and update loan. `client_request_id` is only sent when creating.
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct LoanInput {
+    #[serde(rename = "borrowerId")]
+    pub borrower_id: i64,
+    pub lines: Vec<StockLineInput>,
+    #[serde(rename = "loanDate")]
+    pub loan_date: String,
+    #[serde(rename = "expectedReturnDate")]
+    pub expected_return_date: String,
+    pub purpose: String,
+    pub notes: String,
+    /// Send for approval now, or keep as a draft.
+    pub submit: bool,
+    #[serde(rename = "clientRequestId", skip_serializing_if = "Option::is_none")]
+    pub client_request_id: Option<String>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct ReturnInput {
+    #[serde(rename = "returnDate")]
+    pub return_date: String,
+    pub notes: String,
+}
+
+/// A person for the borrower choice (Admin).
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct UserOption {
+    pub id: i64,
+    pub name: String,
+    pub role: String,
+}
+
 /// The body of create and update item, as the server expects it (`itemSchema` in `backend/src/schemas.ts`).
 #[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
 pub struct ItemInput {

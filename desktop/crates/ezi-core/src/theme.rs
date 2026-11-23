@@ -165,6 +165,8 @@ pub const FORM_MAX_WIDTH: f32 = 560.0;
 pub const LINE_QUANTITY_WIDTH: f32 = 130.0;
 pub const LINE_PRICE_WIDTH: f32 = 150.0;
 pub const LINE_REMOVE_OFFSET: f32 = 26.0;
+/// The dot of a step on a progress card.
+pub const STEP_DOT: f32 = 20.0;
 /// Side of the square photo of an item.
 pub const PHOTO_SIZE: f32 = 144.0;
 
