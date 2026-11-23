@@ -8,6 +8,7 @@ mod item_form;
 mod item_import;
 mod items;
 mod load;
+mod master;
 mod shell;
 mod state;
 mod theme;

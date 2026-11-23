@@ -4,7 +4,9 @@
 //!   cd desktop && EZI_TEST_URL=127.0.0.1:4101 cargo test -p ezi-core --test real_backend -- --ignored --nocapture
 
 use ezi_core::api::{Client, ErrorCode, Password, Role};
-use ezi_core::models::{ImportStatus, ItemInput};
+use ezi_core::api::Lang;
+use ezi_core::forms;
+use ezi_core::models::{GroupInput, GroupRow, ImportStatus, ItemInput, SupplierInput, SupplierRow};
 use serde_json::{json, Value};
 
 const PNG: [u8; 8] = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -147,6 +149,44 @@ fn the_client_works_against_the_real_backend() {
     assert_eq!(admin.items(&[("search", "kertas")]).unwrap().data.len(), 1);
     let export = admin.export_items(&[("search", "kertas")]).unwrap();
     assert!(export.file_name.ends_with(".xlsx") && export.bytes.starts_with(b"PK"));
+
+    // Master data through the typed calls the screens use: create, list with the row shape, edit, deactivate, activate, delete,
+    // and the server's rules (a used record cannot be deleted, a duplicate code is refused, a bad email is refused, Staff cannot write).
+    let rows = |base: &str| admin.get::<Vec<GroupRow>>(base, &[("search", "Ruang")]).unwrap().data;
+    let group = |name: &str, code: &str| forms::group(Lang::En, name, code, "Uji", "Active").unwrap();
+    admin.save_record("/categories", None, &group("Ruang Rapat", "rap")).unwrap();
+    let made = rows("/categories");
+    assert_eq!((made.len(), made[0].code.as_str(), made[0].item_count, made[0].status.as_str()), (1, "RAP", 0, "Active"), "the code is kept in capitals");
+    let rap = made[0].id;
+    admin.save_record("/categories", Some(rap), &GroupInput { name: "Ruang Rapat 2".into(), ..group("x", "rap") }).unwrap();
+    assert_eq!(rows("/categories")[0].name, "Ruang Rapat 2");
+    let dup = admin.save_record("/categories", None, &group("Lain", "KTR")).unwrap_err();
+    assert_eq!(dup.code(), Some(&ErrorCode::Conflict), "a category code is unique: {dup:?}");
+    admin.set_record_active("/categories", rap, false).unwrap();
+    assert_eq!(rows("/categories")[0].status, "Inactive");
+    admin.set_record_active("/categories", rap, true).unwrap();
+    assert_eq!(rows("/categories")[0].status, "Active");
+    admin.delete_record("/categories", rap).unwrap();
+    assert!(rows("/categories").is_empty());
+    let used = admin.get::<Vec<GroupRow>>("/categories", &[("search", "Kantor")]).unwrap().data[0].clone();
+    assert!(used.item_count > 0);
+    assert_eq!(admin.delete_record("/categories", used.id).unwrap_err().code(), Some(&ErrorCode::Conflict), "a category that items use cannot be deleted");
+    admin.save_record("/subcategories", None, &group("Ruang Uji", "ruj")).unwrap();
+    let ruj = rows("/subcategories")[0].id;
+    admin.delete_record("/subcategories", ruj).unwrap();
+
+    let supplier = |name: &str, email: &str| SupplierInput { name: name.into(), contact_person: "Budi".into(), phone: "0812".into(), email: email.into(), address: "".into(), notes: "".into(), status: "Active".into() };
+    admin.save_record("/suppliers", None, &supplier("Toko Ruang", "toko@rust.test")).unwrap();
+    let toko = admin.get::<Vec<SupplierRow>>("/suppliers", &[("search", "Ruang")]).unwrap().data;
+    assert_eq!((toko.len(), toko[0].contact_person.as_str(), toko[0].item_count), (1, "Budi", 0));
+    let bad_email = admin.save_record("/suppliers", Some(toko[0].id), &supplier("Toko Ruang", "bukan-email")).unwrap_err();
+    assert!(bad_email.fields().contains_key("email"), "{:?}", bad_email.fields());
+    admin.set_record_active("/suppliers", toko[0].id, false).unwrap();
+    admin.delete_record("/suppliers", toko[0].id).unwrap();
+    let rust_supplier = admin.get::<Vec<SupplierRow>>("/suppliers", &[("search", "Toko Rust")]).unwrap().data;
+    assert_eq!(admin.delete_record("/suppliers", rust_supplier[0].id).unwrap_err().code(), Some(&ErrorCode::Conflict), "a supplier that items use cannot be deleted");
+    assert_eq!(staff.save_record("/suppliers", None, &supplier("Nope", "")).unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    assert_eq!(staff.get::<Vec<GroupRow>>("/suppliers", &[]).unwrap_err().code(), Some(&ErrorCode::Forbidden), "Staff cannot list suppliers");
 
     // Logout ends the session on the server too.
     admin.logout().unwrap();

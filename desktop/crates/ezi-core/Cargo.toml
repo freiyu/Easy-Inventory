@@ -11,6 +11,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Plain http only (no TLS feature): the EZI server speaks http on the office LAN, so no TLS stack and no C build step.
 ureq = { version = "3", default-features = false }
+# Writes the barcode PNG file (already in the lock file through the UI library, so no new download).
+png = "0.17"
 
 [dev-dependencies]
 # A real HTTP server on a random local port stands in for the EZI server in the tests.

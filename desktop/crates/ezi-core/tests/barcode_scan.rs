@@ -55,3 +55,19 @@ fn a_wrong_checksum_does_not_scan() {
     let _ = bars;
     assert!(detect_in_luma(luma, width, height, Some(BarcodeFormat::CODE_128)).is_err());
 }
+
+#[test]
+fn the_png_file_scans_back_to_the_same_text_and_is_a_valid_png() {
+    for code in ["KTR-ELK-0001", "PJJ123C"] {
+        let bytes = code128::png(code, 4, 120, 16).expect("encodable");
+        assert_eq!(&bytes[..8], &[0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a]);
+        let mut reader = png::Decoder::new(std::io::Cursor::new(&bytes)).read_info().unwrap();
+        let mut luma = vec![0u8; reader.output_buffer_size()];
+        let info = reader.next_frame(&mut luma).unwrap();
+        assert_eq!((info.color_type, info.bit_depth), (png::ColorType::Grayscale, png::BitDepth::Eight));
+        assert_eq!(info.height, 120 + 2 * 16, "bars plus the margin above and below");
+        let text = detect_in_luma(luma, info.width, info.height, Some(BarcodeFormat::CODE_128)).map(|r| r.getText().to_string()).ok();
+        assert_eq!(text.as_deref(), Some(code));
+    }
+    assert!(code128::png("", 4, 120, 16).is_none(), "nothing to encode");
+}

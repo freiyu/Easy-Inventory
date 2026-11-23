@@ -31,9 +31,25 @@ pub fn unique_path(dir: &Path, name: &str) -> PathBuf {
         .expect("an unused name exists")
 }
 
+/// `barcode-<item name>.png`, with the characters Windows does not allow in a file name replaced by `-`.
+/// The name of the item and not its code, so the file name never shows a code to Staff (same as the web app).
+pub fn barcode_png_name(item_name: &str) -> String {
+    let clean: String = item_name.chars().map(|c| if c.is_control() || "\\/:*?\"<>|".contains(c) { '-' } else { c }).collect();
+    let clean = clean.trim().trim_end_matches('.').trim();
+    format!("barcode-{}.png", if clean.is_empty() { "item" } else { clean })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_barcode_file_is_named_after_the_item() {
+        assert_eq!(barcode_png_name("Proyektor Uji"), "barcode-Proyektor Uji.png");
+        assert_eq!(barcode_png_name(" A/B:C*D? "), "barcode-A-B-C-D-.png");
+        assert_eq!(barcode_png_name("..."), "barcode-item.png");
+        assert_eq!(barcode_png_name(""), "barcode-item.png");
+    }
 
     #[test]
     fn finds_the_downloads_folder() {

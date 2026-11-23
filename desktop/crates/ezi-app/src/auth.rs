@@ -20,9 +20,10 @@ use gpui_kit::*;
 
 use crate::dashboard::Dashboard;
 use crate::items::ItemsPage;
+use crate::master::{Kind, MasterPage};
 use crate::shell::{page_label, AppShell, PageBuilder};
 use crate::state::{color, state, t, AppState};
-use crate::widgets::{toast, FormField, ToastKind};
+use crate::widgets::{toast, FormField, StatePanel, ToastKind};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Screen {
@@ -268,12 +269,22 @@ impl AuthGate {
         let client = self.client.clone().expect("a signed-in user has a client");
         let admin = user.role == ezi_core::api::Role::Admin;
         let dashboard = cx.new(|cx| Dashboard::new(client.clone(), cx));
-        let items = cx.new(|cx| ItemsPage::new(client, admin, window, cx));
+        let items = cx.new(|cx| ItemsPage::new(client.clone(), admin, window, cx));
+        // The master data screens are Admin only: Staff never get the entities (the server refuses them anyway).
+        let master = admin.then(|| {
+            let categories = cx.new(|cx| MasterPage::new(client.clone(), Kind::Category, window, cx));
+            let suppliers = cx.new(|cx| MasterPage::new(client.clone(), Kind::Supplier, window, cx));
+            (categories, suppliers)
+        });
         let content: PageBuilder = {
-            let (dashboard, items) = (dashboard.clone(), items.clone());
+            let (dashboard, items, master) = (dashboard.clone(), items.clone(), master.clone());
             Rc::new(move |page: Page, _window: &mut Window, cx: &mut App| match page {
+                // A page the role cannot use shows "no access", even if it were reached some other way.
+                p if !ezi_core::nav::can_access(state(cx).role, p) => StatePanel::no_access(cx).into_any_element(),
                 Page::Dashboard => dashboard.clone().into_any_element(),
                 Page::Items => items.clone().into_any_element(),
+                Page::Categories => master.as_ref().map(|(c, _)| c.clone().into_any_element()).unwrap_or_else(|| div().into_any_element()),
+                Page::Suppliers => master.as_ref().map(|(_, s)| s.clone().into_any_element()).unwrap_or_else(|| div().into_any_element()),
                 // The screens of the next tasks replace this placeholder: just the page title.
                 other => div().text_size(px(theme::TEXT_TITLE)).font_weight(FontWeight::SEMIBOLD).child(page_label(t(cx), other)).into_any_element(),
             })
@@ -288,6 +299,12 @@ impl AuthGate {
                 .on_page(move |page, _window, cx| match page {
                     Page::Dashboard => dashboard.update(cx, |d, cx| d.refresh(cx)),
                     Page::Items => items.update(cx, |i, cx| i.show_list(cx)),
+                    Page::Categories | Page::Suppliers => {
+                        if let Some((categories, suppliers)) = &master {
+                            let page = if page == Page::Categories { categories } else { suppliers };
+                            page.update(cx, |p, cx| p.show_list(cx));
+                        }
+                    }
                     _ => {}
                 })
         });

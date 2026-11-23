@@ -406,8 +406,27 @@ impl Client {
     }
 
     pub fn set_item_active(&self, id: i64, active: bool) -> Result<(), ApiError> {
+        self.set_record_active("/items", id, active)
+    }
+
+    // The master data records (categories, subcategories, suppliers, `base` like `/suppliers`) share these four calls.
+
+    /// Creates the record (`id` None) or updates it.
+    pub fn save_record<B: Serialize>(&self, base: &str, id: Option<i64>, body: &B) -> Result<(), ApiError> {
+        match id {
+            Some(id) => self.put::<serde_json::Value, _>(&format!("{base}/{id}"), body).map(|_| ()),
+            None => self.post::<serde_json::Value, _>(base, body).map(|_| ()),
+        }
+    }
+
+    /// Fails with `Conflict` when something uses the record (it must be deactivated instead).
+    pub fn delete_record(&self, base: &str, id: i64) -> Result<(), ApiError> {
+        self.delete::<Option<()>>(&format!("{base}/{id}")).map(|_| ())
+    }
+
+    pub fn set_record_active(&self, base: &str, id: i64, active: bool) -> Result<(), ApiError> {
         let kind = if active { "activate" } else { "deactivate" };
-        self.post_empty::<serde_json::Value>(&format!("/items/{id}/{kind}")).map(|_| ())
+        self.post_empty::<serde_json::Value>(&format!("{base}/{id}/{kind}")).map(|_| ())
     }
 
     /// Sets or replaces an item's photo. `content_type` is the file's own type; the server checks the bytes.

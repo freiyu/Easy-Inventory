@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use crate::api::Lang;
 use crate::i18n::{at_least, required, strings, too_long, whole_number};
-use crate::models::ItemInput;
+use crate::models::{GroupInput, ItemInput, SupplierInput};
 
 /// Field key to message. An empty map means the form is valid.
 pub type Errors = BTreeMap<&'static str, String>;
@@ -151,9 +151,86 @@ pub fn item(lang: Lang, f: &ItemFields, creating: bool) -> Result<ItemInput, Err
     })
 }
 
+/// The raw values of the category and subcategory form (`categorySchema`). The code is three letters, kept in capitals.
+pub fn group(lang: Lang, name: &str, code: &str, description: &str, status: &str) -> Result<GroupInput, Errors> {
+    let s = strings(lang);
+    let mut e = Errors::new();
+    if name.trim().is_empty() {
+        e.insert("name", required(lang, s.fields_name));
+    }
+    let code = code.trim();
+    if code.is_empty() {
+        e.insert("code", required(lang, s.fields_code));
+    } else if code.chars().count() != 3 || !code.chars().all(|c| c.is_ascii_alphabetic()) {
+        e.insert("code", s.validation_category_code.to_string());
+    }
+    if !e.is_empty() {
+        return Err(e);
+    }
+    Ok(GroupInput { name: name.trim().to_string(), code: code.to_ascii_uppercase(), description: description.trim().to_string(), status: active_or_inactive(status) })
+}
+
+/// The raw values of the supplier form (`supplierSchema`): only the name is required, the email must look like one.
+pub fn supplier(lang: Lang, f: &SupplierFields, status: &str) -> Result<SupplierInput, Errors> {
+    let s = strings(lang);
+    let mut e = Errors::new();
+    if f.name.trim().is_empty() {
+        e.insert("name", required(lang, s.fields_name));
+    }
+    let email = f.email.trim();
+    if !email.is_empty() && !looks_like_email(email) {
+        e.insert("email", s.validation_email.to_string());
+    }
+    if !e.is_empty() {
+        return Err(e);
+    }
+    Ok(SupplierInput {
+        name: f.name.trim().to_string(),
+        contact_person: f.contact_person.trim().to_string(),
+        phone: f.phone.trim().to_string(),
+        email: email.to_string(),
+        address: f.address.trim().to_string(),
+        notes: f.notes.trim().to_string(),
+        status: active_or_inactive(status),
+    })
+}
+
+pub struct SupplierFields<'a> {
+    pub name: &'a str,
+    pub contact_person: &'a str,
+    pub phone: &'a str,
+    pub email: &'a str,
+    pub address: &'a str,
+    pub notes: &'a str,
+}
+
+fn active_or_inactive(status: &str) -> String {
+    if status == "Inactive" { "Inactive" } else { "Active" }.to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn category_and_supplier_forms_follow_the_web_schemas() {
+        let ok = group(Lang::En, " Aula ", "aul", " Hall ", "Active").unwrap();
+        assert_eq!((ok.name.as_str(), ok.code.as_str(), ok.description.as_str()), ("Aula", "AUL", "Hall"), "trimmed, code in capitals");
+        assert_eq!(group(Lang::En, "A", "AUL", "", "Inactive").unwrap().status, "Inactive");
+        let e = group(Lang::En, " ", "", "", "Active").unwrap_err();
+        assert_eq!((e["name"].as_str(), e["code"].as_str()), ("Name is required.", "Code is required."));
+        for bad in ["AU", "AULA", "AU1", "A-L", "ÄÖÜ"] {
+            assert_eq!(group(Lang::En, "A", bad, "", "Active").unwrap_err()["code"], "Use exactly 3 letters, for example KTR.", "{bad}");
+        }
+        assert_eq!(group(Lang::Id, "", "AUL", "", "Active").unwrap_err()["name"], "Nama wajib diisi.");
+
+        let f = SupplierFields { name: " Toko ", contact_person: " Budi ", phone: "", email: " a@b.co ", address: "", notes: " " };
+        let s = supplier(Lang::En, &f, "Active").unwrap();
+        assert_eq!((s.name.as_str(), s.contact_person.as_str(), s.email.as_str(), s.notes.as_str()), ("Toko", "Budi", "a@b.co", ""));
+        assert!(supplier(Lang::En, &SupplierFields { email: "", ..f }, "Active").is_ok(), "the email is optional");
+        let e = supplier(Lang::En, &SupplierFields { name: "", email: "nope", ..f }, "Active").unwrap_err();
+        assert_eq!((e["name"].as_str(), e["email"].as_str()), ("Name is required.", "Enter a valid email address."));
+    }
 
     #[test]
     fn email_shape_matches_the_web_regex() {

@@ -335,6 +335,25 @@ impl ItemsPage {
         .detach();
     }
 
+    /// The barcode as a PNG file in the Downloads folder (never over an existing file). The file is named after the item,
+    /// not the code, so Staff, who may not read the code, do not learn it from the name.
+    fn download_barcode(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Load::Ready(item) = &self.detail else { return };
+        let Some(value) = item.barcode_value() else { return };
+        let lang = state(cx).lang;
+        let saved = ezi_core::code128::png(value, 4, 120, 16).ok_or_else(|| "this value cannot be drawn as Code 128".to_string()).and_then(|bytes| {
+            let dir = files::downloads_dir().ok_or_else(|| "no Downloads folder".to_string())?;
+            std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+            let path = files::unique_path(&dir, &files::barcode_png_name(&item.name));
+            std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+            Ok(path)
+        });
+        match saved {
+            Ok(path) => toast(window, cx, ToastKind::Success, i18n::export_saved(lang, &path.to_string_lossy())),
+            Err(text) => toast(window, cx, ToastKind::Error, text),
+        }
+    }
+
     fn confirm_status(&mut self, id: i64, name: String, active: bool, window: &mut Window, cx: &mut Context<Self>) {
         let (s, lang) = (t(cx), state(cx).lang);
         let this = cx.entity();
@@ -605,7 +624,7 @@ impl ItemsPage {
                     div().text_size(px(theme::TEXT_BODY)).text_color(color(cx, Token::MutedForeground)).child(s.items_staff_stock_note).into_any_element()
                 });
 
-                let barcode = item.barcode_value().map(|v| card(cx).w(px(theme::SIDE_CARD_WIDTH)).child(heading(cx, s.items_barcode_card)).child(BarcodeView::new(v, admin)));
+                let barcode = item.barcode_value().map(|v| card(cx).w(px(theme::SIDE_CARD_WIDTH)).child(heading(cx, s.items_barcode_card)).child(BarcodeView::new(v, admin)).child(Button::new("item-barcode-download").outline().label(s.items_barcode_download).on_click(cx.listener(|this, _, window, cx| this.download_barcode(window, cx)))));
 
                 let movements: Option<AnyElement> = admin.then(|| {
                     let rows: Vec<Vec<Cell>> = item

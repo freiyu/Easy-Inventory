@@ -60,6 +60,29 @@ pub fn bars(value: &str, quiet: u32) -> Option<(Vec<(u32, u32)>, u32)> {
     Some((out, x + quiet))
 }
 
+/// The barcode as a PNG file: black bars on white, `scale` pixels per module, bars `height` pixels high,
+/// a white margin on every side and the quiet zone left and right. No printed text (that would need a font).
+/// Same look as the web app's download (`frontend/src/lib/barcode-png.ts`: 4 px per module, 120 px high, 16 px margin).
+pub fn png(value: &str, scale: u32, height: u32, margin: u32) -> Option<Vec<u8>> {
+    let (bars, total) = bars(value, 10)?;
+    let width = total * scale;
+    let mut row = vec![255u8; width as usize];
+    for (start, w) in bars {
+        row[(start * scale) as usize..((start + w) * scale) as usize].fill(0);
+    }
+    let blank = vec![255u8; width as usize];
+    let mut pixels = Vec::with_capacity((width * (height + 2 * margin)) as usize);
+    for y in 0..height + 2 * margin {
+        pixels.extend_from_slice(if (margin..margin + height).contains(&y) { &row } else { &blank });
+    }
+    let mut out = Vec::new();
+    let mut encoder = png::Encoder::new(&mut out, width, height + 2 * margin);
+    encoder.set_color(png::ColorType::Grayscale);
+    encoder.set_depth(png::BitDepth::Eight);
+    encoder.write_header().ok()?.write_image_data(&pixels).ok()?;
+    Some(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

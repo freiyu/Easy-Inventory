@@ -176,6 +176,57 @@ pub struct NameOption {
     pub name: String,
 }
 
+/// A category (area) or subcategory (kind of item) as the Admin lists show it: both have the same shape.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct GroupRow {
+    pub id: i64,
+    pub name: String,
+    pub code: String,
+    pub description: String,
+    /// `Active` or `Inactive`.
+    pub status: String,
+    #[serde(rename = "itemCount")]
+    pub item_count: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct SupplierRow {
+    pub id: i64,
+    pub name: String,
+    #[serde(rename = "contactPerson")]
+    pub contact_person: String,
+    pub phone: String,
+    pub email: String,
+    pub address: String,
+    pub notes: String,
+    /// `Active` or `Inactive`.
+    pub status: String,
+    #[serde(rename = "itemCount")]
+    pub item_count: i64,
+}
+
+/// The body of create and update category or subcategory (`categorySchema` in `backend/src/schemas.ts`).
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct GroupInput {
+    pub name: String,
+    pub code: String,
+    pub description: String,
+    pub status: String,
+}
+
+/// The body of create and update supplier.
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct SupplierInput {
+    pub name: String,
+    #[serde(rename = "contactPerson")]
+    pub contact_person: String,
+    pub phone: String,
+    pub email: String,
+    pub address: String,
+    pub notes: String,
+    pub status: String,
+}
+
 /// The body of create and update item, as the server expects it (`itemSchema` in `backend/src/schemas.ts`).
 #[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
 pub struct ItemInput {
