@@ -16,6 +16,7 @@ import { LoadGate, RecordNotFound, TableSkeleton } from "@/components/shared/sta
 import { useQueryId } from "@/hooks/use-query-id";
 import { api, useCurrentUser, useGet } from "@/lib/api";
 import type { ItemDto } from "@/lib/api/master";
+import { downloadBarcodePng } from "@/lib/barcode-png";
 import { formatDate, formatDateTime, formatIDR, formatNumber } from "@/lib/format";
 import { t } from "@/lib/strings";
 import type { Role } from "@/lib/types";
@@ -112,7 +113,11 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
               <p className="hidden text-(length:--text-body) font-(weight:--weight-strong) print:block">{item.name}</p>
               {/* Staff scan the bars but never read the code: no printed code line for them. */}
               <Barcode value={barcodeValue} showText={isAdmin} label={`${t.items.barcodeCard}: ${item.name}`} className="w-full max-w-72" />
-              <Button variant="outline" onClick={() => window.print()} className="print:hidden">{t.items.printLabel}</Button>
+              <div className="flex flex-wrap gap-2 print:hidden">
+                <Button variant="outline" onClick={() => window.print()}>{t.items.printLabel}</Button>
+                {/* The file name uses the item name, never the code: Staff must not learn the code from it. */}
+                <Button variant="outline" onClick={() => downloadBarcodePng(barcodeValue, `barcode-${item.name}.png`, isAdmin ? barcodeValue : undefined)}>{t.items.barcodeDownload}</Button>
+              </div>
             </div>
           </Card>
         )}

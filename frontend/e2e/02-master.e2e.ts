@@ -112,6 +112,11 @@ test("items: Admin sees the barcode with its code and a Print label button on th
   await expect(main.getByRole("img", { name: /Barcode: Proyektor Uji/ })).toBeVisible();
   await expect(main.getByRole("figure")).toContainText(/[A-Z]{3}-[A-Z]{3}-\d{4}/);
   await expect(main.getByRole("button", { name: "Print label" })).toBeVisible();
+  // The PNG download is a real PNG file named after the item, not after the code.
+  const [download] = await Promise.all([page.waitForEvent("download"), main.getByRole("button", { name: "Download PNG" }).click()]);
+  expect(download.suggestedFilename()).toBe("barcode-Proyektor Uji.png");
+  const file = await download.path();
+  expect((await import("node:fs")).readFileSync(file).subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
 });
 
 // A 1x1 PNG: enough for the server to accept it and the browser to decode it.

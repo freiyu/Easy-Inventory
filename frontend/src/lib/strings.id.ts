@@ -427,6 +427,7 @@ export const id: Strings = {
     photoSaveFailed: "Barang tersimpan, tetapi fotonya gagal disimpan. Pilih fotonya lagi.",
     barcodeCard: "Barcode",
     printLabel: "Cetak label",
+    barcodeDownload: "Unduh PNG",
     staffStockNote: "Hanya ketersediaan. Tanyakan ke Admin untuk jumlah stok.",
     // form
     addTitle: "Tambah barang",
