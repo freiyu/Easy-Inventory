@@ -67,6 +67,7 @@ pub struct ItemsPage {
     form: Option<Entity<ItemForm>>,
     import: Option<Entity<ItemImport>>,
     exporting: bool,
+    route: crate::motion::RouteTracker,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -140,6 +141,7 @@ impl ItemsPage {
             form: None,
             import: None,
             exporting: false,
+            route: Default::default(),
             _subscriptions: subs,
         };
         page.fetch_list(cx);
@@ -696,11 +698,18 @@ impl ItemsPage {
 
 impl Render for ItemsPage {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        match self.view {
+        let tag = match self.view {
+            View::List => 0,
+            View::Detail(id) => (1 << 32) | id as u64,
+            View::Form => 2,
+            View::Import => 3,
+        };
+        let element = match self.view {
             View::List => self.render_list(cx),
             View::Detail(_) => self.render_detail(cx),
             View::Form => self.form.clone().map(|f| f.into_any_element()).unwrap_or_else(|| div().into_any_element()),
             View::Import => self.import.clone().map(|i| i.into_any_element()).unwrap_or_else(|| div().into_any_element()),
-        }
+        };
+        crate::motion::routed(cx, "items", self.route.epoch(tag), element)
     }
 }

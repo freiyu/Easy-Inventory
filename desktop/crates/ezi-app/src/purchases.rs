@@ -25,7 +25,7 @@ use crate::load::Load;
 use crate::purchase_form::{PurchaseForm, ReceiveForm};
 use crate::reason::ReasonPrompt;
 use crate::state::{color, state, t};
-use crate::widgets::{confirm, toast, Badge, Callback, Cell, Column, DataTable, Paging, StatePanel, ToastKind, Tone};
+use crate::widgets::{confirm, toast, Badge, Callback, Cell, Chip, Column, DataTable, Paging, StatePanel, ToastKind, Tone};
 
 /// Rows per page: the dense layout of the redesign (PRD_REDESIGN.md 10.2).
 const PAGE_SIZE: u32 = 8;
@@ -65,6 +65,9 @@ pub struct PurchasesPage {
     view: View,
     search: Entity<InputState>,
     chip: &'static str,
+    /// The chip chosen before this one, and a count of choices: the fade between them plays once per choice.
+    prev_chip: &'static str,
+    chip_epoch: u32,
     requester_select: Option<Choice>,
     /// (id, name) pairs behind `requester_select`.
     requesters: Vec<(i64, String)>,
@@ -77,6 +80,7 @@ pub struct PurchasesPage {
     detail: Load<Purchase>,
     detail_generation: u32,
     busy: bool,
+    route: crate::motion::RouteTracker,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -95,6 +99,8 @@ impl PurchasesPage {
             view: View::List,
             search,
             chip: "",
+            prev_chip: "",
+            chip_epoch: 0,
             requester_select: None,
             requesters: Vec::new(),
             requester: None,
@@ -105,6 +111,7 @@ impl PurchasesPage {
             detail: Load::Loading,
             detail_generation: 0,
             busy: false,
+            route: Default::default(),
             _subscriptions: vec![sub],
         };
         page.show_list(window, cx);
@@ -114,6 +121,7 @@ impl PurchasesPage {
     /// Back to the list, with the rows and the counts fetched again (the shell calls this when the page is opened).
     pub fn show_list(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.view = View::List;
+        self.prev_chip = self.chip;
         self.fetch_list(cx);
         self.fetch_counts(window, cx);
     }
@@ -415,12 +423,20 @@ impl PurchasesPage {
                 Some(n) => format!("{label} ({n})"),
                 None => label,
             };
-            let b = Button::new(SharedString::from(format!("purchase-chip-{i}"))).label(text).on_click(cx.listener(move |this, _, _, cx| {
-                this.chip = value;
-                this.page = 1;
-                this.fetch_list(cx);
-            }));
-            if self.chip == value { b.primary() } else { b.outline() }
+            let page = this.clone();
+            let change = match (self.chip_epoch, value == self.chip, value == self.prev_chip) {
+                (0, _, _) => None,
+                (e, true, false) => Some((e, true)),
+                (e, false, true) => Some((e, false)),
+                _ => None,
+            };
+            Chip::new(SharedString::from(format!("purchase-chip-{i}")), text, self.chip == value, move |_, cx| {
+                page.update(cx, |this, cx| {
+                    (this.prev_chip, this.chip, this.chip_epoch, this.page) = (this.chip, value, this.chip_epoch + 1, 1);
+                    this.fetch_list(cx);
+                })
+            })
+            .change(change)
         });
 
         div()
@@ -612,12 +628,20 @@ impl PurchasesPage {
 
 impl Render for PurchasesPage {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        match &self.view {
+        let tag = match &self.view {
+            View::List => 0,
+            View::Detail(id) => (1 << 32) | *id as u64,
+            View::Form(_) => 2,
+            View::Receive(_) => 3,
+            View::Reject(_) => 4,
+        };
+        let element = match &self.view {
             View::List => self.render_list(cx),
             View::Detail(_) => self.render_detail(cx),
             View::Form(form) => form.clone().into_any_element(),
             View::Receive(form) => form.clone().into_any_element(),
             View::Reject(prompt) => prompt.clone().into_any_element(),
-        }
+        };
+        crate::motion::routed(cx, "purchases", self.route.epoch(tag), element)
     }
 }

@@ -28,11 +28,13 @@ pub struct Dashboard {
     load: Load,
     /// Counts requests so an old answer cannot replace a newer one.
     generation: u32,
+    /// When the numbers were first drawn: the cards enter one after another only on this first visit, not on every refresh.
+    first_shown: Option<std::time::Instant>,
 }
 
 impl Dashboard {
     pub fn new(client: Arc<Client>, cx: &mut Context<Self>) -> Self {
-        let mut d = Dashboard { client, load: Load::Loading, generation: 0 };
+        let mut d = Dashboard { client, load: Load::Loading, generation: 0, first_shown: None };
         d.refresh(cx);
         d
     }
@@ -71,7 +73,17 @@ fn title_block(cx: &App, title: &str, description: String) -> impl IntoElement {
         .child(div().text_size(px(theme::TEXT_BODY)).text_color(color(cx, Token::MutedForeground)).child(description))
 }
 
-fn admin_view(cx: &App, a: &AdminDashboard) -> impl IntoElement {
+/// One card or table of the dashboard, entering after its turn (fade and rise, 40 ms apart). `grow` makes it share a row equally.
+fn card_in(cx: &App, animate: bool, index: usize, grow: bool, element: impl IntoElement) -> AnyElement {
+    let wrapper = if grow { div().flex().flex_1().child(element) } else { div().child(element) };
+    if !animate {
+        return wrapper.into_any_element();
+    }
+    let m = crate::motion::tokens(cx);
+    crate::motion::enter(("dashboard-card", index), m.stagger * index as u32, m.card, m.rise_card, wrapper)
+}
+
+fn admin_view(cx: &App, a: &AdminDashboard, animate: bool) -> impl IntoElement {
     let s = t(cx);
     let lang = state(cx).lang;
     let two_numbers = div()
@@ -122,15 +134,15 @@ fn admin_view(cx: &App, a: &AdminDashboard) -> impl IntoElement {
             div()
                 .flex()
                 .gap(px(theme::SPACE_4))
-                .child(KpiCard::new(s.dashboard_kpi_total, format_number(a.total_items())).caption(s.dashboard_kpi_total_caption))
-                .child(KpiCard::new(s.dashboard_kpi_stock, two_numbers))
-                .child(KpiCard::new(s.dashboard_kpi_approvals, format_number(a.pending_approvals)).caption(s.dashboard_kpi_approvals_caption)),
+                .child(card_in(cx, animate, 0, true, KpiCard::new(s.dashboard_kpi_total, format_number(a.total_items())).caption(s.dashboard_kpi_total_caption)))
+                .child(card_in(cx, animate, 1, true, KpiCard::new(s.dashboard_kpi_stock, two_numbers)))
+                .child(card_in(cx, animate, 2, true, KpiCard::new(s.dashboard_kpi_approvals, format_number(a.pending_approvals)).caption(s.dashboard_kpi_approvals_caption))),
         )
         .child(div().text_size(px(theme::TEXT_SECTION)).font_weight(FontWeight::SEMIBOLD).child(s.dashboard_needs_attention))
-        .child(table)
+        .child(card_in(cx, animate, 3, false, table))
 }
 
-fn staff_view(cx: &App, d: &StaffDashboard, first_name: &str) -> impl IntoElement {
+fn staff_view(cx: &App, d: &StaffDashboard, first_name: &str, animate: bool) -> impl IntoElement {
     let s = t(cx);
     let lang = state(cx).lang;
     let banner = d.overdue_first.as_ref().map(|l| {
@@ -165,16 +177,23 @@ fn staff_view(cx: &App, d: &StaffDashboard, first_name: &str) -> impl IntoElemen
             div()
                 .flex()
                 .gap(px(theme::SPACE_4))
-                .child(KpiCard::new(s.dashboard_my_loans_kpi, d.active_loans.len().to_string()).caption(i18n::my_loans_caption(lang, d.overdue_count)))
-                .child(KpiCard::new(s.dashboard_available_kpi, format_number(d.requestable)).caption(i18n::available_caption(lang, d.active_items))),
+                .child(card_in(cx, animate, 0, true, KpiCard::new(s.dashboard_my_loans_kpi, d.active_loans.len().to_string()).caption(i18n::my_loans_caption(lang, d.overdue_count))))
+                .child(card_in(cx, animate, 1, true, KpiCard::new(s.dashboard_available_kpi, format_number(d.requestable)).caption(i18n::available_caption(lang, d.active_items)))),
         )
         .child(div().text_size(px(theme::TEXT_SECTION)).font_weight(FontWeight::SEMIBOLD).child(s.dashboard_my_active_loans))
-        .child(list)
+        .child(card_in(cx, animate, 2, false, list))
 }
 
 impl Render for Dashboard {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let (role, name) = (state(cx).role, state(cx).user_name.clone());
+        // The cards enter one after another the first time the numbers are drawn, and for as long as that takes; never again.
+        let animate = if matches!(self.load, Load::Ready(_)) {
+            let window = crate::motion::entrance_window(cx);
+            self.first_shown.get_or_insert_with(std::time::Instant::now).elapsed() < window
+        } else {
+            false
+        };
         match &self.load {
             Load::Loading => StatePanel::loading(cx).into_any_element(),
             Load::Failed(e) => {
@@ -183,8 +202,8 @@ impl Render for Dashboard {
                 StatePanel::error(cx, message, move |_, cx| this.update(cx, |d, cx| d.refresh(cx))).into_any_element()
             }
             Load::Ready(summary) => match (role, &summary.admin, &summary.staff) {
-                (Role::Admin, Some(a), _) => admin_view(cx, a).into_any_element(),
-                (Role::Staff, _, Some(st)) => staff_view(cx, st, name.split(' ').next().unwrap_or("")).into_any_element(),
+                (Role::Admin, Some(a), _) => admin_view(cx, a, animate).into_any_element(),
+                (Role::Staff, _, Some(st)) => staff_view(cx, st, name.split(' ').next().unwrap_or(""), animate).into_any_element(),
                 // The server's answer does not fit the role we think we have: say so instead of showing nothing.
                 _ => StatePanel::no_access(cx).into_any_element(),
             },

@@ -38,6 +38,8 @@ struct Row {
     pick: Option<usize>,
     quantity: Entity<InputState>,
     price: Entity<InputState>,
+    /// Added by the person (not there from the start): it fades and rises in once.
+    fresh: bool,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -127,7 +129,7 @@ impl LinesEditor {
                 }
             }));
         }
-        self.rows.push(Row { key, select, pick: None, quantity, price, _subscriptions: subs });
+        self.rows.push(Row { key, select, pick: None, quantity, price, fresh: false, _subscriptions: subs });
         cx.notify();
     }
 
@@ -190,6 +192,7 @@ impl Render for LinesEditor {
             Load::Ready(_) => {}
         }
         let (many, mode) = (self.rows.len() > 1, self.mode);
+        let m = crate::motion::tokens(cx);
         let rows = self.rows.iter().enumerate().map(|(i, row)| {
             let key = row.key;
             let error = |field: &str| self.errors.get(&format!("lines.{i}.{field}")).cloned();
@@ -199,7 +202,7 @@ impl Render for LinesEditor {
             if let Some(h) = hint {
                 quantity = quantity.hint(h);
             }
-            div()
+            let line = div()
                 .flex()
                 .items_start()
                 .gap(px(theme::SPACE_3))
@@ -222,7 +225,9 @@ impl Render for LinesEditor {
                                 cx.notify();
                             })),
                     ),
-                )
+                );
+            // A row the person added fades and rises in (4 px, once); deleting a row is instant.
+            if row.fresh { crate::motion::enter(("line-row", key), std::time::Duration::ZERO, m.route, m.rise_row, line) } else { line.into_any_element() }
         });
         div()
             .flex()
@@ -230,7 +235,12 @@ impl Render for LinesEditor {
             .gap(px(theme::SPACE_3))
             .children(self.errors.get("lines").cloned().map(|e| div().text_size(px(theme::TEXT_TABLE)).font_weight(FontWeight::SEMIBOLD).text_color(color(cx, Token::DangerIcon)).child(e)))
             .children(rows)
-            .child(div().flex().child(Button::new("line-add").outline().label(s.stock_add_line).on_click(cx.listener(|this, _, window, cx| this.add_row(window, cx)))))
+            .child(div().flex().child(Button::new("line-add").outline().label(s.stock_add_line).on_click(cx.listener(|this, _, window, cx| {
+                this.add_row(window, cx);
+                if let Some(row) = this.rows.last_mut() {
+                    row.fresh = true;
+                }
+            }))))
             .when(mode == LineMode::In, |d| {
                 d.child(
                     div()

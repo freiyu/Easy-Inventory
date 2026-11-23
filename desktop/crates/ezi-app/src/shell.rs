@@ -27,6 +27,7 @@ pub struct AppShell {
     /// For the Admin sidebar numbers; without it the numbers are simply not shown.
     client: Option<Arc<Client>>,
     badges: Badges,
+    route: crate::motion::RouteTracker,
     menu_open: bool,
     on_sign_out: Option<Rc<dyn Fn(&mut Window, &mut App)>>,
     on_page: Option<Rc<dyn Fn(Page, &mut Window, &mut App)>>,
@@ -60,7 +61,7 @@ fn group_label(s: &Strings, g: Group) -> &'static str {
 
 impl AppShell {
     pub fn new(content: PageBuilder) -> Self {
-        AppShell { page: Page::Dashboard, content, client: None, badges: Badges::default(), menu_open: false, on_sign_out: None, on_page: None }
+        AppShell { page: Page::Dashboard, content, client: None, badges: Badges::default(), route: Default::default(), menu_open: false, on_sign_out: None, on_page: None }
     }
 
     /// The client the sidebar numbers are read with (Admin only: Staff get no numbers).
@@ -285,6 +286,8 @@ impl Render for AppShell {
             );
 
         let page = (self.content)(self.page, window, cx);
+        // The content area fades and rises when the page changes; the sidebar stays still, and nothing plays at the first draw.
+        let page = crate::motion::routed(cx, "route", self.route.epoch(self.page as u64), page);
         div()
             .flex()
             .size_full()

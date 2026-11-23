@@ -34,6 +34,8 @@ pub struct Motion {
     pub stagger: Duration,
     /// The pill of a segmented control moving.
     pub pill: Duration,
+    /// One card of the dashboard entering (PRD_REDESIGN.md 10.4: "200 ms each"; the web CSS has no variable for it).
+    pub card: Duration,
     /// One turn of a spinner, and one pulse of a skeleton.
     pub spinner: Duration,
     pub skeleton: Duration,
@@ -66,6 +68,7 @@ impl Motion {
         exit: ms(120),
         stagger: ms(40),
         pill: ms(200),
+        card: ms(200),
         spinner: ms(800),
         skeleton: ms(1400),
         press_scale: 0.97,
@@ -93,6 +96,7 @@ impl Motion {
         exit: Self::REDUCED_DURATION,
         stagger: Duration::ZERO,
         pill: Self::REDUCED_DURATION,
+        card: Self::REDUCED_DURATION,
         // The loops keep their durations for the day they are shown static; `loops: false` is what stops them.
         spinner: ms(800),
         skeleton: ms(1400),
@@ -216,6 +220,7 @@ mod tests {
         ] {
             assert_eq!(got, css_ms(name), "--{name}");
         }
+        assert_eq!(m.card, ms(200), "PRD 10.4: dashboard cards 200 ms each");
         for (name, got) in [("press-scale", m.press_scale), ("overlay-scale-from", m.overlay_scale_from), ("rise-route", m.rise_route), ("rise-card", m.rise_card), ("rise-row", m.rise_row), ("drawer-travel", m.drawer_travel)] {
             assert_eq!(got, css_f(name), "--{name}");
         }
@@ -237,7 +242,7 @@ mod tests {
         assert_eq!(Motion::of(true), &Motion::REDUCED);
         let r = Motion::REDUCED;
         // Every transition shortened to the one reduced duration, the stagger gone (the rules of the css media query).
-        for d in [r.press, r.hover, r.theme, r.route, r.overlay_enter, r.popover, r.drawer, r.toast, r.exit, r.pill] {
+        for d in [r.press, r.hover, r.theme, r.route, r.overlay_enter, r.popover, r.drawer, r.toast, r.exit, r.pill, r.card] {
             assert_eq!(d, Motion::REDUCED_DURATION);
         }
         assert_eq!(r.stagger, Duration::ZERO);
@@ -264,7 +269,7 @@ mod tests {
     fn exits_are_never_slower_than_entrances() {
         let m = Motion::FULL;
         assert!(m.exit <= m.overlay_enter && m.exit <= m.popover && m.exit <= m.drawer && m.exit <= m.toast);
-        assert!(m.press.max(m.hover).max(m.theme).max(m.route).max(m.overlay_enter).max(m.popover).max(m.drawer).max(m.toast).max(m.pill) <= ms(250), "nothing above 250 ms (PRD 10.4)");
+        assert!(m.press.max(m.hover).max(m.theme).max(m.route).max(m.overlay_enter).max(m.popover).max(m.drawer).max(m.toast).max(m.pill).max(m.card) <= ms(250), "nothing above 250 ms (PRD 10.4)");
     }
 
     #[test]

@@ -196,6 +196,11 @@ pub const NAV_ICON: f32 = 16.0;
 pub const NAV_BAR_HEIGHT: f32 = 16.0;
 pub const AVATAR_SIZE: f32 = 36.0;
 pub const BADGE_MIN_WIDTH: f32 = 24.0;
+/// The grey bars of a loading screen (skeleton) and how many.
+pub const SKELETON_BAR_HEIGHT: f32 = 14.0;
+pub const SKELETON_BARS: usize = 3;
+/// How much the skeleton dims at the dimmest point of its pulse.
+pub const SKELETON_LOW: f32 = 0.5;
 pub const DIALOG_WIDTH: f32 = 480.0;
 /// The sign-in, setup and change-password card.
 pub const AUTH_CARD_WIDTH: f32 = 420.0;

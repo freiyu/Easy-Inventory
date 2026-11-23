@@ -336,6 +336,7 @@ pub struct MasterPage {
     list: Load<(Rows, ListMeta)>,
     generation: u32,
     form: Option<Entity<MasterForm>>,
+    route: crate::motion::RouteTracker,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -348,7 +349,7 @@ impl MasterPage {
                 this.fetch(cx);
             }
         });
-        let mut page = MasterPage { client, tabs: kind != Kind::Supplier, kind, search, page: 1, list: Load::Loading, generation: 0, form: None, _subscriptions: vec![sub] };
+        let mut page = MasterPage { client, tabs: kind != Kind::Supplier, kind, search, page: 1, list: Load::Loading, generation: 0, form: None, route: Default::default(), _subscriptions: vec![sub] };
         page.fetch(cx);
         page
     }
@@ -522,9 +523,11 @@ fn dash(text: &str) -> String {
 
 impl Render for MasterPage {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        match self.form.clone() {
+        let tag = u64::from(self.form.is_some());
+        let element = match self.form.clone() {
             Some(form) => form.into_any_element(),
             None => self.render_list(cx),
-        }
+        };
+        crate::motion::routed(cx, "master", self.route.epoch(tag), element)
     }
 }

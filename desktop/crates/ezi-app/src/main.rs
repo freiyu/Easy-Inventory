@@ -54,14 +54,31 @@ fn window_size() -> Size<Pixels> {
     parsed.unwrap_or(size(px(1366.), px(768.)))
 }
 
-/// The single root view: shows whichever screen the app starts on.
+/// The single root view: shows whichever screen the app starts on. When the theme changes it covers the window with the old
+/// background colour and fades that away over 150 ms, so colours move instead of snapping (PRD_REDESIGN.md 10.4).
 struct Launcher {
     child: AnyView,
+    mode: Option<ezi_core::theme::Mode>,
+    old_background: Option<Hsla>,
+    changes: usize,
+    changed_at: Option<std::time::Instant>,
 }
 
 impl Render for Launcher {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        self.child.clone()
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let mode = state::state(cx).mode;
+        if let Some(old) = self.mode.filter(|old| *old != mode) {
+            self.old_background = Some(state::hsla(ezi_core::theme::Palette::of(old).color(ezi_core::theme::Token::Background)));
+            self.changes += 1;
+            self.changed_at = Some(std::time::Instant::now());
+        }
+        self.mode = Some(mode);
+        let m = motion::tokens(cx);
+        // The cover is only there while the fade runs; drawn finished (clear) when reduced motion is on.
+        let cover = self.changed_at.filter(|at| at.elapsed() < m.theme * 3).zip(self.old_background).map(|(_, bg)| {
+            motion::fade_out(("theme-fade", self.changes), m.theme, div().absolute().top_0().left_0().size_full().bg(bg))
+        });
+        div().relative().size_full().child(self.child.clone()).children(cover)
     }
 }
 
@@ -111,7 +128,7 @@ fn main() {
             motion::refresh(cx);
             cx.new(|cx| {
                 cx.observe_window_activation(window, |_, _, cx| motion::refresh(cx)).detach();
-                Launcher { child }
+                Launcher { child, mode: None, old_background: None, changes: 0, changed_at: None }
             })
         })
         .expect("failed to open window");

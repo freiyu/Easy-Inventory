@@ -66,6 +66,7 @@ pub struct StockPage {
     list_generation: u32,
     detail: Load<StockTx>,
     detail_generation: u32,
+    route: crate::motion::RouteTracker,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -116,6 +117,7 @@ impl StockPage {
             list_generation: 0,
             detail: Load::Loading,
             detail_generation: 0,
+            route: Default::default(),
             _subscriptions: subs,
         };
         page.fetch_list(cx);
@@ -450,12 +452,20 @@ impl StockPage {
 
 impl Render for StockPage {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        match &self.view {
+        let tag = match &self.view {
+            View::List => 0,
+            View::Detail(id) => (1 << 32) | *id as u64,
+            View::Move(_) => 2,
+            View::Adjust(_) => 3,
+            View::Void(_) => 4,
+        };
+        let element = match &self.view {
             View::List => self.render_list(cx),
             View::Detail(_) => self.render_detail(cx),
             View::Move(form) => form.clone().into_any_element(),
             View::Adjust(form) => form.clone().into_any_element(),
             View::Void(prompt) => prompt.clone().into_any_element(),
-        }
+        };
+        crate::motion::routed(cx, "stock", self.route.epoch(tag), element)
     }
 }

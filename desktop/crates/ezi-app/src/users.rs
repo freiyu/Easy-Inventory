@@ -217,6 +217,7 @@ pub struct UsersPage {
     page: u32,
     list: Load<(Vec<User>, ListMeta)>,
     generation: u32,
+    route: crate::motion::RouteTracker,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -252,7 +253,7 @@ impl UsersPage {
             this.page = 1;
             this.fetch(cx);
         }));
-        let mut page = UsersPage { client, view: View::List, search, role_select, status_select, role: None, status: None, page: 1, list: Load::Loading, generation: 0, _subscriptions: subs };
+        let mut page = UsersPage { client, view: View::List, search, role_select, status_select, role: None, status: None, page: 1, list: Load::Loading, generation: 0, route: Default::default(), _subscriptions: subs };
         page.fetch(cx);
         page
     }
@@ -335,8 +336,8 @@ impl UsersPage {
     }
 }
 
-impl Render for UsersPage {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+impl UsersPage {
+    fn draw(&mut self, cx: &mut Context<Self>) -> AnyElement {
         let s = t(cx);
         let lang = state(cx).lang;
         let this = cx.entity();
@@ -440,5 +441,17 @@ impl Render for UsersPage {
             )
             .child(body)
             .into_any_element()
+    }
+}
+
+impl Render for UsersPage {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let tag = match &self.view {
+            View::List => 0,
+            View::Form(_) => 1,
+            View::Temp(..) => 2,
+        };
+        let element = self.draw(cx);
+        crate::motion::routed(cx, "users", self.route.epoch(tag), element)
     }
 }

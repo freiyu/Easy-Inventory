@@ -24,7 +24,7 @@ use crate::load::Load;
 use crate::loan_form::{LoanForm, ReturnForm};
 use crate::reason::ReasonPrompt;
 use crate::state::{color, state, t};
-use crate::widgets::{confirm, loan_tone, toast, Badge, Callback, Cell, Column, DataTable, Paging, StatePanel, ToastKind};
+use crate::widgets::{confirm, loan_tone, toast, Badge, Callback, Cell, Chip, Column, DataTable, Paging, StatePanel, ToastKind};
 
 /// Rows per page: the dense layout of the redesign (PRD_REDESIGN.md 10.2).
 const PAGE_SIZE: u32 = 8;
@@ -47,6 +47,9 @@ pub struct LoansPage {
     view: View,
     search: Entity<InputState>,
     chip: &'static str,
+    /// The chip chosen before this one, and a count of choices: the fade between them plays once per choice.
+    prev_chip: &'static str,
+    chip_epoch: u32,
     borrower_select: Option<Choice>,
     /// (id, name) pairs behind `borrower_select`, with "all" first.
     borrowers: Vec<(i64, String)>,
@@ -58,6 +61,7 @@ pub struct LoansPage {
     detail: Load<Loan>,
     detail_generation: u32,
     busy: bool,
+    route: crate::motion::RouteTracker,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -100,6 +104,8 @@ impl LoansPage {
             view: View::List,
             search,
             chip: "",
+            prev_chip: "",
+            chip_epoch: 0,
             borrower_select: None,
             borrowers: Vec::new(),
             borrower: None,
@@ -110,6 +116,7 @@ impl LoansPage {
             detail: Load::Loading,
             detail_generation: 0,
             busy: false,
+            route: Default::default(),
             _subscriptions: vec![sub],
         };
         page.show_list(window, cx);
@@ -119,6 +126,7 @@ impl LoansPage {
     /// Back to the list, with the rows and the counts fetched again (the shell calls this when the page is opened).
     pub fn show_list(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.view = View::List;
+        self.prev_chip = self.chip;
         self.fetch_list(cx);
         self.fetch_everything(window, cx);
     }
@@ -423,12 +431,20 @@ impl LoansPage {
                 _ => value.to_string(),
             };
             let count = all.iter().filter(|l| chip_matches(value, l.display_status)).count();
-            let b = Button::new(SharedString::from(format!("loan-chip-{value}"))).label(format!("{label} ({count})")).on_click(cx.listener(move |this, _, _, cx| {
-                this.chip = value;
-                this.page = 1;
-                this.fetch_list(cx);
-            }));
-            if self.chip == value { b.primary() } else { b.outline() }
+            let page = this.clone();
+            let change = match (self.chip_epoch, value == self.chip, value == self.prev_chip) {
+                (0, _, _) => None,
+                (e, true, false) => Some((e, true)),
+                (e, false, true) => Some((e, false)),
+                _ => None,
+            };
+            Chip::new(SharedString::from(format!("loan-chip-{value}")), format!("{label} ({count})"), self.chip == value, move |_, cx| {
+                page.update(cx, |this, cx| {
+                    (this.prev_chip, this.chip, this.chip_epoch, this.page) = (this.chip, value, this.chip_epoch + 1, 1);
+                    this.fetch_list(cx);
+                })
+            })
+            .change(change)
         });
 
         div()
@@ -624,12 +640,20 @@ impl LoansPage {
 
 impl Render for LoansPage {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        match &self.view {
+        let tag = match &self.view {
+            View::List => 0,
+            View::Detail(id) => (1 << 32) | *id as u64,
+            View::Form(_) => 2,
+            View::Return(_) => 3,
+            View::Reject(_) => 4,
+        };
+        let element = match &self.view {
             View::List => self.render_list(cx),
             View::Detail(_) => self.render_detail(cx),
             View::Form(form) => form.clone().into_any_element(),
             View::Return(form) => form.clone().into_any_element(),
             View::Reject(prompt) => prompt.clone().into_any_element(),
-        }
+        };
+        crate::motion::routed(cx, "loans", self.route.epoch(tag), element)
     }
 }

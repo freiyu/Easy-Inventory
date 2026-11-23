@@ -43,6 +43,8 @@ struct Row {
     subcategory_pick: Option<usize>,
     unit_select: Choice,
     unit_pick: Option<usize>,
+    /// Added by the person (not there from the start): it fades and rises in once.
+    fresh: bool,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -154,7 +156,7 @@ impl PurchaseLinesEditor {
                 row.unit_pick = label.as_ref().and_then(|l| UNITS.iter().position(|u| u == l));
             }
         }));
-        let mut row = Row { key, is_new: false, item_select, item_pick: None, quantity, name, category_select, category_pick: None, subcategory_select, subcategory_pick: None, unit_select, unit_pick: None, _subscriptions: subs };
+        let mut row = Row { key, is_new: false, item_select, item_pick: None, quantity, name, category_select, category_pick: None, subcategory_select, subcategory_pick: None, unit_select, unit_pick: None, fresh: false, _subscriptions: subs };
         if let Some(line) = from {
             row.quantity.update(cx, |q, cx| q.set_value(line.quantity.to_string(), window, cx));
             match line.new_item {
@@ -219,6 +221,7 @@ impl Render for PurchaseLinesEditor {
             Load::Ready(_) => {}
         }
         let many = self.rows.len() > 1;
+        let m = crate::motion::tokens(cx);
         let rows: Vec<_> = self.rows.iter().map(|row| {
             let key = row.key;
             let index = self.rows.iter().position(|r| r.key == key).unwrap_or(0);
@@ -237,7 +240,7 @@ impl Render for PurchaseLinesEditor {
             } else {
                 FormField::new(s.fields_item.to_string(), Select::new(&row.item_select).placeholder(s.ui_pick_item)).required().error(error("itemId")).into_any_element()
             };
-            div()
+            let line = div()
                 .flex()
                 .flex_col()
                 .gap(px(theme::SPACE_3))
@@ -274,7 +277,9 @@ impl Render for PurchaseLinesEditor {
                             .child(div().flex_1().child(FormField::new(s.fields_subcategory.to_string(), Select::new(&row.subcategory_select).placeholder(s.purchases_pick_subcategory)).required().error(error("subcategoryId"))))
                             .child(div().flex_1().child(FormField::new(s.fields_unit.to_string(), Select::new(&row.unit_select).placeholder(s.purchases_pick_unit)).required().error(error("unit")))),
                     )
-                })
+                });
+            // A row the person added fades and rises in (4 px, once); deleting a row is instant.
+            if row.fresh { crate::motion::enter(("pline-row", key), std::time::Duration::ZERO, m.route, m.rise_row, line) } else { line.into_any_element() }
         }).collect();
         div()
             .flex()
@@ -282,7 +287,12 @@ impl Render for PurchaseLinesEditor {
             .gap(px(theme::SPACE_3))
             .children(self.errors.get("lines").cloned().map(|e| div().text_size(px(theme::TEXT_TABLE)).font_weight(FontWeight::SEMIBOLD).text_color(color(cx, Token::DangerIcon)).child(e)))
             .children(rows)
-            .child(div().flex().child(Button::new("pline-add").outline().label(s.purchases_add_line).on_click(cx.listener(|this, _, window, cx| this.add_row(None, window, cx)))))
+            .child(div().flex().child(Button::new("pline-add").outline().label(s.purchases_add_line).on_click(cx.listener(|this, _, window, cx| {
+                this.add_row(None, window, cx);
+                if let Some(row) = this.rows.last_mut() {
+                    row.fresh = true;
+                }
+            }))))
             .into_any_element()
     }
 }

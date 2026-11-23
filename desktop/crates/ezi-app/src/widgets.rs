@@ -10,7 +10,6 @@ use ezi_core::theme::{self, Token};
 use gpui_kit::component::button::*;
 use gpui_kit::component::dialog::DialogButtonProps;
 use gpui_kit::component::notification::Notification;
-use gpui_kit::component::spinner::Spinner;
 use gpui_kit::component::*;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
@@ -333,6 +332,7 @@ impl FormField {
 
 impl RenderOnce for FormField {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let error_id = self.error.as_ref().map(|e| SharedString::from(format!("error-{}-{e}", self.label)));
         let label = div()
             .flex()
             .gap(px(theme::SPACE_HALF))
@@ -341,9 +341,14 @@ impl RenderOnce for FormField {
             .text_color(color(cx, Token::Foreground))
             .child(self.label)
             .when(self.required, |d| d.child(div().text_color(color(cx, Token::DangerIcon)).child("*")));
-        let note = match (&self.error, &self.hint) {
-            (Some(e), _) => Some(div().text_color(color(cx, Token::DangerIcon)).font_weight(FontWeight::SEMIBOLD).child(e.clone())),
-            (None, Some(h)) => Some(div().text_color(color(cx, Token::MutedForeground)).child(h.clone())),
+        // A field error fades in over 150 ms (no shake, no slide); it plays again when the message changes.
+        let m = crate::motion::tokens(cx);
+        let note: Option<AnyElement> = match (&self.error, &self.hint) {
+            (Some(e), _) => {
+                let text = div().text_size(px(theme::TEXT_TABLE)).text_color(color(cx, Token::DangerIcon)).font_weight(FontWeight::SEMIBOLD).child(e.clone());
+                Some(crate::motion::enter(error_id.expect("an error has an id"), std::time::Duration::ZERO, m.theme, 0.0, text))
+            }
+            (None, Some(h)) => Some(div().text_size(px(theme::TEXT_TABLE)).text_color(color(cx, Token::MutedForeground)).child(h.clone()).into_any_element()),
             _ => None,
         };
         div()
@@ -352,7 +357,82 @@ impl RenderOnce for FormField {
             .gap(px(theme::SPACE_1_5))
             .child(label)
             .child(self.control)
-            .children(note.map(|n| n.text_size(px(theme::TEXT_TABLE))))
+            .children(note)
+    }
+}
+
+// ------------------------------------------------------------------ skeleton and chip
+
+/// The grey bars shown while data loads: they pulse in brightness (a full pulse every 1.4 s, no shimmer) and stay still when
+/// reduced motion is on.
+fn skeleton(cx: &App) -> impl IntoElement {
+    let m = crate::motion::tokens(cx);
+    let widths = [1.0, 0.8, 0.6];
+    div().flex().flex_col().gap(px(theme::SPACE_2)).w_full().max_w(px(theme::TEXT_MAX_WIDTH)).children((0..theme::SKELETON_BARS).map(|i| {
+        let bar = div().h(px(theme::SKELETON_BAR_HEIGHT)).w(relative(widths[i % widths.len()])).rounded(px(theme::RADIUS)).bg(color(cx, Token::Muted));
+        crate::motion::pulse(("skeleton", i), m.skeleton, theme::SKELETON_LOW, bar)
+    }))
+}
+
+/// A status filter (loans and purchase requests): a text button that is filled when chosen. The filling fades in and out over 150 ms
+/// when the choice changes (`change`: the choice number and whether this chip is the one now chosen), colour only: it does not slide.
+#[derive(IntoElement)]
+pub struct Chip {
+    id: SharedString,
+    label: SharedString,
+    selected: bool,
+    change: Option<(u32, bool)>,
+    on_click: Rc<dyn Fn(&mut Window, &mut App)>,
+}
+
+impl Chip {
+    pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>, selected: bool, on_click: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        Chip { id: id.into(), label: label.into(), selected, change: None, on_click: Rc::new(on_click) }
+    }
+    pub fn change(mut self, change: Option<(u32, bool)>) -> Self {
+        self.change = change;
+        self
+    }
+}
+
+fn mix(from: Hsla, to: Hsla, t: f32) -> Hsla {
+    hsla(from.h + (to.h - from.h) * t, from.s + (to.s - from.s) * t, from.l + (to.l - from.l) * t, from.a + (to.a - from.a) * t)
+}
+
+impl RenderOnce for Chip {
+    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let (on, off) = (color(cx, Token::PrimaryForeground), color(cx, Token::Foreground));
+        let (fill, edge, hover) = (color(cx, Token::Primary), color(cx, Token::Border), color(cx, Token::Accent));
+        let clear = hsla(0.0, 0.0, 0.0, 0.0);
+        let m = crate::motion::tokens(cx);
+        let (bg, border, fg) = if self.selected { (fill, fill, on) } else { (clear, edge, off) };
+        let click = self.on_click.clone();
+        let chip = div()
+            .id(self.id.clone())
+            .flex()
+            .items_center()
+            .h(px(theme::CONTROL_HEIGHT))
+            .px(px(theme::SPACE_3))
+            .rounded(px(theme::RADIUS))
+            .border_1()
+            .border_color(border)
+            .bg(bg)
+            .text_color(fg)
+            .text_size(px(theme::TEXT_LABEL))
+            .cursor_pointer()
+            .when(!self.selected, |d| d.hover(move |s| s.bg(hover)))
+            .on_click(move |_, w, cx| click(w, cx))
+            .child(self.label.clone());
+        match self.change {
+            // Colours move from the old state to the new one over 150 ms; the pill does not slide (see the bug log).
+            Some((epoch, entering)) => chip
+                .with_animation(SharedString::from(format!("{}-{epoch}", self.id)), crate::motion::animation(m.theme, ezi_core::motion::Curve::EaseOut), move |el, t| {
+                    let p = if entering { t } else { 1.0 - t };
+                    el.bg(mix(clear, fill, p)).border_color(mix(edge, fill, p)).text_color(mix(off, on, p))
+                })
+                .into_any_element(),
+            None => chip.into_any_element(),
+        }
     }
 }
 
@@ -422,7 +502,7 @@ impl RenderOnce for StatePanel {
             .children(self.retry.map(|(label, run)| {
                 Button::new("state-retry").outline().label(label).on_click(move |_, window, cx| run(window, cx))
             }))
-            .when(self.busy, |d| d.child(Spinner::new()))
+            .when(self.busy, |d| d.child(skeleton(cx)))
     }
 }
 
