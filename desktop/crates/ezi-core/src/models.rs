@@ -429,6 +429,156 @@ pub struct UserOption {
     pub role: String,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Hash)]
+pub enum PurchaseStatus {
+    Draft,
+    #[serde(rename = "Pending Approval")]
+    PendingApproval,
+    Approved,
+    Rejected,
+    Received,
+    Cancelled,
+}
+
+/// A new item proposed on a request line (BR-31): it becomes a real item only when the request is received.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct NewItem {
+    pub name: String,
+    #[serde(rename = "categoryId")]
+    pub category_id: i64,
+    #[serde(rename = "categoryName")]
+    pub category_name: String,
+    #[serde(rename = "subcategoryId")]
+    pub subcategory_id: Option<i64>,
+    #[serde(rename = "subcategoryName")]
+    pub subcategory_name: String,
+    pub unit: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct PurchaseLine {
+    /// Null while the line is a new item.
+    #[serde(rename = "itemId")]
+    pub item_id: Option<i64>,
+    #[serde(rename = "itemName")]
+    pub item_name: String,
+    pub unit: String,
+    pub quantity: i64,
+    #[serde(rename = "newItem")]
+    pub new_item: Option<NewItem>,
+    /// Admin only.
+    #[serde(rename = "currentStock")]
+    pub current_stock: Option<i64>,
+    #[serde(rename = "minimumStock")]
+    pub minimum_stock: Option<i64>,
+    #[serde(rename = "lastPurchasePrice")]
+    pub last_purchase_price: Option<i64>,
+    #[serde(rename = "preferredSupplierId")]
+    pub preferred_supplier_id: Option<i64>,
+}
+
+/// A purchase request as the list and the detail show it (`PurchaseDto` in `frontend/src/lib/api/purchases.ts`).
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct Purchase {
+    pub id: i64,
+    pub number: String,
+    #[serde(rename = "requesterId")]
+    pub requester_id: i64,
+    #[serde(rename = "requesterName")]
+    pub requester_name: String,
+    pub status: PurchaseStatus,
+    #[serde(rename = "neededBy")]
+    pub needed_by: String,
+    pub reason: String,
+    pub notes: String,
+    #[serde(rename = "rejectReason")]
+    pub reject_reason: String,
+    #[serde(rename = "approvedBy")]
+    pub approved_by: Option<i64>,
+    #[serde(rename = "approvedByName")]
+    pub approved_by_name: String,
+    #[serde(rename = "approvedAt")]
+    pub approved_at: Option<String>,
+    #[serde(rename = "receivedBy")]
+    pub received_by: Option<i64>,
+    #[serde(rename = "receivedByName")]
+    pub received_by_name: String,
+    #[serde(rename = "receivedAt")]
+    pub received_at: Option<String>,
+    #[serde(rename = "lineSummary")]
+    pub line_summary: String,
+    pub lines: Vec<PurchaseLine>,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    /// `edit`, `submit`, `cancel`, `approve`, `reject`, `receive`: what the signed-in user may do now.
+    #[serde(rename = "allowedActions", default)]
+    pub allowed_actions: Vec<String>,
+    /// Admin only: the incoming stock posted when the request was received, and whether it was voided afterwards.
+    #[serde(rename = "transactionNumber")]
+    pub transaction_number: Option<String>,
+    #[serde(rename = "receiptVoided", default)]
+    pub receipt_voided: bool,
+}
+
+impl Purchase {
+    pub fn can(&self, action: &str) -> bool {
+        self.allowed_actions.iter().any(|a| a == action)
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct NewItemInput {
+    pub name: String,
+    #[serde(rename = "categoryId")]
+    pub category_id: i64,
+    #[serde(rename = "subcategoryId")]
+    pub subcategory_id: i64,
+    pub unit: String,
+}
+
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct PurchaseLineInput {
+    /// None for a new item.
+    #[serde(rename = "itemId")]
+    pub item_id: Option<i64>,
+    pub quantity: i64,
+    #[serde(rename = "newItem", skip_serializing_if = "Option::is_none")]
+    pub new_item: Option<NewItemInput>,
+}
+
+/// Body of create and update purchase request. `client_request_id` is only sent when creating.
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct PurchaseInput {
+    #[serde(rename = "requesterId")]
+    pub requester_id: i64,
+    pub lines: Vec<PurchaseLineInput>,
+    #[serde(rename = "neededBy")]
+    pub needed_by: String,
+    pub reason: String,
+    pub notes: String,
+    pub submit: bool,
+    #[serde(rename = "clientRequestId", skip_serializing_if = "Option::is_none")]
+    pub client_request_id: Option<String>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct ReceiveLineInput {
+    #[serde(rename = "unitPrice")]
+    pub unit_price: i64,
+    #[serde(rename = "minimumStock")]
+    pub minimum_stock: i64,
+}
+
+/// Body of receive: one entry per request line, in order (full receipt only). A new item gets its code from the server.
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct ReceiveInput {
+    pub date: String,
+    #[serde(rename = "supplierId")]
+    pub supplier_id: i64,
+    pub lines: Vec<ReceiveLineInput>,
+    pub notes: String,
+}
+
 /// The body of create and update item, as the server expects it (`itemSchema` in `backend/src/schemas.ts`).
 #[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
 pub struct ItemInput {

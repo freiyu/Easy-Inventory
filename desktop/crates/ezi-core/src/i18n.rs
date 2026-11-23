@@ -34,6 +34,7 @@ strings! {
     items_title, items_desc_admin, items_desc_staff, items_search_placeholder, items_all_categories, items_all_subcategories, items_stock_status_filter, items_availability_filter, items_all_stock_status, items_all_availability, items_col_name, items_col_category, items_col_subcategory, items_col_stock, items_col_minimum, items_col_unit, items_col_availability, items_inactive_tag, items_empty_title, items_empty_filtered, items_empty_filtered_body, items_record_status_filter, items_active_only, items_inactive_only, items_all_records, items_details_card, items_stock_card, items_current_stock, items_minimum_stock, items_reserved, items_available_for_loan, items_last_price, items_movements, items_movements_empty, items_col_date, items_col_type, items_col_change, items_col_balance, items_col_ref, items_col_user, items_created_at, items_updated_at, items_staff_stock_note, items_barcode_card, items_photo_none, items_not_found_back, fields_category, fields_subcategory, fields_unit, fields_preferred_supplier, fields_location, common_notes, status_tx_type_in, status_tx_type_out, status_tx_type_adjustment, status_tx_type_loan_issue, status_tx_type_loan_return, status_tx_type_reversal,
     items_add, items_edit, items_deactivate, items_activate, items_delete, items_add_title, items_edit_title, items_section_basic, items_section_stock, items_section_purchasing, items_field_code, items_field_name, items_code_hint, items_code_auto, items_opening_hint, items_opening_read_only, items_minimum_hint, items_no_supplier, items_save_item, items_saved_add, items_saved_edit, items_deactivate_body, items_activate_body, items_delete_body, items_deactivated, items_activated, items_deleted, items_field_photo, items_photo_hint, items_photo_remove, items_photo_selected, items_photo_save_failed, item_import_button, item_import_title, item_import_desc, item_import_file_label, item_import_reading, item_import_preview_title, item_import_col_line, item_import_col_result, item_import_status_ready, item_import_status_skipped, item_import_status_error, item_import_status_imported, item_import_another, item_import_backup_note, item_import_confirming, item_import_back_to_items, fields_name, fields_opening_stock, fields_minimum_stock, fields_last_price, fields_supplier, validation_select_category, validation_select_subcategory, validation_select_unit, validation_select_supplier, errors_photo_empty, errors_photo_type, errors_photo_too_big,
     common_export_excel, common_exporting,
+    purchases_title, purchases_desc_admin, purchases_desc_staff, purchases_new, purchases_search_placeholder, purchases_all_requesters, purchases_caption, purchases_tab_all, purchases_tab_closed, purchases_col_number, purchases_col_requester, purchases_col_items, purchases_col_needed_by, purchases_col_status, purchases_empty_title, purchases_empty_admin_body, purchases_empty_staff_body, purchases_empty_filtered, purchases_detail_title, purchases_items_card, purchases_col_item, purchases_col_qty, purchases_col_stock_now, purchases_col_minimum, purchases_col_last_price, purchases_created_on, purchases_needed_by, purchases_reason, purchases_note, purchases_approved_by, purchases_rejected_by, purchases_reject_reason, purchases_received_on, purchases_received_by, purchases_transaction, purchases_progress, purchases_step_done, purchases_step_current, purchases_step_upcoming, purchases_step_submitted, purchases_step_approved, purchases_step_approved_body, purchases_step_received, purchases_step_received_body, purchases_draft_note, purchases_rejected_note, purchases_cancelled_note, purchases_approve_info, purchases_own_request, purchases_approve, purchases_reject, purchases_receive, purchases_cancel, purchases_submit, purchases_edit_draft, purchases_approved, purchases_rejected, purchases_received, purchases_cancelled, purchases_submitted, purchases_draft_saved, purchases_reject_body, purchases_reject_confirm, purchases_receive_body, purchases_receive_new_items_note, purchases_new_item_tag, purchases_line_existing, purchases_line_new, purchases_new_item_hint, purchases_pick_category, purchases_pick_subcategory, purchases_pick_unit, purchases_receive_confirm, purchases_receive_total, purchases_receipt_voided, purchases_cancel_body, purchases_new_title, purchases_edit_title, purchases_form_desc, purchases_section_items, purchases_how_new, purchases_section_when, purchases_section_why, purchases_requester_hint, purchases_add_line, purchases_save_draft, purchases_how_title, purchases_how1, purchases_how2, purchases_how3, purchases_how4, purchases_not_found_back, fields_needed_by, fields_requester, fields_received_date, fields_item_name, validation_select_requester, status_purchase_draft, status_purchase_pending_approval, status_purchase_approved, status_purchase_rejected, status_purchase_received, status_purchase_cancelled,
     loans_title, loans_desc_admin, loans_desc_staff, loans_new_admin, loans_new_staff, loans_search_placeholder, loans_all_borrowers, loans_caption, loans_tab_all, loans_tab_closed, loans_col_number, loans_col_borrower, loans_col_items, loans_col_loan_date, loans_col_expected, loans_col_status, loans_empty_title, loans_empty_admin_body, loans_empty_staff_body, loans_empty_filtered, loans_view, loans_detail_title, loans_items_card, loans_col_item, loans_col_qty, loans_col_stock_now, loans_col_available, loans_borrower, loans_requested_on, loans_loan_date, loans_expected_return, loans_purpose, loans_note, loans_approved_by, loans_rejected_by, loans_reject_reason, loans_issued_by, loans_returned_on, loans_received_by, loans_return_note, loans_progress, loans_step_done, loans_step_current, loans_step_upcoming, loans_step_submitted, loans_step_approved, loans_step_approved_body, loans_step_borrowed, loans_step_borrowed_body, loans_step_completed, loans_step_completed_body, loans_draft_note, loans_rejected_note, loans_cancelled_note, loans_own_request, loans_approve, loans_reject, loans_issue, loans_record_return, loans_cancel, loans_cancel_request, loans_submit, loans_edit_draft, loans_approved, loans_rejected, loans_issued, loans_returned, loans_cancelled, loans_submitted, loans_draft_saved, loans_reject_body, loans_reject_confirm, loans_issue_body, loans_issue_confirm, loans_return_body, loans_return_confirm, loans_cancel_body, loans_new_title, loans_new_request_title, loans_edit_title, loans_form_desc, loans_section_items, loans_section_when, loans_section_why, loans_borrower_hint, loans_add_line, loans_save_draft, loans_not_found_back, fields_loan_date, fields_expected_return, fields_return_date, fields_purpose, fields_return_note, fields_borrower, validation_select_borrower, validation_expected_after_loan,
     fields_destination_hint,
     stock_title, stock_description, stock_incoming, stock_outgoing, stock_adjustment, stock_search_placeholder, stock_all_types, stock_all_statuses, stock_col_number, stock_col_date, stock_col_type, stock_col_items, stock_col_party, stock_col_total, stock_col_user, stock_col_status, stock_empty_title, stock_empty_body, stock_empty_filtered, stock_view, stock_void, stock_in_title, stock_in_desc, stock_out_title, stock_out_desc, stock_adj_title, stock_adj_desc, stock_items_section, stock_out_items_section, stock_add_line, stock_remove_line, stock_note_field, stock_total_purchase, stock_save_in, stock_save_out, stock_save_adj, stock_select_supplier, stock_adj_item_hint, stock_difference_label, stock_no_change, stock_reason_hint, stock_details_card, stock_lines_card, stock_col_item, stock_col_qty, stock_col_change, stock_col_balance, stock_col_unit_price, stock_col_line_total, stock_reason_label, stock_recorded_at, stock_voided_by, stock_reversal_of, stock_linked_loan, stock_void_body, stock_void_confirm, stock_voided, stock_not_found_back, fields_date, fields_destination, fields_quantity, fields_unit_price, fields_reason, fields_physical_stock, fields_system_stock, fields_item, validation_select_item, validation_at_least_one_line, validation_difference_zero, ui_invalid_date, ui_pick_item, status_tx_status_posted, status_tx_status_voided,
@@ -219,6 +220,109 @@ pub const EN: Strings = Strings {
     errors_photo_type: "The photo must be a JPEG, PNG or WebP image.",
     errors_photo_too_big: "The photo is too large. The limit is 2 MB.",
     common_export_excel: "Export Excel",
+    purchases_title: "Purchase requests",
+    purchases_desc_admin: "Approve requests, then record the items when they arrive.",
+    purchases_desc_staff: "Ask for items that are running low or missing. An Admin buys them.",
+    purchases_new: "+ New purchase request",
+    purchases_search_placeholder: "Search request, person, or item",
+    purchases_all_requesters: "All requesters",
+    purchases_caption: "Purchase requests",
+    purchases_tab_all: "All",
+    purchases_tab_closed: "Rejected or cancelled",
+    purchases_col_number: "Request number",
+    purchases_col_requester: "Requested for",
+    purchases_col_items: "Items",
+    purchases_col_needed_by: "Needed by",
+    purchases_col_status: "Status",
+    purchases_empty_title: "No purchase requests yet",
+    purchases_empty_admin_body: "Requests appear here once someone asks for an item to be bought.",
+    purchases_empty_staff_body: "Ask for an item when it is missing or running low.",
+    purchases_empty_filtered: "No purchase requests match your filters",
+    purchases_detail_title: "Request details",
+    purchases_items_card: "Items requested",
+    purchases_col_item: "Item",
+    purchases_col_qty: "Quantity",
+    purchases_col_stock_now: "Stock now",
+    purchases_col_minimum: "Minimum",
+    purchases_col_last_price: "Last price",
+    purchases_created_on: "Created on",
+    purchases_needed_by: "Needed by",
+    purchases_reason: "Reason",
+    purchases_note: "Note",
+    purchases_approved_by: "Approved by",
+    purchases_rejected_by: "Rejected by",
+    purchases_reject_reason: "Rejection reason",
+    purchases_received_on: "Received on",
+    purchases_received_by: "Received by",
+    purchases_transaction: "Incoming stock record",
+    purchases_progress: "Progress",
+    purchases_step_done: " (done)",
+    purchases_step_current: " (current step)",
+    purchases_step_upcoming: " (upcoming)",
+    purchases_step_submitted: "Submitted",
+    purchases_step_approved: "Approved",
+    purchases_step_approved_body: "An Admin agreed to buy the items. Stock does not change yet.",
+    purchases_step_received: "Received",
+    purchases_step_received_body: "The items arrived and were recorded as incoming stock.",
+    purchases_draft_note: "This request is still a draft. Submit it to send it for approval.",
+    purchases_rejected_note: "This request was rejected. See the reason in the details.",
+    purchases_cancelled_note: "This request was cancelled.",
+    purchases_approve_info: "Approving does not change stock. Stock increases when you record that the items arrived.",
+    purchases_own_request: "This is your own request. Another Admin must approve or reject it.",
+    purchases_approve: "Approve request",
+    purchases_reject: "Reject",
+    purchases_receive: "Record received",
+    purchases_cancel: "Cancel request",
+    purchases_submit: "Submit request",
+    purchases_edit_draft: "Edit draft",
+    purchases_approved: "Purchase request approved.",
+    purchases_rejected: "Purchase request rejected.",
+    purchases_received: "Items recorded as incoming stock.",
+    purchases_cancelled: "Purchase request cancelled.",
+    purchases_submitted: "Request submitted for approval.",
+    purchases_draft_saved: "Draft saved.",
+    purchases_reject_body: "The requester will see your reason.",
+    purchases_reject_confirm: "Reject request",
+    purchases_receive_body: "Adds the full requested quantities to stock as incoming stock.",
+    purchases_receive_new_items_note: "New items are added to the item list when you confirm. Enter a minimum stock for each; the item code is generated automatically. The supplier you choose becomes each new item's preferred supplier.",
+    purchases_new_item_tag: "New item",
+    purchases_line_existing: "Existing item",
+    purchases_line_new: "New item",
+    purchases_new_item_hint: "Use the name people will search for.",
+    purchases_pick_category: "Select a category",
+    purchases_pick_subcategory: "Select a subcategory",
+    purchases_pick_unit: "Select a unit",
+    purchases_receive_confirm: "Record received",
+    purchases_receive_total: "Total purchase value",
+    purchases_receipt_voided: "The incoming stock record for this request was voided. The request stays Received. Record a new incoming stock if the items still need to be added.",
+    purchases_cancel_body: "The request is closed. This cannot be undone.",
+    purchases_new_title: "New purchase request",
+    purchases_edit_title: "Edit draft",
+    purchases_form_desc: "Choose the items and quantities you need and say why. An Admin approves and buys them.",
+    purchases_section_items: "Items needed",
+    purchases_how_new: "Not in the list? Choose New item and describe it. An Admin adds it to the item list when it arrives.",
+    purchases_section_when: "When",
+    purchases_section_why: "Why",
+    purchases_requester_hint: "You can create a request on behalf of another person.",
+    purchases_add_line: "Add another item",
+    purchases_save_draft: "Save as draft",
+    purchases_how_title: "How a purchase request works",
+    purchases_how1: "Submit your request.",
+    purchases_how2: "An Admin approves or rejects it.",
+    purchases_how3: "The Admin buys the items.",
+    purchases_how4: "When they arrive, the Admin records them and stock increases.",
+    purchases_not_found_back: "Back to purchase requests",
+    fields_needed_by: "Needed by",
+    fields_requester: "Requested for",
+    fields_received_date: "Date received",
+    fields_item_name: "Item name",
+    validation_select_requester: "Select who the request is for.",
+    status_purchase_draft: "Draft",
+    status_purchase_pending_approval: "Pending Approval",
+    status_purchase_approved: "Approved",
+    status_purchase_rejected: "Rejected",
+    status_purchase_received: "Received",
+    status_purchase_cancelled: "Cancelled",
     loans_title: "Loans",
     loans_desc_admin: "Approve requests, hand over items, and record returns.",
     loans_desc_staff: "Your loan requests and the items you have borrowed.",
@@ -675,6 +779,109 @@ pub const ID: Strings = Strings {
     errors_photo_type: "Foto harus berupa gambar JPEG, PNG atau WebP.",
     errors_photo_too_big: "Foto terlalu besar. Batasnya 2 MB.",
     common_export_excel: "Ekspor Excel",
+    purchases_title: "Pengajuan beli",
+    purchases_desc_admin: "Setujui pengajuan, lalu catat barangnya saat datang.",
+    purchases_desc_staff: "Ajukan barang yang hampir habis atau belum ada. Admin yang membelinya.",
+    purchases_new: "+ Pengajuan beli baru",
+    purchases_search_placeholder: "Cari nomor, orang, atau barang",
+    purchases_all_requesters: "Semua pengaju",
+    purchases_caption: "Pengajuan beli",
+    purchases_tab_all: "Semua",
+    purchases_tab_closed: "Ditolak atau dibatalkan",
+    purchases_col_number: "Nomor pengajuan",
+    purchases_col_requester: "Diajukan untuk",
+    purchases_col_items: "Barang",
+    purchases_col_needed_by: "Dibutuhkan tanggal",
+    purchases_col_status: "Status",
+    purchases_empty_title: "Belum ada pengajuan beli",
+    purchases_empty_admin_body: "Pengajuan muncul di sini setelah ada yang minta barang dibelikan.",
+    purchases_empty_staff_body: "Ajukan barang kalau belum ada atau hampir habis.",
+    purchases_empty_filtered: "Tidak ada pengajuan beli yang cocok",
+    purchases_detail_title: "Detail pengajuan",
+    purchases_items_card: "Barang yang diajukan",
+    purchases_col_item: "Barang",
+    purchases_col_qty: "Jumlah",
+    purchases_col_stock_now: "Stok sekarang",
+    purchases_col_minimum: "Minimum",
+    purchases_col_last_price: "Harga terakhir",
+    purchases_created_on: "Dibuat pada",
+    purchases_needed_by: "Dibutuhkan tanggal",
+    purchases_reason: "Alasan",
+    purchases_note: "Catatan",
+    purchases_approved_by: "Disetujui oleh",
+    purchases_rejected_by: "Ditolak oleh",
+    purchases_reject_reason: "Alasan ditolak",
+    purchases_received_on: "Diterima pada",
+    purchases_received_by: "Diterima oleh",
+    purchases_transaction: "Catatan barang masuk",
+    purchases_progress: "Progres",
+    purchases_step_done: " (selesai)",
+    purchases_step_current: " (langkah sekarang)",
+    purchases_step_upcoming: " (berikutnya)",
+    purchases_step_submitted: "Diajukan",
+    purchases_step_approved: "Disetujui",
+    purchases_step_approved_body: "Admin setuju membeli barangnya. Stok belum berubah.",
+    purchases_step_received: "Sudah diterima",
+    purchases_step_received_body: "Barang sudah datang dan dicatat sebagai barang masuk.",
+    purchases_draft_note: "Pengajuan ini masih draf. Ajukan supaya dikirim untuk disetujui.",
+    purchases_rejected_note: "Pengajuan ini ditolak. Lihat alasannya di detail.",
+    purchases_cancelled_note: "Pengajuan ini dibatalkan.",
+    purchases_approve_info: "Menyetujui tidak mengubah stok. Stok bertambah saat Anda mencatat barangnya sudah datang.",
+    purchases_own_request: "Ini pengajuan Anda sendiri. Admin lain yang harus menyetujui atau menolaknya.",
+    purchases_approve: "Setujui pengajuan",
+    purchases_reject: "Tolak",
+    purchases_receive: "Catat barang datang",
+    purchases_cancel: "Batalkan pengajuan",
+    purchases_submit: "Ajukan",
+    purchases_edit_draft: "Ubah draf",
+    purchases_approved: "Pengajuan beli disetujui.",
+    purchases_rejected: "Pengajuan beli ditolak.",
+    purchases_received: "Barang dicatat sebagai barang masuk.",
+    purchases_cancelled: "Pengajuan beli dibatalkan.",
+    purchases_submitted: "Pengajuan dikirim untuk disetujui.",
+    purchases_draft_saved: "Draf disimpan.",
+    purchases_reject_body: "Pengaju akan melihat alasan Anda.",
+    purchases_reject_confirm: "Tolak pengajuan",
+    purchases_receive_body: "Semua jumlah yang diajukan ditambahkan ke stok sebagai barang masuk.",
+    purchases_receive_new_items_note: "Barang baru ditambahkan ke daftar barang saat Anda konfirmasi. Isi stok minimum untuk masing-masing; kode barang dibuat otomatis. Supplier yang dipilih jadi supplier langganan barang baru itu.",
+    purchases_new_item_tag: "Barang baru",
+    purchases_line_existing: "Barang lama",
+    purchases_line_new: "Barang baru",
+    purchases_new_item_hint: "Pakai nama yang biasa dicari orang.",
+    purchases_pick_category: "Pilih area",
+    purchases_pick_subcategory: "Pilih jenis",
+    purchases_pick_unit: "Pilih satuan",
+    purchases_receive_confirm: "Catat barang datang",
+    purchases_receive_total: "Total nilai pembelian",
+    purchases_receipt_voided: "Catatan barang masuk untuk pengajuan ini sudah dibatalkan. Status pengajuan tetap Sudah diterima. Catat barang masuk baru kalau barangnya masih perlu ditambahkan.",
+    purchases_cancel_body: "Pengajuan ditutup. Tidak bisa diurungkan.",
+    purchases_new_title: "Pengajuan beli baru",
+    purchases_edit_title: "Ubah draf",
+    purchases_form_desc: "Pilih barang dan jumlah yang dibutuhkan, lalu tulis alasannya. Admin yang menyetujui dan membelinya.",
+    purchases_section_items: "Barang yang dibutuhkan",
+    purchases_how_new: "Tidak ada di daftar? Pilih Barang baru dan tulis nama barangnya. Admin menambahkannya ke daftar barang saat barangnya datang.",
+    purchases_section_when: "Kapan",
+    purchases_section_why: "Untuk apa",
+    purchases_requester_hint: "Anda bisa membuat pengajuan atas nama orang lain.",
+    purchases_add_line: "Tambah barang lain",
+    purchases_save_draft: "Simpan sebagai draf",
+    purchases_how_title: "Cara pengajuan beli",
+    purchases_how1: "Ajukan barang yang dibutuhkan.",
+    purchases_how2: "Admin menyetujui atau menolak.",
+    purchases_how3: "Admin membeli barangnya.",
+    purchases_how4: "Saat barang datang, Admin mencatatnya dan stok bertambah.",
+    purchases_not_found_back: "Kembali ke pengajuan beli",
+    fields_needed_by: "Dibutuhkan tanggal",
+    fields_requester: "Diajukan untuk",
+    fields_received_date: "Tanggal diterima",
+    fields_item_name: "Nama barang",
+    validation_select_requester: "Pilih untuk siapa pengajuan ini.",
+    status_purchase_draft: "Draf",
+    status_purchase_pending_approval: "Menunggu persetujuan",
+    status_purchase_approved: "Disetujui",
+    status_purchase_rejected: "Ditolak",
+    status_purchase_received: "Sudah diterima",
+    status_purchase_cancelled: "Dibatalkan",
     loans_title: "Peminjaman",
     loans_desc_admin: "Setujui pengajuan, serahkan barang, dan catat pengembalian.",
     loans_desc_staff: "Pengajuan pinjam Anda dan barang yang sedang Anda pinjam.",
@@ -1212,6 +1419,36 @@ pub fn loan_step_submitted_body(lang: Lang, who: &str, date: &str) -> String {
     match lang { Lang::En => format!("Requested by {who} on {date}."), Lang::Id => format!("Diajukan oleh {who} pada {date}.") }
 }
 
+pub fn purchase_reject_title(lang: Lang, n: &str) -> String {
+    match lang { Lang::En => format!("Reject {n}?"), Lang::Id => format!("Tolak {n}?") }
+}
+
+pub fn purchase_cancel_title(lang: Lang, n: &str) -> String {
+    match lang { Lang::En => format!("Cancel {n}?"), Lang::Id => format!("Batalkan {n}?") }
+}
+
+pub fn purchase_receive_title(lang: Lang, n: &str) -> String {
+    match lang { Lang::En => format!("Record items received for {n}"), Lang::Id => format!("Catat barang datang untuk {n}") }
+}
+
+/// The legend of one line in the receive form: "Kabel, 3 pcs".
+pub fn purchase_receive_line_name(name: &str, qty: i64, unit: &str) -> String {
+    format!("{name}, {qty} {unit}")
+}
+
+pub fn purchase_status_label(lang: Lang, status: crate::models::PurchaseStatus) -> &'static str {
+    use crate::models::PurchaseStatus::*;
+    let s = strings(lang);
+    match status {
+        Draft => s.status_purchase_draft,
+        PendingApproval => s.status_purchase_pending_approval,
+        Approved => s.status_purchase_approved,
+        Rejected => s.status_purchase_rejected,
+        Received => s.status_purchase_received,
+        Cancelled => s.status_purchase_cancelled,
+    }
+}
+
 /// The "Preferred for" count of a supplier: "1 item" / "2 items" / "3 barang".
 pub fn supplier_items_count(lang: Lang, n: i64) -> String {
     match lang { Lang::En => format!("{n} {}", plural(lang, n, "item", "items", "")), Lang::Id => format!("{n} barang") }
@@ -1366,6 +1603,22 @@ mod tests {
     }
 
     #[test]
+    fn purchase_texts_and_status_labels_equal_the_web_apps() {
+        use crate::models::PurchaseStatus::*;
+        assert_eq!((purchase_reject_title(Lang::Id, "PR-1").as_str(), purchase_cancel_title(Lang::En, "PR-1").as_str()), ("Tolak PR-1?", "Cancel PR-1?"));
+        assert_eq!(purchase_receive_title(Lang::En, "PR-1"), "Record items received for PR-1");
+        assert_eq!(purchase_receive_line_name("Kabel", 3, "pcs"), "Kabel, 3 pcs");
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../frontend/src/lib/");
+        for (lang, file) in [(Lang::En, "strings.ts"), (Lang::Id, "strings.id.ts")] {
+            let src = std::fs::read_to_string(format!("{dir}{file}")).unwrap();
+            let web = web_nested(&src, "purchase");
+            for (status, key) in [(Draft, "Draft"), (PendingApproval, "Pending Approval"), (Approved, "Approved"), (Rejected, "Rejected"), (Received, "Received"), (Cancelled, "Cancelled")] {
+                assert_eq!(purchase_status_label(lang, status), web[key], "{file} purchase {key}");
+            }
+        }
+    }
+
+    #[test]
     fn counts_read_naturally() {
         assert_eq!(showing(Lang::En, 1, 8, 17), "Showing 1-8 of 17");
         assert_eq!(showing(Lang::Id, 9, 16, 17), "Menampilkan 9-16 dari 17");
@@ -1412,7 +1665,7 @@ mod tests {
         let id_src = std::fs::read_to_string(format!("{dir}strings.id.ts")).unwrap();
         let mut compared = 0;
         for (lang, src, ours) in [("en", &en_src, &EN), ("id", &id_src, &ID)] {
-            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport", "categories", "subcategories", "suppliers", "stock", "loans"] {
+            for section in ["app", "nav", "common", "user", "states", "errors", "auth", "fields", "validation", "dashboard", "items", "itemImport", "categories", "subcategories", "suppliers", "stock", "loans", "purchases"] {
                 let web: HashMap<String, String> = web_section(src, section).into_iter().map(|(k, v)| (format!("{}_{}", snake(section), snake(&k)), v)).collect();
                 for (field, text) in ours.entries() {
                     if let Some(want) = web.get(field) {

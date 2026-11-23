@@ -5,8 +5,8 @@
 
 use ezi_core::api::{Client, ErrorCode, Password, Role};
 use ezi_core::api::Lang;
-use ezi_core::forms;
-use ezi_core::models::{AdjustmentInput, GroupInput, GroupRow, ImportStatus, ItemInput, LoanInput, LoanStatus, ReturnInput, StockLineInput, StockMoveInput, SupplierInput, SupplierRow};
+use ezi_core::forms::{self, ReceiveLineFields};
+use ezi_core::models::{AdjustmentInput, GroupInput, GroupRow, ImportStatus, ItemInput, LoanInput, LoanStatus, NewItemInput, PurchaseInput, PurchaseLineInput, PurchaseStatus, ReturnInput, StockLineInput, StockMoveInput, SupplierInput, SupplierRow};
 use serde_json::{json, Value};
 
 const PNG: [u8; 8] = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -280,6 +280,52 @@ fn the_client_works_against_the_real_backend() {
     assert_eq!((returned.status, returned.return_notes.as_str(), returned.received_by_name.as_str()), (LoanStatus::Completed, "Lengkap", "Admin Rust"));
     assert!(admin.loan(edited.id).unwrap().allowed_actions.iter().all(|a| a != "return"), "a loan is returned only once");
     assert_eq!(staff.loan(9_999_999).unwrap_err().code(), Some(&ErrorCode::NotFound));
+
+    // Purchase requests: a request with an existing item and a new item, approved by an Admin, received once and in full.
+    // Receiving a new-item line makes the server create the item with its code; the client sends no code.
+    let existing_line = PurchaseLineInput { item_id: Some(id), quantity: 3, new_item: None };
+    let new_line = PurchaseLineInput { item_id: None, quantity: 4, new_item: Some(NewItemInput { name: "Spidol Uji".into(), category_id: cat["id"].as_i64().unwrap(), subcategory_id: sub["id"].as_i64().unwrap(), unit: "box".into() }) };
+    let purchase_input = |lines: Vec<PurchaseLineInput>, requester: i64, submit: bool, request: Option<&str>| PurchaseInput {
+        requester_id: requester, lines, needed_by: ezi_core::format::days_from_today(7), reason: "Habis".into(), notes: "".into(), submit, client_request_id: request.map(String::from),
+    };
+    let draft = staff.save_purchase(None, &purchase_input(vec![existing_line.clone(), new_line.clone()], staff_id, false, Some(&forms::new_request_id()))).unwrap();
+    assert_eq!((draft.status, draft.lines.len(), draft.lines[1].new_item.as_ref().map(|n| n.name.as_str())), (PurchaseStatus::Draft, 2, Some("Spidol Uji")));
+    assert!(draft.can("edit") && draft.lines[0].last_purchase_price.is_none(), "Staff get no price on a request: {:?}", draft.lines[0]);
+    let same = forms::new_request_id();
+    let a = staff.save_purchase(None, &purchase_input(vec![existing_line.clone()], staff_id, false, Some(&same))).unwrap();
+    assert_eq!(staff.save_purchase(None, &purchase_input(vec![existing_line.clone()], staff_id, false, Some(&same))).unwrap().id, a.id, "the same request id never creates two requests");
+    assert_eq!(staff.purchase_action(a.id, "cancel").unwrap().status, PurchaseStatus::Cancelled);
+    assert_eq!(staff.save_purchase(None, &purchase_input(vec![existing_line.clone()], admin_id, false, None)).unwrap_err().code(), Some(&ErrorCode::Forbidden), "Staff request only for themselves");
+    let submitted = staff.save_purchase(Some(draft.id), &PurchaseInput { reason: "Habis lagi".into(), ..purchase_input(vec![existing_line.clone(), new_line.clone()], staff_id, true, None) }).unwrap();
+    assert_eq!((submitted.status, submitted.reason.as_str()), (PurchaseStatus::PendingApproval, "Habis lagi"));
+    assert_eq!(staff.purchase_action(draft.id, "approve").unwrap_err().code(), Some(&ErrorCode::Forbidden));
+    let seen = admin.purchase(draft.id).unwrap();
+    assert!(seen.can("approve") && seen.can("reject") && seen.lines[0].current_stock.is_some(), "Admin see stock on a request: {:?}", seen.allowed_actions);
+    assert!(staff.purchases(&[]).unwrap().data.iter().all(|p| p.requester_id == staff_id), "Staff see only their own requests");
+    let own = admin.save_purchase(None, &purchase_input(vec![existing_line.clone()], admin_id, true, None)).unwrap();
+    assert_eq!(admin.purchase_action(own.id, "approve").unwrap_err().code(), Some(&ErrorCode::BusinessRule), "an Admin cannot approve their own request");
+    admin.purchase_action(own.id, "cancel").unwrap();
+    let to_reject = staff.save_purchase(None, &purchase_input(vec![existing_line.clone()], staff_id, true, None)).unwrap();
+    let rejected = admin.reject_purchase(to_reject.id, "Tidak perlu").unwrap();
+    assert_eq!((rejected.status, rejected.reject_reason.as_str()), (PurchaseStatus::Rejected, "Tidak perlu"));
+    let pending_before = admin.purchases(&[("status", "Rejected,Cancelled"), ("pageSize", "1")]).unwrap().meta.unwrap().total;
+    assert!(pending_before >= 3, "the closed tab is a comma list of two statuses: {pending_before}");
+    assert_eq!(admin.purchase_action(draft.id, "approve").unwrap().status, PurchaseStatus::Approved);
+    let items_before = admin.items(&[("pageSize", "1")]).unwrap().meta.unwrap().total;
+    let receive_input = |date: &str, supplier: i64, price_a: &str, min: &str| forms::receive(Lang::En, date, Some(supplier), &[ReceiveLineFields { is_new: false, unit_price: price_a, minimum_stock: "" }, ReceiveLineFields { is_new: true, unit_price: "2500", minimum_stock: min }], "datang").unwrap();
+    let supplier_id = sup["id"].as_i64().unwrap();
+    let stock_before = admin.item(id).unwrap().current_stock.unwrap();
+    let received = admin.receive_purchase(draft.id, &receive_input(&today, supplier_id, "1800", "2")).unwrap();
+    assert_eq!((received.status, received.received_by_name.as_str()), (PurchaseStatus::Received, "Admin Rust"));
+    assert!(received.transaction_number.as_deref().is_some_and(|n| n.starts_with("IN-")), "receiving posts an incoming stock: {:?}", received.transaction_number);
+    assert_eq!(admin.items(&[("pageSize", "1")]).unwrap().meta.unwrap().total, items_before + 1, "the new item was created by the server");
+    let created = admin.items(&[("search", "Spidol Uji")]).unwrap().data;
+    assert_eq!((created.len(), created[0].current_stock, created[0].minimum_stock), (1, Some(4), Some(2)));
+    assert!(created[0].code.as_deref().is_some_and(|c| c.starts_with("KTR-ELK-")), "the server made the code: {:?}", created[0].code);
+    assert_eq!(admin.item(id).unwrap().current_stock.unwrap(), stock_before + 3, "the existing line added its quantity");
+    assert_eq!(admin.receive_purchase(draft.id, &receive_input(&today, supplier_id, "1800", "2")).unwrap_err().code(), Some(&ErrorCode::BusinessRule), "a request is received once");
+    assert!(admin.purchase(draft.id).unwrap().allowed_actions.iter().all(|a| a != "receive"));
+    assert_eq!(staff.purchase(9_999_999).unwrap_err().code(), Some(&ErrorCode::NotFound));
 
     // Logout ends the session on the server too.
     admin.logout().unwrap();

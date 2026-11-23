@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use crate::api::Lang;
 use crate::i18n::{at_least, greater_than_zero, required, strings, too_long, whole_number};
-use crate::models::{AdjustmentInput, GroupInput, ItemInput, LoanInput, ReturnInput, StockLineInput, StockMoveInput, SupplierInput};
+use crate::models::{AdjustmentInput, GroupInput, ItemInput, LoanInput, NewItemInput, PurchaseInput, PurchaseLineInput, ReceiveInput, ReceiveLineInput, ReturnInput, StockLineInput, StockMoveInput, SupplierInput};
 
 /// Field key to message. An empty map means the form is valid.
 pub type Errors = BTreeMap<&'static str, String>;
@@ -309,6 +309,100 @@ pub fn loan_return(lang: Lang, date: &str, notes: &str) -> Result<ReturnInput, F
     Ok(ReturnInput { return_date: date.trim().to_string(), notes: notes.trim().to_string() })
 }
 
+/// One purchase line as typed: an existing item, or a new one (name, area, kind, unit).
+pub struct PurchaseLineFields<'a> {
+    pub is_new: bool,
+    pub item_id: Option<i64>,
+    pub quantity: &'a str,
+    pub name: &'a str,
+    pub category_id: Option<i64>,
+    pub subcategory_id: Option<i64>,
+    pub unit: &'a str,
+}
+
+/// A purchase request or draft (`purchaseSchema`).
+#[allow(clippy::too_many_arguments)]
+pub fn purchase(lang: Lang, requester_id: Option<i64>, lines: &[PurchaseLineFields], needed_by: &str, reason: &str, notes: &str, submit: bool, request_id: Option<&str>) -> Result<PurchaseInput, FieldErrors> {
+    let s = strings(lang);
+    let mut e = FieldErrors::new();
+    if requester_id.is_none() {
+        e.insert("requesterId".into(), s.validation_select_requester.to_string());
+    }
+    if lines.is_empty() {
+        e.insert("lines".into(), s.validation_at_least_one_line.to_string());
+    }
+    let mut checked = Vec::new();
+    for (i, l) in lines.iter().enumerate() {
+        let quantity = whole_at_least(lang, s.fields_quantity, l.quantity, 1).map_err(|m| e.insert(format!("lines.{i}.quantity"), m)).ok();
+        if !l.is_new {
+            if l.item_id.is_none() {
+                e.insert(format!("lines.{i}.itemId"), s.validation_select_item.to_string());
+            }
+            if let (Some(quantity), Some(item_id)) = (quantity, l.item_id) {
+                checked.push(PurchaseLineInput { item_id: Some(item_id), quantity, new_item: None });
+            }
+            continue;
+        }
+        let mut ok = true;
+        if l.name.trim().is_empty() {
+            e.insert(format!("lines.{i}.name"), required(lang, s.fields_item_name));
+            ok = false;
+        }
+        if l.category_id.is_none() {
+            e.insert(format!("lines.{i}.categoryId"), s.validation_select_category.to_string());
+            ok = false;
+        }
+        if l.subcategory_id.is_none() {
+            e.insert(format!("lines.{i}.subcategoryId"), s.validation_select_subcategory.to_string());
+            ok = false;
+        }
+        if l.unit.is_empty() {
+            e.insert(format!("lines.{i}.unit"), s.validation_select_unit.to_string());
+            ok = false;
+        }
+        if let (true, Some(quantity), Some(category_id), Some(subcategory_id)) = (ok, quantity, l.category_id, l.subcategory_id) {
+            checked.push(PurchaseLineInput { item_id: None, quantity, new_item: Some(NewItemInput { name: l.name.trim().to_string(), category_id, subcategory_id, unit: l.unit.to_string() }) });
+        }
+    }
+    date_field_as(lang, "neededBy", s.fields_needed_by, needed_by, &mut e);
+    if reason.trim().is_empty() {
+        e.insert("reason".into(), required(lang, s.fields_reason));
+    }
+    match (e.is_empty(), requester_id) {
+        (true, Some(requester_id)) => Ok(PurchaseInput { requester_id, lines: checked, needed_by: needed_by.trim().to_string(), reason: reason.trim().to_string(), notes: notes.trim().to_string(), submit, client_request_id: request_id.map(String::from) }),
+        _ => Err(e),
+    }
+}
+
+/// One line of the receive form: the real unit price, and for a new item its minimum stock.
+pub struct ReceiveLineFields<'a> {
+    pub is_new: bool,
+    pub unit_price: &'a str,
+    pub minimum_stock: &'a str,
+}
+
+/// Receiving a request (`receiveSchema`): the date, the supplier, and a price (and minimum stock for new items) per line.
+pub fn receive(lang: Lang, date: &str, supplier_id: Option<i64>, lines: &[ReceiveLineFields], notes: &str) -> Result<ReceiveInput, FieldErrors> {
+    let s = strings(lang);
+    let mut e = FieldErrors::new();
+    date_field_as(lang, "date", s.fields_received_date, date, &mut e);
+    if supplier_id.is_none() {
+        e.insert("supplierId".into(), s.validation_select_supplier.to_string());
+    }
+    let mut checked = Vec::new();
+    for (i, l) in lines.iter().enumerate() {
+        let price = whole_at_least(lang, s.fields_unit_price, l.unit_price, 0).map_err(|m| e.insert(format!("lines.{i}.unitPrice"), m)).ok();
+        let minimum = if l.is_new { whole_at_least(lang, s.fields_minimum_stock, l.minimum_stock, 0).map_err(|m| e.insert(format!("lines.{i}.minimumStock"), m)).ok() } else { Some(0) };
+        if let (Some(unit_price), Some(minimum_stock)) = (price, minimum) {
+            checked.push(ReceiveLineInput { unit_price, minimum_stock });
+        }
+    }
+    match (e.is_empty(), supplier_id) {
+        (true, Some(supplier_id)) => Ok(ReceiveInput { date: date.trim().to_string(), supplier_id, lines: checked, notes: notes.trim().to_string() }),
+        _ => Err(e),
+    }
+}
+
 /// A reason typed for a void, a rejection or a cancel (`reasonSchema`).
 pub fn reason(lang: Lang, text: &str) -> Result<String, FieldErrors> {
     if text.trim().is_empty() {
@@ -435,6 +529,28 @@ mod tests {
         assert_eq!((r.return_date.as_str(), r.notes.as_str()), ("2026-11-24", "ok"));
         assert_eq!(loan_return(Lang::En, "", "").unwrap_err()["returnDate"], "Return date is required.");
         assert_eq!(loan_return(Lang::En, "24-11-2026", "").unwrap_err()["returnDate"], "Use the date format YYYY-MM-DD.");
+    }
+
+    #[test]
+    fn purchase_forms_follow_the_web_schemas() {
+        let existing = |item: Option<i64>, q: &'static str| PurchaseLineFields { is_new: false, item_id: item, quantity: q, name: "", category_id: None, subcategory_id: None, unit: "" };
+        let new_item = |name: &'static str, cat: Option<i64>, sub: Option<i64>, unit: &'static str| PurchaseLineFields { is_new: true, item_id: None, quantity: "4", name, category_id: cat, subcategory_id: sub, unit };
+        let ok = purchase(Lang::En, Some(2), &[existing(Some(1), "3"), new_item(" Spidol ", Some(1), Some(2), "box")], "2026-12-01", " Habis ", "", false, Some("rid")).unwrap();
+        let json = serde_json::to_value(&ok).unwrap();
+        assert!(json["lines"][0].get("newItem").is_none() && json["lines"][0]["itemId"] == 1, "{json}");
+        assert!(json["lines"][1]["itemId"].is_null() && json["lines"][1]["newItem"]["name"] == "Spidol" && json["lines"][1]["newItem"]["unit"] == "box", "{json}");
+        assert!(json["clientRequestId"] == "rid" && json["reason"] == "Habis", "{json}");
+        let e = purchase(Lang::En, None, &[existing(None, "0"), new_item(" ", None, None, "")], "", " ", "", true, None).unwrap_err();
+        assert_eq!((e["requesterId"].as_str(), e["lines.0.itemId"].as_str(), e["lines.0.quantity"].as_str()), ("Select who the request is for.", "Select an item.", "Quantity must be greater than 0."));
+        assert_eq!((e["lines.1.name"].as_str(), e["lines.1.categoryId"].as_str(), e["lines.1.subcategoryId"].as_str(), e["lines.1.unit"].as_str()), ("Item name is required.", "Select a category.", "Select a subcategory.", "Select a unit."));
+        assert_eq!((e["neededBy"].as_str(), e["reason"].as_str()), ("Needed by is required.", "Reason is required."));
+        assert_eq!(purchase(Lang::En, Some(1), &[], "2026-12-01", "x", "", true, None).unwrap_err()["lines"], "Add at least one item.");
+
+        let r = receive(Lang::En, "2026-11-23", Some(3), &[ReceiveLineFields { is_new: false, unit_price: "1500", minimum_stock: "" }, ReceiveLineFields { is_new: true, unit_price: "2000", minimum_stock: "5" }], " ok ").unwrap();
+        assert_eq!((r.supplier_id, r.lines[0].unit_price, r.lines[0].minimum_stock, r.lines[1].minimum_stock, r.notes.as_str()), (3, 1500, 0, 5, "ok"));
+        let e = receive(Lang::En, "", None, &[ReceiveLineFields { is_new: true, unit_price: "x", minimum_stock: "" }, ReceiveLineFields { is_new: false, unit_price: "", minimum_stock: "" }], "").unwrap_err();
+        assert_eq!((e["date"].as_str(), e["supplierId"].as_str()), ("Date received is required.", "Select a supplier."));
+        assert_eq!((e["lines.0.unitPrice"].as_str(), e["lines.0.minimumStock"].as_str(), e["lines.1.unitPrice"].as_str()), ("Unit price (IDR) must be a whole number.", "Minimum stock is required.", "Unit price (IDR) is required."));
     }
 
     #[test]

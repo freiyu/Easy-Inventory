@@ -528,6 +528,43 @@ impl Client {
         Ok(self.get::<Vec<crate::models::UserOption>>("/users", &[("status", "Active"), ("pageSize", "500"), ("sort", "name:asc")])?.data)
     }
 
+    // Purchase requests.
+
+    pub fn purchases(&self, query: &[(&str, &str)]) -> Result<Success<Vec<crate::models::Purchase>>, ApiError> {
+        self.get("/purchase-requests", query)
+    }
+
+    pub fn purchase(&self, id: i64) -> Result<crate::models::Purchase, ApiError> {
+        Ok(self.get::<crate::models::Purchase>(&format!("/purchase-requests/{id}"), &[])?.data)
+    }
+
+    /// Creates the request (`id` None) or updates a draft; `input.submit` sends it for approval.
+    pub fn save_purchase(&self, id: Option<i64>, input: &crate::models::PurchaseInput) -> Result<crate::models::Purchase, ApiError> {
+        Ok(match id {
+            Some(id) => self.put::<crate::models::Purchase, _>(&format!("/purchase-requests/{id}"), input)?.data,
+            None => self.post::<crate::models::Purchase, _>("/purchase-requests", input)?.data,
+        })
+    }
+
+    /// `submit`, `cancel` or `approve`.
+    pub fn purchase_action(&self, id: i64, action: &str) -> Result<crate::models::Purchase, ApiError> {
+        Ok(self.post_empty::<crate::models::Purchase>(&format!("/purchase-requests/{id}/{action}"))?.data)
+    }
+
+    pub fn reject_purchase(&self, id: i64, reason: &str) -> Result<crate::models::Purchase, ApiError> {
+        Ok(self.post::<crate::models::Purchase, _>(&format!("/purchase-requests/{id}/reject"), &serde_json::json!({ "reason": reason }))?.data)
+    }
+
+    /// The items arrived, all of them: the server posts the incoming stock and creates the new items with their codes.
+    pub fn receive_purchase(&self, id: i64, input: &crate::models::ReceiveInput) -> Result<crate::models::Purchase, ApiError> {
+        Ok(self.post::<crate::models::Purchase, _>(&format!("/purchase-requests/{id}/receive"), input)?.data)
+    }
+
+    /// Everyone, active or not, for the requester filter of the purchase list. Admin only.
+    pub fn all_people(&self) -> Result<Vec<crate::models::UserOption>, ApiError> {
+        Ok(self.get::<Vec<crate::models::UserOption>>("/users", &[("pageSize", "500"), ("sort", "name:asc")])?.data)
+    }
+
     pub fn needs_setup(&self) -> Result<bool, ApiError> {
         #[derive(Deserialize)]
         struct Status {
