@@ -133,44 +133,50 @@ impl RenderOnce for Logo {
     }
 }
 
-// ------------------------------------------------------------------ barcode and photo
+// ------------------------------------------------------------------ QR code and photo
 
-/// A Code 128 barcode, drawn as filled bars. Always black on white (see `theme::BARCODE_INK`).
-/// `text` is printed under the bars; pass None to show the bars only (Staff never read the code as text).
+/// A QR code, drawn as filled squares. Always black on white (see `theme::QR_INK`), as wide as the space it is given (square).
+/// `text` is printed under the symbol; pass None to show the symbol only (Staff never read the code as text).
 #[derive(IntoElement)]
-pub struct BarcodeView {
+pub struct QrView {
     value: String,
     text: Option<SharedString>,
 }
 
-impl BarcodeView {
+impl QrView {
     pub fn new(value: impl Into<String>, show_text: bool) -> Self {
         let value = value.into();
         let text = show_text.then(|| SharedString::from(value.clone()));
-        BarcodeView { value, text }
+        QrView { value, text }
     }
 }
 
-impl RenderOnce for BarcodeView {
+impl RenderOnce for QrView {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
-        let Some((bars, total)) = ezi_core::code128::bars(&self.value, theme::BARCODE_QUIET_MODULES) else {
+        let Some(matrix) = ezi_core::qr::matrix(&self.value) else {
             return div().into_any_element();
         };
-        let ink = crate::state::hsla(theme::BARCODE_INK);
-        let paper = crate::state::hsla(theme::BARCODE_PAPER);
-        let paint_bars = canvas(
+        let ink = crate::state::hsla(theme::QR_INK);
+        let paper = crate::state::hsla(theme::QR_PAPER);
+        let total = (matrix.width + 2 * ezi_core::qr::QUIET_MODULES) as f32;
+        let side = theme::PHOTO_SIZE - 2.0 * theme::SPACE_2;
+        let paint_modules = canvas(
             |_, _, _| (),
             move |bounds, _, window, _| {
-                let unit = bounds.size.width / total as f32;
+                let unit = bounds.size.width / total;
                 window.paint_quad(fill(bounds, paper));
-                for (start, width) in &bars {
-                    let origin = point(bounds.origin.x + unit * *start as f32, bounds.origin.y);
-                    window.paint_quad(fill(Bounds::new(origin, size(unit * *width as f32, bounds.size.height)), ink));
+                let quiet = ezi_core::qr::QUIET_MODULES;
+                for y in 0..matrix.width {
+                    for x in 0..matrix.width {
+                        if matrix.is_dark(x, y) {
+                            let origin = point(bounds.origin.x + unit * (x + quiet) as f32, bounds.origin.y + unit * (y + quiet) as f32);
+                            window.paint_quad(fill(Bounds::new(origin, size(unit, unit)), ink));
+                        }
+                    }
                 }
             },
         )
-        .w_full()
-        .h(px(theme::BARCODE_HEIGHT));
+        .size(px(side));
         div()
             .flex()
             .flex_col()
@@ -182,7 +188,7 @@ impl RenderOnce for BarcodeView {
             .bg(paper)
             .text_color(ink)
             .text_size(px(theme::TEXT_TABLE))
-            .child(paint_bars)
+            .child(paint_modules)
             .children(self.text)
             .into_any_element()
     }

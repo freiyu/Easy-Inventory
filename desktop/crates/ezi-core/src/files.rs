@@ -40,12 +40,12 @@ pub fn save_to_downloads(file_name: &str, bytes: &[u8]) -> Result<PathBuf, Strin
     Ok(path)
 }
 
-/// `barcode-<item name>.png`, with the characters Windows does not allow in a file name replaced by `-`.
+/// `qr-<item name>.png`, with the characters Windows does not allow in a file name replaced by `-`.
 /// The name of the item and not its code, so the file name never shows a code to Staff (same as the web app).
-pub fn barcode_png_name(item_name: &str) -> String {
+pub fn qr_png_name(item_name: &str) -> String {
     let clean: String = item_name.chars().map(|c| if c.is_control() || "\\/:*?\"<>|".contains(c) { '-' } else { c }).collect();
     let clean = clean.trim().trim_end_matches('.').trim();
-    format!("barcode-{}.png", if clean.is_empty() { "item" } else { clean })
+    format!("qr-{}.png", if clean.is_empty() { "item" } else { clean })
 }
 
 #[cfg(test)]
@@ -53,11 +53,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_barcode_file_is_named_after_the_item() {
-        assert_eq!(barcode_png_name("Proyektor Uji"), "barcode-Proyektor Uji.png");
-        assert_eq!(barcode_png_name(" A/B:C*D? "), "barcode-A-B-C-D-.png");
-        assert_eq!(barcode_png_name("..."), "barcode-item.png");
-        assert_eq!(barcode_png_name(""), "barcode-item.png");
+    fn the_qr_file_is_named_after_the_item() {
+        assert_eq!(qr_png_name("Proyektor Uji"), "qr-Proyektor Uji.png");
+        assert_eq!(qr_png_name(" A/B:C*D? "), "qr-A-B-C-D-.png");
+        assert_eq!(qr_png_name("..."), "qr-item.png");
+        assert_eq!(qr_png_name(""), "qr-item.png");
     }
 
     #[test]

@@ -149,7 +149,7 @@ pub struct Item {
     /// The stored photo file name, null when there is no photo (v1.2).
     #[serde(rename = "photoVersion")]
     pub photo_version: Option<String>,
-    /// Item detail for Staff only (v1.2): the value to encode as a barcode. Never shown as text.
+    /// Item detail for Staff only (v1.2): the value to encode as a QR code. Never shown as text.
     pub barcode: Option<String>,
     // Admin only:
     pub code: Option<String>,
@@ -173,7 +173,7 @@ pub struct Item {
 }
 
 impl Item {
-    /// What to encode in the barcode: the code for Admin, the barcode value for Staff.
+    /// What to encode in the QR code: the code for Admin, the barcode value for Staff.
     pub fn barcode_value(&self) -> Option<&str> {
         self.code.as_deref().or(self.barcode.as_deref())
     }

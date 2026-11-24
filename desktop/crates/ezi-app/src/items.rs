@@ -1,4 +1,4 @@
-//! Items: the list with search and filters, and the item detail with photo, barcode and stock movements.
+//! Items: the list with search and filters, and the item detail with photo, QR code and stock movements.
 //! Same data and the same filters as the web Items page; Staff get the limited view the server gives them.
 
 use std::rc::Rc;
@@ -21,7 +21,7 @@ use crate::item_form::{Done, ItemForm};
 use crate::item_import::ItemImport;
 use crate::load::Load;
 use crate::state::{color, state, t};
-use crate::widgets::{confirm, stock_tone, toast, Badge, BarcodeView, Cell, Column, DataTable, Paging, PhotoView, StatePanel, ToastKind};
+use crate::widgets::{confirm, stock_tone, toast, Badge, QrView, Cell, Column, DataTable, Paging, PhotoView, StatePanel, ToastKind};
 use ezi_core::files;
 
 /// Rows per page: the dense layout of the redesign (PRD_REDESIGN.md 10.2).
@@ -337,16 +337,16 @@ impl ItemsPage {
         .detach();
     }
 
-    /// The barcode as a PNG file in the Downloads folder (never over an existing file). The file is named after the item,
+    /// The QR code as a PNG file in the Downloads folder (never over an existing file). The file is named after the item,
     /// not the code, so Staff, who may not read the code, do not learn it from the name.
-    fn download_barcode(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn download_qr(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Load::Ready(item) = &self.detail else { return };
         let Some(value) = item.barcode_value() else { return };
         let lang = state(cx).lang;
-        let saved = ezi_core::code128::png(value, 4, 120, 16).ok_or_else(|| "this value cannot be drawn as Code 128".to_string()).and_then(|bytes| {
+        let saved = ezi_core::qr::png(value, 8).ok_or_else(|| "this value cannot be drawn as a QR code".to_string()).and_then(|bytes| {
             let dir = files::downloads_dir().ok_or_else(|| "no Downloads folder".to_string())?;
             std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-            let path = files::unique_path(&dir, &files::barcode_png_name(&item.name));
+            let path = files::unique_path(&dir, &files::qr_png_name(&item.name));
             std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
             Ok(path)
         });
@@ -610,11 +610,11 @@ impl ItemsPage {
                             .child(labelled(cx, s.items_updated_at, item.updated_at.as_deref().map(|d| format_date(&d[..10.min(d.len())])).unwrap_or_else(|| "-".into())))
                             .children(item.notes.clone().filter(|n| !n.is_empty()).map(|n| labelled(cx, s.common_notes, n)))
                     });
-                // The barcode sits under the photo, as wide as the photo. A dark layer with the download icon shows while the mouse is over it.
-                let barcode = item.barcode_value().map(|v| {
+                // The QR code sits under the photo, as wide as the photo. A dark layer with the download icon shows while the mouse is over it.
+                let qr = item.barcode_value().map(|v| {
                     let (scrim, alpha) = ezi_core::theme::Palette::of(state(cx).mode).overlay();
                     let button = div()
-                        .id("item-barcode-download")
+                        .id("item-qr-download")
                         .flex()
                         .items_center()
                         .justify_center()
@@ -623,9 +623,9 @@ impl ItemsPage {
                         .bg(color(cx, Token::Card))
                         .text_color(color(cx, Token::Foreground))
                         .cursor_pointer()
-                        .on_click(cx.listener(|this, _, window, cx| this.download_barcode(window, cx)))
+                        .on_click(cx.listener(|this, _, window, cx| this.download_qr(window, cx)))
                         .child(svg().path(crate::assets::download()).size(px(theme::NAV_ICON)).flex_none().text_color(color(cx, Token::Foreground)));
-                    div().group("item-barcode").relative().w_full().child(BarcodeView::new(v, admin)).child(
+                    div().group("item-qr").relative().w_full().child(QrView::new(v, admin)).child(
                         div()
                             .absolute()
                             .inset_0()
@@ -635,11 +635,11 @@ impl ItemsPage {
                             .rounded(px(theme::RADIUS))
                             .bg(crate::state::hsla(scrim).opacity(alpha))
                             .opacity(0.)
-                            .group_hover("item-barcode", |style| style.opacity(1.))
+                            .group_hover("item-qr", |style| style.opacity(1.))
                             .child(button),
                     )
                 });
-                let picture = div().flex().flex_col().flex_none().gap(px(theme::SPACE_2)).w(px(theme::PHOTO_SIZE)).child(PhotoView::new(self.photo.clone(), s.items_photo_none)).children(barcode);
+                let picture = div().flex().flex_col().flex_none().gap(px(theme::SPACE_2)).w(px(theme::PHOTO_SIZE)).child(PhotoView::new(self.photo.clone(), s.items_photo_none)).children(qr);
                 let details = card(cx).flex_1().child(heading(cx, s.items_details_card)).child(div().flex().gap(px(theme::SPACE_4)).child(fields).child(picture));
 
                 let stock_card = card(cx).w(px(theme::SIDE_CARD_WIDTH)).child(heading(cx, s.items_stock_card)).child(if admin {

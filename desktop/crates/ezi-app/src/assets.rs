@@ -63,7 +63,7 @@ pub fn chevrons() -> SharedString {
     gpui_kit::assets::IconName::ChevronsUpDown.path()
 }
 
-/// The download arrow shown over the barcode.
+/// The download arrow shown over the QR code.
 pub fn download() -> SharedString {
     gpui_kit::assets::IconName::Download.path()
 }

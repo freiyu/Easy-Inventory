@@ -1,7 +1,7 @@
 //! EZI desktop client logic with no UI dependency. Everything here builds and is tested on any OS.
 
 pub mod api;
-pub mod code128;
+pub mod qr;
 pub mod files;
 pub mod forms;
 pub mod format;
@@ -16,12 +16,12 @@ pub mod theme;
 /// Shown in the window title.
 pub const APP_NAME: &str = "EZI";
 
-/// The app version, taken from Cargo.toml (kept equal to the web app and installer version, 1.2.0 for this release).
+/// The app version, taken from Cargo.toml (kept equal to the web app and installer version, 1.2.1 for this release).
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
-/// Window title, for example "EZI 1.2.0".
+/// Window title, for example "EZI 1.2.1".
 pub fn window_title() -> String {
     format!("{APP_NAME} {}", version())
 }

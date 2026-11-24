@@ -147,12 +147,9 @@ pub const TEXT_TABLE: f32 = 14.0;
 pub const RADIUS: f32 = 8.0;
 pub const RADIUS_CARD: f32 = 12.0;
 
-/// A barcode is always dark bars on a light field, in both themes: scanners need that contrast.
-pub const BARCODE_INK: Rgb = Rgb(0, 0, 0);
-pub const BARCODE_PAPER: Rgb = Rgb(255, 255, 255);
-/// Height of a barcode and the empty space before and after it, in modules (Code 128 asks for at least 10).
-pub const BARCODE_HEIGHT: f32 = 56.0;
-pub const BARCODE_QUIET_MODULES: u32 = 10;
+/// A QR code is always dark modules on a light field, in both themes: phone cameras need that contrast.
+pub const QR_INK: Rgb = Rgb(0, 0, 0);
+pub const QR_PAPER: Rgb = Rgb(255, 255, 255);
 /// Widths of the list filters (search box, category and subcategory, stock status, record status) and of the side cards of a detail page.
 pub const FILTER_SEARCH_WIDTH: f32 = 210.0;
 pub const FILTER_SELECT_WIDTH: f32 = 160.0;
