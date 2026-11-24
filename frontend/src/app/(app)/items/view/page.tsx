@@ -47,7 +47,7 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
   const lines = item.movements ?? [];
   const reserved = item.reserved ?? 0;
   const active = item.status === "Active";
-  const barcodeValue = isAdmin ? item.code : item.barcode;
+  const qrValue = isAdmin ? item.code : item.barcode;
 
   return (
     <>
@@ -71,16 +71,18 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
           <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-start">
           <div className="flex w-36 shrink-0 flex-col gap-2 sm:order-2">
             <ItemPhoto id={item.id} name={item.name} version={item.photoVersion} emptyLabel={t.items.photoNone} />
-            {barcodeValue && (
-              // The label to print is this block alone; the two icon buttons show on hover or keyboard focus, always on touch screens.
-              <div className="print-label group relative">
-                <p className="hidden text-(length:--text-body) font-(weight:--weight-strong) print:block">{item.name}</p>
-                {/* Staff scan the QR but never read the code: no printed code line for them. */}
-                <QrCode value={barcodeValue} showText={isAdmin} label={`${t.items.qrCard}: ${item.name}`} className="w-full border" />
-                <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-lg bg-black/50 opacity-0 transition-opacity duration-(--duration-hover) group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 print:hidden">
+            {qrValue && (
+              <div className="flex flex-col gap-2">
+                {/* The label to print is the name and the QR code alone; the buttons are not part of it. */}
+                <div className="print-label">
+                  <p className="hidden text-(length:--text-body) font-(weight:--weight-strong) print:block print:text-black">{item.name}</p>
+                  {/* Staff scan the QR but never read the code: no printed code line for them. */}
+                  <QrCode value={qrValue} showText={isAdmin} label={`${t.items.qrCard}: ${item.name}`} className="w-full border print:border-0" />
+                </div>
+                <div className="flex flex-col gap-2 print:hidden">
                   {/* The file name uses the item name, never the code: Staff must not learn the code from it. */}
-                  <Button size="icon" variant="secondary" aria-label={t.items.qrDownload} title={t.items.qrDownload} onClick={() => downloadQrPng(barcodeValue, `qr-${item.name}.png`, isAdmin ? barcodeValue : undefined)}><Download aria-hidden="true" /></Button>
-                  <Button size="icon" variant="secondary" aria-label={t.items.printLabel} title={t.items.printLabel} onClick={() => window.print()}><Printer aria-hidden="true" /></Button>
+                  <Button size="sm" variant="outline" aria-label={`${t.items.qrDownload}: ${item.name}`} onClick={() => downloadQrPng(qrValue, `qr-${item.name}.png`, isAdmin ? qrValue : undefined)}><Download aria-hidden="true" />{t.items.qrDownload}</Button>
+                  <Button size="sm" variant="outline" onClick={() => window.print()}><Printer aria-hidden="true" />{t.items.printLabel}</Button>
                 </div>
               </div>
             )}

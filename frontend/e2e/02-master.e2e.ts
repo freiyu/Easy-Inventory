@@ -112,6 +112,14 @@ test("items: Admin sees the QR code with its code and a Print label button on th
   await expect(main.getByRole("img", { name: /QR code: Proyektor Uji/ })).toBeVisible();
   await expect(main.getByRole("figure")).toContainText(/[A-Z]{3}-[A-Z]{3}-\d{4}/);
   await expect(main.getByRole("button", { name: "Print label" })).toBeVisible();
+  // The actions sit under the QR code with a visible text, never on top of it (a hover layer would also cover it on touch screens).
+  const qrBox = (await main.getByRole("img", { name: /QR code: Proyektor Uji/ }).boundingBox())!;
+  for (const name of ["Download PNG", "Print label"]) {
+    const button = main.getByRole("button", { name });
+    await expect(button).toContainText(name);
+    const box = (await button.boundingBox())!;
+    expect(box.y, `${name} below the QR`).toBeGreaterThanOrEqual(qrBox.y + qrBox.height);
+  }
   // The PNG download is a real PNG file named after the item, not after the code.
   const [download] = await Promise.all([page.waitForEvent("download"), main.getByRole("button", { name: "Download PNG" }).click()]);
   expect(download.suggestedFilename()).toBe("qr-Proyektor Uji.png");

@@ -610,34 +610,14 @@ impl ItemsPage {
                             .child(labelled(cx, s.items_updated_at, item.updated_at.as_deref().map(|d| format_date(&d[..10.min(d.len())])).unwrap_or_else(|| "-".into())))
                             .children(item.notes.clone().filter(|n| !n.is_empty()).map(|n| labelled(cx, s.common_notes, n)))
                     });
-                // The QR code sits under the photo, as wide as the photo. A dark layer with the download icon shows while the mouse is over it.
+                // The QR code sits under the photo, as wide as the photo, with a text button below it (nothing is drawn over the symbol).
                 let qr = item.barcode_value().map(|v| {
-                    let (scrim, alpha) = ezi_core::theme::Palette::of(state(cx).mode).overlay();
-                    let button = div()
-                        .id("item-qr-download")
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .size(px(theme::CONTROL_HEIGHT))
-                        .rounded(px(theme::RADIUS))
-                        .bg(color(cx, Token::Card))
-                        .text_color(color(cx, Token::Foreground))
-                        .cursor_pointer()
-                        .on_click(cx.listener(|this, _, window, cx| this.download_qr(window, cx)))
-                        .child(svg().path(crate::assets::download()).size(px(theme::NAV_ICON)).flex_none().text_color(color(cx, Token::Foreground)));
-                    div().group("item-qr").relative().w_full().child(QrView::new(v, admin)).child(
-                        div()
-                            .absolute()
-                            .inset_0()
-                            .flex()
-                            .items_center()
-                            .justify_center()
-                            .rounded(px(theme::RADIUS))
-                            .bg(crate::state::hsla(scrim).opacity(alpha))
-                            .opacity(0.)
-                            .group_hover("item-qr", |style| style.opacity(1.))
-                            .child(button),
-                    )
+                    let download = Button::new("item-qr-download")
+                        .outline()
+                        .w_full()
+                        .label(s.items_qr_download)
+                        .on_click(cx.listener(|this, _, window, cx| this.download_qr(window, cx)));
+                    div().flex().flex_col().gap(px(theme::SPACE_2)).w_full().child(QrView::new(v, admin)).child(download)
                 });
                 let picture = div().flex().flex_col().flex_none().gap(px(theme::SPACE_2)).w(px(theme::PHOTO_SIZE)).child(PhotoView::new(self.photo.clone(), s.items_photo_none)).children(qr);
                 let details = card(cx).flex_1().child(heading(cx, s.items_details_card)).child(div().flex().gap(px(theme::SPACE_4)).child(fields).child(picture));

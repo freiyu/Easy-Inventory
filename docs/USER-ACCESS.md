@@ -43,7 +43,7 @@ Router kantor bisa memberi IP berbeda setelah PC host restart. Ini tidak merusak
 
 ## 5. QR code barang untuk Staff
 
-Di halaman detail barang, **Staff juga bisa melihat QR code** barang (untuk dipindai dengan kamera HP), mencetak labelnya, dan mengunduhnya sebagai file PNG (arahkan mouse ke QR code, lalu pilih ikon unduh atau cetak). Ini pengecualian yang disengaja dari aturan "Staff tidak melihat kode barang": **kode barang sebagai teks tetap tidak ditampilkan ke Staff**. Di label Staff hanya ada QR code tanpa tulisan kode, dan nama file PNG memakai nama barang, bukan kodenya. Admin melihat QR code beserta kodenya.
+Di halaman detail barang, **Staff juga bisa melihat QR code** barang (untuk dipindai dengan kamera HP), mencetak labelnya, dan mengunduhnya sebagai file PNG (tombol **Unduh PNG** dan **Cetak label** ada di bawah QR code). Ini pengecualian yang disengaja dari aturan "Staff tidak melihat kode barang": **kode barang sebagai teks tetap tidak ditampilkan ke Staff**. Di label Staff hanya ada QR code tanpa tulisan kode, dan nama file PNG memakai nama barang, bukan kodenya. Admin melihat QR code beserta kodenya.
 
 **Perlu diketahui:** isi QR code adalah teks kode barang itu sendiri. Siapa pun yang memindainya dengan kamera HP akan membaca kodenya, jadi aturan "kode tidak terlihat" hanya berlaku untuk tulisan di layar, tidak untuk isi QR code. Kode barang tidak memberi akses apa pun ke data lain.
 
