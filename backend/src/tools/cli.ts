@@ -5,6 +5,7 @@
 //   restore [file.sql.gz]                        asks for confirmation, takes a "Before restore" backup first
 //   final-backup <folder>                        uninstaller: a last backup copied to a folder
 //   remove                                       uninstaller: services and firewall rule (data stays)
+//   auto-update                                  the hourly SYSTEM task: check, download, verify, wait for idle, install silently
 // Modules that read env.ts are imported only after the config exists (env.ts refuses to load without it).
 import { execFile } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -19,6 +20,8 @@ import {
   addresses, APP_SERVICE, DB_NAME, DB_PORT, DB_SERVICE, DB_USER, formatEnv, layout, newConfig, optionsOf, parsePort, readEnv, secret,
   withOptions, withServerSettings, type Layout, type Options,
 } from "./host";
+import { defaultSource, isIdle, runAutoUpdate } from "../services/update";
+import { VERSION } from "../version";
 
 const exec = promisify(execFile);
 const L = layout(path.resolve(import.meta.dirname, ".."), path.join(process.env.ProgramData ?? "C:\\ProgramData", "EZI"));
@@ -119,7 +122,8 @@ async function lockFolders() {
   const ADMINS = "*S-1-5-32-544", SYSTEM = "*S-1-5-18", LOCAL_SERVICE = "*S-1-5-19";
   await sh("icacls.exe", [L.dataDir, "/inheritance:r", "/grant:r", `${ADMINS}:(OI)(CI)F`, `${SYSTEM}:(OI)(CI)F`, `${LOCAL_SERVICE}:(RX)`]);
   await sh("icacls.exe", [L.config, "/grant:r", `${LOCAL_SERVICE}:(OI)(CI)RX`]);
-  for (const dir of [L.backups, L.logs]) await sh("icacls.exe", [dir, "/grant:r", `${LOCAL_SERVICE}:(OI)(CI)M`]);
+  mkdirSync(L.update, { recursive: true }); // installs made before v1.2 do not have it
+  for (const dir of [L.backups, L.logs, L.update]) await sh("icacls.exe", [dir, "/grant:r", `${LOCAL_SERVICE}:(OI)(CI)M`]);
   await sh("icacls.exe", [L.mysqlData, "/grant:r", `NT SERVICE\\${DB_SERVICE}:(OI)(CI)F`]);
 }
 
@@ -207,7 +211,7 @@ async function install(args: Map<string, string>) {
     for (const [port, host] of [[o.port, "0.0.0.0"], [DB_PORT, "127.0.0.1"]] as const) {
       if (!(await portFree(port, host))) throw new Error(`Port ${port} sudah dipakai program lain. Pilih port lain atau tutup program itu.`);
     }
-    for (const dir of [L.config, L.backups, L.logs]) mkdirSync(dir, { recursive: true });
+    for (const dir of [L.config, L.backups, L.logs, L.update]) mkdirSync(dir, { recursive: true });
     // Nothing existed before this run (checked above), so a failed new install removes what it made: the next run
     // starts clean instead of finding a half-made database or an ezi.env that would switch it to update mode.
     undo.push(async () => { for (const p of [L.mysqlData, L.envFile, L.rootFile]) rmSync(p, { recursive: true, force: true }); });
@@ -340,6 +344,33 @@ function showAddress(o: Options = optionsOf(readConfig())) {
   if (!o.lan) say("(Akses dari perangkat lain dimatikan saat install.)");
 }
 
+/** One round of the hourly update task (never run by hand unless testing). Not run on Windows yet. */
+async function autoUpdate() {
+  startLog("auto-update");
+  const port = optionsOf(readConfig()).port;
+  const result = await runAutoUpdate({
+    dir: L.update,
+    current: VERSION,
+    source: defaultSource(),
+    now: Date.now,
+    isIdle: () => isIdle(async () => {
+      try {
+        return ((await (await fetch(`http://127.0.0.1:${port}/api/update/idle`)).json()) as { data: { active: number; idleSeconds: number } }).data;
+      } catch {
+        return null; // the program does not answer: nobody is using it
+      }
+    }),
+    // The installer takes the "Before update" backup itself (PrepareToInstall) and stops EZI before replacing files.
+    install: (file) => new Promise((resolve) => {
+      const args = ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/NOCANCEL", `/LOG=${path.join(L.logs, "update-setup.log")}`];
+      execFile(file, args, { windowsHide: true, timeout: 30 * 60 * 1000 }, (err) => resolve(err ? (typeof (err as { code?: unknown }).code === "number" ? (err as { code: number }).code : -1) : 0));
+    }),
+    startServices: async () => { await startService(DB_SERVICE); await startService(APP_SERVICE); await smoke(port); },
+    log: say,
+  });
+  say(`auto-update: ${result}`);
+}
+
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   const args = new Map<string, string>();
@@ -354,6 +385,7 @@ async function main() {
     case "final-backup": return finalBackup(rest[0]);
     case "remove": return remove();
     case "address": return showAddress();
+    case "auto-update": return autoUpdate();
     default: throw new Error(`Perintah tidak dikenal: ${cmd ?? "(kosong)"}`);
   }
 }

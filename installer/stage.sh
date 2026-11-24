@@ -24,6 +24,8 @@ fetch() { # name -> cached file path, verified
   echo "$file"
 }
 
+[ "$(v app)" = "$(node -p "require('$ROOT/backend/package.json').version")" ] || { echo "installer/versions.json app and backend/package.json version differ" >&2; exit 1; }
+
 echo "== Build frontend and backend"
 (cd "$ROOT/frontend" && npm run build)
 (cd "$ROOT/backend" && npm run bundle)

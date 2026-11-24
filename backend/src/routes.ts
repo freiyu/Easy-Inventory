@@ -4,7 +4,12 @@ import { changePassword, createFirstAdmin, login, logout, requireAdmin as admin,
 import { notFound, parse, send, sendList } from "./http";
 import { s } from "./schemas";
 import { activityModules, createUser, listActivity, listUsers, oneUser, resetUserPassword, setUserStatus, updateUser } from "./services/admin";
+import { z } from "zod";
+import { prisma } from "./db";
+import { env } from "./env";
+import { VERSION } from "./version";
 import { backupPath, createBackup, listBackups } from "./services/backup";
+import { idleReading, setAutoEnabled, summary, updateDirOf } from "./services/update";
 import { reader } from "./services/core";
 import * as loans from "./services/loans";
 import * as m from "./services/master";
@@ -40,6 +45,14 @@ api.post("/auth/login", async (req, res) => send(res, await login(req, res, pars
 api.post("/auth/logout", async (req, res) => send(res, await logout(req, res)));
 
 // ------------------------------------------------------------ logged in
+// The idle question is for the SYSTEM update task on this PC, which has no login: it answers only a caller on this machine
+// and says only how many requests run and how long it has been quiet (docs/docs-1.2/UPDATE-DESIGN.md).
+const isLoopback = (req: Request) => ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress ?? "");
+api.get("/update/idle", async (req, res) => {
+  if (!isLoopback(req)) throw notFound();
+  send(res, idleReading());
+});
+
 api.use(requireAuth);
 api.get("/auth/me", (req, res) => send(res, me(req)));
 api.post("/auth/change-password", async (req, res) => send(res, await changePassword(me(req), parse(s.changePasswordSchema, req.body))));
@@ -139,6 +152,15 @@ api.post("/backup/database", admin, async (req, res) => send(res, await createBa
 api.get("/backup/database/:id/download", admin, async (req, res) => {
   const file = await backupPath(id(req));
   res.download(file.path, file.fileName);
+});
+
+// Program updates: the Admin status and switch are below; the idle question is above the login wall (see its comment).
+api.get("/admin/update", admin, async (_req, res) => send(res, await summary(updateDirOf(env.dataDir), VERSION)));
+api.put("/admin/update", admin, async (req, res) => {
+  const { autoEnabled } = parse(z.object({ autoEnabled: z.boolean() }), req.body);
+  await setAutoEnabled(updateDirOf(env.dataDir), autoEnabled);
+  await prisma.activityLog.create({ data: { userId: me(req).id, action: autoEnabled ? "Automatic update on" : "Automatic update off", module: "Backup", reference: VERSION } });
+  send(res, await summary(updateDirOf(env.dataDir), VERSION));
 });
 
 // Users and activity log

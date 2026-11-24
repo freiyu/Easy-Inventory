@@ -26,6 +26,8 @@ export function layout(programDir: string, dataDir: string) {
     mysqlData: path.join(dataDir, "mysql-data"),
     backups: path.join(dataDir, "backups"),
     logs: path.join(dataDir, "logs"),
+    /** Downloaded installers and the update status; the web service (LocalService) may write here, it holds nothing secret. */
+    update: path.join(dataDir, "update"),
   };
 }
 export type Layout = ReturnType<typeof layout>;
