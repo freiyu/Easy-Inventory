@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Download, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -68,7 +69,22 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
         <Card size="sm" className="gap-4 lg:col-span-2">
           <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.items.detailsCard}</h2>
           <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-start">
-          <ItemPhoto id={item.id} name={item.name} version={item.photoVersion} emptyLabel={t.items.photoNone} className="sm:order-2" />
+          <div className="flex w-36 shrink-0 flex-col gap-2 sm:order-2">
+            <ItemPhoto id={item.id} name={item.name} version={item.photoVersion} emptyLabel={t.items.photoNone} />
+            {barcodeValue && (
+              // The label to print is this block alone; the two icon buttons show on hover or keyboard focus, always on touch screens.
+              <div className="print-label group relative">
+                <p className="hidden text-(length:--text-body) font-(weight:--weight-strong) print:block">{item.name}</p>
+                {/* Staff scan the bars but never read the code: no printed code line for them. */}
+                <Barcode value={barcodeValue} showText={isAdmin} label={`${t.items.barcodeCard}: ${item.name}`} className="w-full border" />
+                <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-lg bg-black/50 opacity-0 transition-opacity duration-(--duration-hover) group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 print:hidden">
+                  {/* The file name uses the item name, never the code: Staff must not learn the code from it. */}
+                  <Button size="icon" variant="secondary" aria-label={t.items.barcodeDownload} title={t.items.barcodeDownload} onClick={() => downloadBarcodePng(barcodeValue, `barcode-${item.name}.png`, isAdmin ? barcodeValue : undefined)}><Download aria-hidden="true" /></Button>
+                  <Button size="icon" variant="secondary" aria-label={t.items.printLabel} title={t.items.printLabel} onClick={() => window.print()}><Printer aria-hidden="true" /></Button>
+                </div>
+              </div>
+            )}
+          </div>
           <dl className="grid min-w-0 flex-1 gap-x-6 gap-y-4 sm:grid-cols-2">
             <Detail label={t.fields.category}>{item.categoryName}</Detail>
             <Detail label={t.fields.subcategory}>{item.subcategoryName}</Detail>
@@ -106,21 +122,6 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
           )}
         </Card>
 
-        {barcodeValue && (
-          <Card size="sm" className="print-label gap-3">
-            <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong) print:hidden">{t.items.barcodeCard}</h2>
-            <div className="flex flex-col items-start gap-3 px-4">
-              <p className="hidden text-(length:--text-body) font-(weight:--weight-strong) print:block">{item.name}</p>
-              {/* Staff scan the bars but never read the code: no printed code line for them. */}
-              <Barcode value={barcodeValue} showText={isAdmin} label={`${t.items.barcodeCard}: ${item.name}`} className="w-full max-w-72" />
-              <div className="flex flex-wrap gap-2 print:hidden">
-                <Button variant="outline" onClick={() => window.print()}>{t.items.printLabel}</Button>
-                {/* The file name uses the item name, never the code: Staff must not learn the code from it. */}
-                <Button variant="outline" onClick={() => downloadBarcodePng(barcodeValue, `barcode-${item.name}.png`, isAdmin ? barcodeValue : undefined)}>{t.items.barcodeDownload}</Button>
-              </div>
-            </div>
-          </Card>
-        )}
         </div>
       </div>
 

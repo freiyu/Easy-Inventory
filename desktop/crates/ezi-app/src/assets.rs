@@ -8,7 +8,7 @@ use gpui_kit::*;
 
 gpui_kit::assets::icon_assets!(
     ExtraIcons,
-    [LayoutDashboard, Package, Tags, Truck, ArrowLeftRight, HandHelping, ShoppingCart, Wallet, FileChartColumn, DatabaseBackup, Users, ScrollText, UserRound, ChevronsUpDown]
+    [LayoutDashboard, Package, Tags, Truck, ArrowLeftRight, HandHelping, ShoppingCart, Wallet, FileChartColumn, DatabaseBackup, Users, ScrollText, UserRound, ChevronsUpDown, Download]
 );
 
 /// The path the logo is loaded from (a single-colour shape: the colour is set by the text colour of the element that draws it).
@@ -61,4 +61,9 @@ pub fn page_icon(name: &str) -> SharedString {
 /// The up-down chevrons at the right of the user row.
 pub fn chevrons() -> SharedString {
     gpui_kit::assets::IconName::ChevronsUpDown.path()
+}
+
+/// The download arrow shown over the barcode.
+pub fn download() -> SharedString {
+    gpui_kit::assets::IconName::Download.path()
 }

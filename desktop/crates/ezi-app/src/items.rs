@@ -610,7 +610,37 @@ impl ItemsPage {
                             .child(labelled(cx, s.items_updated_at, item.updated_at.as_deref().map(|d| format_date(&d[..10.min(d.len())])).unwrap_or_else(|| "-".into())))
                             .children(item.notes.clone().filter(|n| !n.is_empty()).map(|n| labelled(cx, s.common_notes, n)))
                     });
-                let details = card(cx).flex_1().child(heading(cx, s.items_details_card)).child(div().flex().gap(px(theme::SPACE_4)).child(fields).child(PhotoView::new(self.photo.clone(), s.items_photo_none)));
+                // The barcode sits under the photo, as wide as the photo. A dark layer with the download icon shows while the mouse is over it.
+                let barcode = item.barcode_value().map(|v| {
+                    let (scrim, alpha) = ezi_core::theme::Palette::of(state(cx).mode).overlay();
+                    let button = div()
+                        .id("item-barcode-download")
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .size(px(theme::CONTROL_HEIGHT))
+                        .rounded(px(theme::RADIUS))
+                        .bg(color(cx, Token::Card))
+                        .text_color(color(cx, Token::Foreground))
+                        .cursor_pointer()
+                        .on_click(cx.listener(|this, _, window, cx| this.download_barcode(window, cx)))
+                        .child(svg().path(crate::assets::download()).size(px(theme::NAV_ICON)).flex_none().text_color(color(cx, Token::Foreground)));
+                    div().group("item-barcode").relative().w_full().child(BarcodeView::new(v, admin)).child(
+                        div()
+                            .absolute()
+                            .inset_0()
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .rounded(px(theme::RADIUS))
+                            .bg(crate::state::hsla(scrim).opacity(alpha))
+                            .opacity(0.)
+                            .group_hover("item-barcode", |style| style.opacity(1.))
+                            .child(button),
+                    )
+                });
+                let picture = div().flex().flex_col().flex_none().gap(px(theme::SPACE_2)).w(px(theme::PHOTO_SIZE)).child(PhotoView::new(self.photo.clone(), s.items_photo_none)).children(barcode);
+                let details = card(cx).flex_1().child(heading(cx, s.items_details_card)).child(div().flex().gap(px(theme::SPACE_4)).child(fields).child(picture));
 
                 let stock_card = card(cx).w(px(theme::SIDE_CARD_WIDTH)).child(heading(cx, s.items_stock_card)).child(if admin {
                     div()
@@ -626,7 +656,6 @@ impl ItemsPage {
                     div().text_size(px(theme::TEXT_BODY)).text_color(color(cx, Token::MutedForeground)).child(s.items_staff_stock_note).into_any_element()
                 });
 
-                let barcode = item.barcode_value().map(|v| card(cx).w(px(theme::SIDE_CARD_WIDTH)).child(heading(cx, s.items_barcode_card)).child(BarcodeView::new(v, admin)).child(Button::new("item-barcode-download").outline().label(s.items_barcode_download).on_click(cx.listener(|this, _, window, cx| this.download_barcode(window, cx)))));
 
                 let movements: Option<AnyElement> = admin.then(|| {
                     let rows: Vec<Vec<Cell>> = item
@@ -672,7 +701,7 @@ impl ItemsPage {
                             .when(item.status == "Inactive", |d| d.child(Badge::new(crate::widgets::Tone::Neutral, s.items_inactive_tag))),
                     )
                     .child(div().text_size(px(theme::TEXT_BODY)).text_color(color(cx, Token::MutedForeground)).child(header_desc))
-                    .child(div().flex().items_start().gap(px(theme::SPACE_4)).child(details).child(div().flex().flex_col().gap(px(theme::SPACE_4)).child(stock_card).children(barcode)))
+                    .child(div().flex().items_start().gap(px(theme::SPACE_4)).child(details).child(div().flex().flex_col().gap(px(theme::SPACE_4)).child(stock_card)))
                     .children(movements)
                     .into_any_element()
             }
