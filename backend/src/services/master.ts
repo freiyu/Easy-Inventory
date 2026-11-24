@@ -196,7 +196,7 @@ export async function oneItem(c: Ctx, id: number) {
   if (!item || (!admin && item.status !== "Active")) throw notFound();
   const reserved = (await reservedByItem(c.tx, [id])).get(id) ?? 0;
   const dto = itemDto(admin, item, reserved);
-  // v1.2: Staff may see the barcode (human decision 2026-11-22) but never the code as text, so only the value to encode is added, and only here (not in lists).
+  // v1.2: Staff may see the QR code (human decision 2026-11-22) but never the code as text, so only the value to encode is added (API field name `barcode` is kept: it is the contract), and only here (not in lists).
   if (!admin) return { ...dto, barcode: item.code ?? undefined };
   const ledger = await c.tx.stockTransactionItem.findMany({
     where: { itemId: id }, orderBy: { id: "desc" }, take: 10, include: { transaction: { include: { user: { select: { name: true } } } } },

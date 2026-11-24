@@ -20,6 +20,8 @@ pub struct Motion {
     pub hover: Duration,
     /// Colours moving when the theme changes, and a field error fading in.
     pub theme: Duration,
+    /// The whole window moving between light and dark. Slow on purpose (human, 2026-11-24): a quick flash hurts the eyes.
+    pub theme_switch: Duration,
     /// The content area when the page changes, and a new line-item row.
     pub route: Duration,
     /// A dialog and its backdrop opening.
@@ -60,6 +62,7 @@ impl Motion {
         press: ms(140),
         hover: ms(120),
         theme: ms(150),
+        theme_switch: ms(450),
         route: ms(160),
         overlay_enter: ms(190),
         popover: ms(160),
@@ -88,6 +91,7 @@ impl Motion {
         press: Self::REDUCED_DURATION,
         hover: Self::REDUCED_DURATION,
         theme: Self::REDUCED_DURATION,
+        theme_switch: Self::REDUCED_DURATION,
         route: Self::REDUCED_DURATION,
         overlay_enter: Self::REDUCED_DURATION,
         popover: Self::REDUCED_DURATION,
@@ -213,7 +217,7 @@ mod tests {
     fn the_full_tokens_equal_the_web_apps_css_variables() {
         let m = Motion::FULL;
         for (name, got) in [
-            ("duration-press", m.press), ("duration-hover", m.hover), ("duration-theme", m.theme), ("duration-route", m.route),
+            ("duration-press", m.press), ("duration-hover", m.hover), ("duration-theme", m.theme), ("duration-theme-switch", m.theme_switch), ("duration-route", m.route),
             ("duration-overlay-enter", m.overlay_enter), ("duration-popover", m.popover), ("duration-drawer", m.drawer), ("duration-toast", m.toast),
             ("duration-exit", m.exit), ("duration-stagger", m.stagger), ("duration-pill", m.pill), ("duration-spinner", m.spinner),
             ("duration-skeleton", m.skeleton), ("duration-reduced", Motion::REDUCED_DURATION),
@@ -242,7 +246,7 @@ mod tests {
         assert_eq!(Motion::of(true), &Motion::REDUCED);
         let r = Motion::REDUCED;
         // Every transition shortened to the one reduced duration, the stagger gone (the rules of the css media query).
-        for d in [r.press, r.hover, r.theme, r.route, r.overlay_enter, r.popover, r.drawer, r.toast, r.exit, r.pill, r.card] {
+        for d in [r.press, r.hover, r.theme, r.theme_switch, r.route, r.overlay_enter, r.popover, r.drawer, r.toast, r.exit, r.pill, r.card] {
             assert_eq!(d, Motion::REDUCED_DURATION);
         }
         assert_eq!(r.stagger, Duration::ZERO);
@@ -270,6 +274,8 @@ mod tests {
         let m = Motion::FULL;
         assert!(m.exit <= m.overlay_enter && m.exit <= m.popover && m.exit <= m.drawer && m.exit <= m.toast);
         assert!(m.press.max(m.hover).max(m.theme).max(m.route).max(m.overlay_enter).max(m.popover).max(m.drawer).max(m.toast).max(m.pill).max(m.card) <= ms(250), "nothing above 250 ms (PRD 10.4)");
+        // The one exception, asked for by the human on 2026-11-24 (a hard flash between light and dark hurt the eyes): the theme switch is slow and soft.
+        assert!(m.theme_switch >= ms(400) && m.theme_switch <= ms(600));
     }
 
     #[test]

@@ -109,6 +109,6 @@ pub fn entrance_window(cx: &App) -> Duration {
 }
 
 /// An element that starts opaque and fades away over `duration` (the colour fade of a theme switch). A new id plays it again.
-pub fn fade_out(id: impl Into<ElementId>, duration: Duration, element: Div) -> AnyElement {
-    element.with_animation(id, animation(duration, Curve::EaseOut), |el, t| el.opacity(1.0 - t)).into_any_element()
+pub fn fade_out(id: impl Into<ElementId>, duration: Duration, curve: Curve, element: Div) -> AnyElement {
+    element.with_animation(id, animation(duration, curve), |el, t| el.opacity(1.0 - t)).into_any_element()
 }

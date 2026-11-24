@@ -152,7 +152,7 @@ impl QrView {
 }
 
 impl RenderOnce for QrView {
-    fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
+    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let Some(matrix) = ezi_core::qr::matrix(&self.value) else {
             return div().into_any_element();
         };
@@ -185,6 +185,8 @@ impl RenderOnce for QrView {
             .w_full()
             .p(px(theme::SPACE_2))
             .rounded(px(theme::RADIUS))
+            .border_1()
+            .border_color(color(cx, Token::Border))
             .bg(paper)
             .text_color(ink)
             .text_size(px(theme::TEXT_TABLE))

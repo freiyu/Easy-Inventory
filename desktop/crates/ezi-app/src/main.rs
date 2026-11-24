@@ -55,7 +55,7 @@ fn window_size() -> Size<Pixels> {
 }
 
 /// The single root view: shows whichever screen the app starts on. When the theme changes it covers the window with the old
-/// background colour and fades that away over 150 ms, so colours move instead of snapping (PRD_REDESIGN.md 10.4).
+/// background colour and fades that away over 450 ms, eased in and out, so colours move softly instead of snapping (human request 2026-11-24; PRD_REDESIGN.md 10.4 caps other motion at 250 ms).
 struct Launcher {
     child: AnyView,
     mode: Option<ezi_core::theme::Mode>,
@@ -75,8 +75,8 @@ impl Render for Launcher {
         self.mode = Some(mode);
         let m = motion::tokens(cx);
         // The cover is only there while the fade runs; drawn finished (clear) when reduced motion is on.
-        let cover = self.changed_at.filter(|at| at.elapsed() < m.theme * 3).zip(self.old_background).map(|(_, bg)| {
-            motion::fade_out(("theme-fade", self.changes), m.theme, div().absolute().top_0().left_0().size_full().bg(bg))
+        let cover = self.changed_at.filter(|at| at.elapsed() < m.theme_switch * 2).zip(self.old_background).map(|(_, bg)| {
+            motion::fade_out(("theme-fade", self.changes), m.theme_switch, ezi_core::motion::Curve::EaseInOut, div().absolute().top_0().left_0().size_full().bg(bg))
         });
         div().relative().size_full().child(self.child.clone()).children(cover)
     }

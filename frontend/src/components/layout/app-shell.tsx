@@ -163,12 +163,12 @@ function Sidebar({ user }: { user: User }) {
 function UserMenu({ user }: { user: User }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  // Colours move over 150 ms for a moment around the switch (class is defined in globals.css).
+  // Colours move over 450 ms (--duration-theme-switch) around the switch; the class stays a little longer and is defined in globals.css.
   const switchTheme = (value: string) => {
     const root = document.documentElement;
     root.classList.add("ezi-theme-fade");
     setTheme(value);
-    setTimeout(() => root.classList.remove("ezi-theme-fade"), 250);
+    setTimeout(() => root.classList.remove("ezi-theme-fade"), 550);
   };
   return (
     <div className="shrink-0 border-t border-sidebar-border p-3">

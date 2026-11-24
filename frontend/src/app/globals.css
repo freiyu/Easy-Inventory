@@ -169,6 +169,8 @@
   --duration-press: 140ms;
   --duration-hover: 120ms;
   --duration-theme: 150ms;
+  /* Light and dark swapping places: slow and eased on purpose (human, 2026-11-24), a quick flash hurts the eyes. */
+  --duration-theme-switch: 450ms;
   --duration-route: 160ms;
   --duration-overlay-enter: 190ms;
   --duration-popover: 160ms;
@@ -203,6 +205,7 @@
     --duration-press: var(--duration-reduced);
     --duration-hover: var(--duration-reduced);
     --duration-theme: var(--duration-reduced);
+    --duration-theme-switch: var(--duration-reduced);
     --duration-route: var(--duration-reduced);
     --duration-overlay-enter: var(--duration-reduced);
     --duration-popover: var(--duration-reduced);
@@ -393,15 +396,15 @@
   }
 }
 
-/* Theme switch: the app shell adds this class for a moment so colours move over 150 ms instead of snapping.
+/* Theme switch: the app shell adds this class for a moment so colours move over 450 ms (eased in and out) instead of snapping.
    Not on at other times, so hover states stay instant. */
 .ezi-theme-fade,
 .ezi-theme-fade *,
 .ezi-theme-fade *::before,
 .ezi-theme-fade *::after {
   transition-property: color, background-color, border-color, fill, stroke !important;
-  transition-duration: var(--duration-theme) !important;
-  transition-timing-function: var(--ease-out) !important;
+  transition-duration: var(--duration-theme-switch) !important;
+  transition-timing-function: var(--ease-in-out) !important;
 }
 
 /* Toast (Sonner): enters from the bottom in 200 ms, leaves in 120 ms. The doubled attribute selector

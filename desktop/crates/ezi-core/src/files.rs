@@ -40,6 +40,26 @@ pub fn save_to_downloads(file_name: &str, bytes: &[u8]) -> Result<PathBuf, Strin
     Ok(path)
 }
 
+/// Arguments for PowerShell to send a file to the printer through the Windows "Print" verb (the same as the right-click menu).
+/// A single quote in the path is doubled so it stays inside the quoted string.
+pub fn print_command_args(path: &Path) -> Vec<String> {
+    let quoted = path.to_string_lossy().replace('\'', "''");
+    ["-NoProfile", "-NonInteractive", "-Command"].iter().map(|a| a.to_string()).chain([format!("Start-Process -FilePath '{quoted}' -Verb Print")]).collect()
+}
+
+/// Starts printing `path` with the Windows "Print" verb, without a console window. Windows only: elsewhere it returns the error.
+/// shortcut: the print dialog is Windows' own (Print Pictures), no printer choice or label size here; upgrade if labels need a fixed size.
+pub fn print_image(path: &Path) -> Result<(), String> {
+    let mut command = std::process::Command::new("powershell");
+    command.args(print_command_args(path));
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    command.spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
 /// `qr-<item name>.png`, with the characters Windows does not allow in a file name replaced by `-`.
 /// The name of the item and not its code, so the file name never shows a code to Staff (same as the web app).
 pub fn qr_png_name(item_name: &str) -> String {
@@ -51,6 +71,13 @@ pub fn qr_png_name(item_name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn printing_runs_the_print_verb_on_the_file_and_keeps_an_apostrophe_in_the_path_inside_the_quotes() {
+        let args = print_command_args(Path::new(r"C:\Users\O'Neil\AppData\Local\Temp\qr-A.png"));
+        assert_eq!(&args[..3], ["-NoProfile", "-NonInteractive", "-Command"]);
+        assert_eq!(args[3], r"Start-Process -FilePath 'C:\Users\O''Neil\AppData\Local\Temp\qr-A.png' -Verb Print");
+    }
 
     #[test]
     fn the_qr_file_is_named_after_the_item() {

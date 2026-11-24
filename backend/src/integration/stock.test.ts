@@ -75,7 +75,7 @@ describe("master data", () => {
     expect(rows[0]).not.toHaveProperty("barcode");
   });
 
-  it("gives Staff a barcode value on the item detail only, still without the code field", async () => {
+  it("gives Staff a QR value (field `barcode`) on the item detail only, still without the code field", async () => {
     const detail = await staff.ok("GET", `/items/${data.itemIds[0]}`);
     const code = (await admin.ok("GET", `/items/${data.itemIds[0]}`)).code;
     expect(code).toBeTruthy();

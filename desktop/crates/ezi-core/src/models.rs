@@ -173,8 +173,8 @@ pub struct Item {
 }
 
 impl Item {
-    /// What to encode in the QR code: the code for Admin, the barcode value for Staff.
-    pub fn barcode_value(&self) -> Option<&str> {
+    /// What to encode in the QR code: the code for Admin, the `barcode` field (the QR value) for Staff.
+    pub fn qr_value(&self) -> Option<&str> {
         self.code.as_deref().or(self.barcode.as_deref())
     }
 }
@@ -807,16 +807,16 @@ mod tests {
     }
 
     #[test]
-    fn reads_an_admin_item_with_movements_and_a_staff_item_with_a_barcode() {
+    fn reads_an_admin_item_with_movements_and_a_staff_item_with_a_qr_value() {
         let admin = r#"{"id":1,"name":"Proyektor","categoryId":1,"categoryName":"Kantor","subcategoryId":1,"subcategoryName":"Elektronik","unit":"pcs","status":"Active","stockStatus":"Safe","availableForLoan":2,"photoVersion":"ab.png",
           "code":"KTR-ELK-0001","currentStock":3,"minimumStock":1,"lastPurchasePrice":1000,"supplierId":1,"supplierName":"Toko","location":"Aula","notes":"","createdAt":"2026-11-22T00:00:00.000Z","updatedAt":"2026-11-22T00:00:00.000Z","reserved":1,
           "movements":[{"id":4,"number":"ADJ-1","type":"ADJUSTMENT","date":"2026-11-22","quantityChange":3,"balanceAfter":3,"userName":"Admin"}]}"#;
         let i: Item = serde_json::from_str(admin).unwrap();
-        assert_eq!((i.barcode_value(), i.current_stock, i.reserved, i.photo_version.as_deref()), (Some("KTR-ELK-0001"), Some(3), Some(1), Some("ab.png")));
+        assert_eq!((i.qr_value(), i.current_stock, i.reserved, i.photo_version.as_deref()), (Some("KTR-ELK-0001"), Some(3), Some(1), Some("ab.png")));
         assert_eq!((i.movements[0].kind.as_str(), i.movements[0].quantity_change), ("ADJUSTMENT", 3));
         let staff = r#"{"id":1,"name":"Proyektor","categoryId":1,"categoryName":"Kantor","subcategoryId":1,"subcategoryName":"Elektronik","unit":"pcs","status":"Active","stockStatus":"Safe","availableForLoan":2,"photoVersion":null,"barcode":"KTR-ELK-0001"}"#;
         let s: Item = serde_json::from_str(staff).unwrap();
-        assert_eq!((s.code.as_deref(), s.barcode_value(), s.current_stock), (None, Some("KTR-ELK-0001"), None));
+        assert_eq!((s.code.as_deref(), s.qr_value(), s.current_stock), (None, Some("KTR-ELK-0001"), None));
         assert!(s.movements.is_empty() && s.photo_version.is_none());
     }
 }

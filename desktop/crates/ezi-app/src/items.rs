@@ -337,21 +337,31 @@ impl ItemsPage {
         .detach();
     }
 
-    /// The QR code as a PNG file in the Downloads folder (never over an existing file). The file is named after the item,
+    /// The QR code as a PNG file in `dir` (never over an existing file), at `scale` pixels per module. The file is named after the item,
     /// not the code, so Staff, who may not read the code, do not learn it from the name.
+    fn write_qr(&self, dir: std::path::PathBuf, scale: u32) -> Result<std::path::PathBuf, String> {
+        let Load::Ready(item) = &self.detail else { return Err("no item".into()) };
+        let value = item.qr_value().ok_or_else(|| "no QR value".to_string())?;
+        let bytes = ezi_core::qr::png(value, scale).ok_or_else(|| "this value cannot be drawn as a QR code".to_string())?;
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let path = files::unique_path(&dir, &files::qr_png_name(&item.name));
+        std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+        Ok(path)
+    }
+
+    /// The QR code as a PNG file in the Downloads folder.
     fn download_qr(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Load::Ready(item) = &self.detail else { return };
-        let Some(value) = item.barcode_value() else { return };
         let lang = state(cx).lang;
-        let saved = ezi_core::qr::png(value, 8).ok_or_else(|| "this value cannot be drawn as a QR code".to_string()).and_then(|bytes| {
-            let dir = files::downloads_dir().ok_or_else(|| "no Downloads folder".to_string())?;
-            std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-            let path = files::unique_path(&dir, &files::qr_png_name(&item.name));
-            std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
-            Ok(path)
-        });
-        match saved {
+        match files::downloads_dir().ok_or_else(|| "no Downloads folder".to_string()).and_then(|dir| self.write_qr(dir, 8)) {
             Ok(path) => toast(window, cx, ToastKind::Success, i18n::export_saved(lang, &path.to_string_lossy())),
+            Err(text) => toast(window, cx, ToastKind::Error, text),
+        }
+    }
+
+    /// Prints the QR code: a PNG in the temporary folder is sent to the Windows print dialog. On failure the error shows in a toast.
+    fn print_qr(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        match self.write_qr(std::env::temp_dir(), 12).and_then(|path| files::print_image(&path)) {
+            Ok(()) => {}
             Err(text) => toast(window, cx, ToastKind::Error, text),
         }
     }
@@ -610,14 +620,19 @@ impl ItemsPage {
                             .child(labelled(cx, s.items_updated_at, item.updated_at.as_deref().map(|d| format_date(&d[..10.min(d.len())])).unwrap_or_else(|| "-".into())))
                             .children(item.notes.clone().filter(|n| !n.is_empty()).map(|n| labelled(cx, s.common_notes, n)))
                     });
-                // The QR code sits under the photo, as wide as the photo, with a text button below it (nothing is drawn over the symbol).
-                let qr = item.barcode_value().map(|v| {
+                // The QR code sits under the photo, as wide as the photo, with text buttons below it (nothing is drawn over the symbol).
+                let qr = item.qr_value().map(|v| {
                     let download = Button::new("item-qr-download")
                         .outline()
                         .w_full()
                         .label(s.items_qr_download)
                         .on_click(cx.listener(|this, _, window, cx| this.download_qr(window, cx)));
-                    div().flex().flex_col().gap(px(theme::SPACE_2)).w_full().child(QrView::new(v, admin)).child(download)
+                    let print = Button::new("item-qr-print")
+                        .outline()
+                        .w_full()
+                        .label(s.items_print_label)
+                        .on_click(cx.listener(|this, _, window, cx| this.print_qr(window, cx)));
+                    div().flex().flex_col().gap(px(theme::SPACE_2)).w_full().child(QrView::new(v, admin)).child(download).child(print)
                 });
                 let picture = div().flex().flex_col().flex_none().gap(px(theme::SPACE_2)).w(px(theme::PHOTO_SIZE)).child(PhotoView::new(self.photo.clone(), s.items_photo_none)).children(qr);
                 let details = card(cx).flex_1().child(heading(cx, s.items_details_card)).child(div().flex().gap(px(theme::SPACE_4)).child(fields).child(picture));

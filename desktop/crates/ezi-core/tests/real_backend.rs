@@ -66,7 +66,7 @@ fn the_client_works_against_the_real_backend() {
     assert_eq!(admin.items(&[("search", "lampu")]).unwrap().data.len(), 1);
     assert_eq!(admin.name_options("/categories").unwrap().iter().map(|c| c.name.as_str()).collect::<Vec<_>>(), ["Kantor"]);
     let detail = admin.item(id).unwrap();
-    assert_eq!((detail.barcode_value(), detail.current_stock, detail.movements.len()), (Some("KTR-ELK-0001"), Some(3), 1)); // one opening-stock adjustment
+    assert_eq!((detail.qr_value(), detail.current_stock, detail.movements.len()), (Some("KTR-ELK-0001"), Some(3), 1)); // one opening-stock adjustment
 
     // A list with paging meta and a query, a photo upload and download, and an Excel download.
     let list = admin.get::<Vec<Value>>("/items", &[("page", "1"), ("pageSize", "8"), ("search", "proyektor")]).unwrap();
@@ -94,9 +94,9 @@ fn the_client_works_against_the_real_backend() {
     assert_eq!(forbidden.code(), Some(&ErrorCode::Forbidden));
     let seen: Value = staff.get::<Value>(&format!("/items/{id}"), &[]).unwrap().data;
     assert!(seen.get("code").is_none() && seen.get("currentStock").is_none(), "Staff must not get code or stock: {seen}");
-    assert_eq!(seen["barcode"], "KTR-ELK-0001", "Staff get only the barcode value");
+    assert_eq!(seen["barcode"], "KTR-ELK-0001", "Staff get only the QR value, in the `barcode` field");
     let staff_item = staff.item(id).unwrap();
-    assert_eq!((staff_item.code.as_deref(), staff_item.barcode_value(), staff_item.current_stock, staff_item.movements.len()), (None, Some("KTR-ELK-0001"), None, 0));
+    assert_eq!((staff_item.code.as_deref(), staff_item.qr_value(), staff_item.current_stock, staff_item.movements.len()), (None, Some("KTR-ELK-0001"), None, 0));
     assert!(staff_item.photo_version.is_some(), "Staff see the photo version");
     assert_eq!(staff.item_photo(id).unwrap().len(), 12, "Staff can download the photo");
     let no_write = staff.put_file::<Value>(&format!("/items/{id}/photo"), png, "image/png").unwrap_err();
