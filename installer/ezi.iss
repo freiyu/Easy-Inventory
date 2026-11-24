@@ -52,8 +52,10 @@ Name: "{group}\Backup sekarang"; Filename: "{app}\tools\control.cmd"; Parameters
 Name: "{group}\Restore dari backup"; Filename: "{app}\tools\control.cmd"; Parameters: "restore"; IconFilename: "{app}\ezi.ico"
 Name: "{group}\Lihat log"; Filename: "{commonappdata}\EZI\logs"
 Name: "{group}\Tampilkan alamat akses"; Filename: "{app}\tools\control.cmd"; Parameters: "address"; IconFilename: "{app}\ezi.ico"
+Name: "{group}\EZI Desktop"; Filename: "{app}\desktop\ezi.exe"; IconFilename: "{app}\ezi.ico"
 Name: "{group}\Uninstall EZI"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\EZI Inventory"; Filename: "{app}\EZI.url"; IconFilename: "{app}\ezi.ico"
+Name: "{autodesktop}\EZI Desktop"; Filename: "{app}\desktop\ezi.exe"; IconFilename: "{app}\ezi.ico"
 
 [Run]
 Filename: "{app}\EZI.url"; Description: "Buka EZI sekarang"; Flags: postinstall shellexec nowait skipifsilent; Check: SetupSucceeded
@@ -175,6 +177,8 @@ var
   Code: Integer;
 begin
   Result := '';
+  { A running ezi.exe cannot be replaced, and the silent update runs while people work. Not running is normal, so the result is ignored. }
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM ezi.exe /F', '', SW_HIDE, ewWaitUntilTerminated, Code);
   if IsUpdate and FileExists(ExpandConstant('{app}\app\cli.mjs')) then
   begin
     PreUpgraded := RunTool('pre-upgrade', Code);

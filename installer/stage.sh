@@ -26,6 +26,15 @@ fetch() { # name -> cached file path, verified
 
 [ "$(v app)" = "$(node -p "require('$ROOT/backend/package.json').version")" ] || { echo "installer/versions.json app and backend/package.json version differ" >&2; exit 1; }
 
+# The desktop GUI (ezi.exe) is built on Windows (PowerShell), not here. Check it first so a missing or stale exe fails fast.
+GUI_EXE="${EZI_GUI_EXE:-/mnt/c/dev/easy-inventory/desktop/target/release/ezi.exe}"
+if [ ! -s "$GUI_EXE" ]; then
+  echo "Missing $GUI_EXE. Build it in PowerShell first: cargo build --release -p ezi-app (set EZI_GUI_EXE for another path)" >&2
+  exit 1
+fi
+# ezi-core embeds "ezi-version:<version>" (VERSION_MARKER), so an exe built from an older commit is refused.
+grep -aqF "ezi-version:$(v app)" "$GUI_EXE" || { echo "$GUI_EXE is not version $(v app). Pull the repo on Windows and rebuild it." >&2; exit 1; }
+
 echo "== Build frontend and backend"
 (cd "$ROOT/frontend" && npm run build)
 (cd "$ROOT/backend" && npm run bundle)
@@ -67,6 +76,7 @@ find "$STAGE/mariadb/bin" -type f ! -name "*.dll" ! -name mariadbd.exe ! -name m
 find "$STAGE/mariadb" -name "*.pdb" -delete
 rm -rf "$STAGE/mariadb/include" "$STAGE/mariadb/mysql-test" "$STAGE/mariadb/sql-bench" "$STAGE/mariadb/data"
 cp "$WINSW" "$STAGE/service/ezi-service.exe"
+mkdir -p "$STAGE/desktop" && cp "$GUI_EXE" "$STAGE/desktop/ezi.exe"
 sed 's/\r*$/\r/' "$ROOT/installer/control.cmd" > "$STAGE/tools/control.cmd" # cmd.exe needs CRLF
 
 echo "== Installer script and notices"
