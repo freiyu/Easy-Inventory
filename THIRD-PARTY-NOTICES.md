@@ -42,3 +42,9 @@ Source: https://github.com/winsw/winsw
 The EZI program files contain code from npm packages, bundled into `app\main.mjs` and `app\cli.mjs` or shipped in
 `app\node_modules` and `app\public`. Their licenses are in each package's folder in `app\node_modules` or listed by
 name and version below. The installer build appends this list automatically (installer/stage.sh).
+
+## Rust crates (EZI Desktop)
+
+`desktop\ezi.exe`, the EZI Desktop application, is built from Rust crates that are linked into the program (the GPUI user
+interface library and its components, the QR code encoder `qrcode`, the `png` writer, `ureq` and others). Their names,
+versions and licenses, read from each crate's manifest, are listed below by the installer build (installer/stage.sh).

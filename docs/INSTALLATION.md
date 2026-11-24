@@ -58,9 +58,15 @@ Jika muncul pesan **"Instalasi EZI GAGAL"**, tidak ada data lama yang disentuh. 
 |---|---|
 | `C:\Program Files\EZI` | Program (diganti saat update) |
 | `C:\ProgramData\EZI` | Data: `config`, `mysql-data` (database), `backups`, `logs`. **Tidak pernah** diganti oleh update |
-| Start Menu > EZI Inventory | Buka EZI, Start EZI, Stop EZI, Backup sekarang, Restore dari backup, Lihat log, Tampilkan alamat akses, Uninstall EZI |
-| Desktop | Shortcut **EZI Inventory** |
+| Start Menu > EZI Inventory | Buka EZI, EZI Desktop, Start EZI, Stop EZI, Backup sekarang, Restore dari backup, Lihat log, Tampilkan alamat akses, Uninstall EZI |
+| Desktop | Shortcut **EZI Inventory** dan **EZI Desktop** |
 | Windows Services | `EZI` (aplikasi) dan `EZI-DB` (database pribadi, hanya `127.0.0.1:3307`) |
+
+## 6a. Aplikasi EZI Desktop (versi 1.2.1)
+
+Sejak 1.2.1 installer ikut memasang **EZI Desktop** (`{app}\desktop\ezi.exe`) di PC host, dengan shortcut **EZI Desktop** di Start Menu dan Desktop. Saat pertama dibuka, isi alamat server di layar masuk (alamat yang ditampilkan "Tampilkan alamat akses"). Akses lewat web dari PC dan HP lain di jaringan kantor **tidak berubah**: mereka tetap membuka alamat EZI di browser. EZI Desktop hanya terpasang di PC host; PC lain tidak mendapat salinannya.
+
+Catatan: `ezi.exe` belum ditandatangani, jadi Windows SmartScreen atau antivirus bisa memberi peringatan saat pertama dibuka. Saat update, installer menutup `ezi.exe` yang sedang terbuka (buka lagi sesudahnya). Uninstall juga perlu `ezi.exe` tertutup.
 
 ## 7. Update ke versi baru
 
@@ -77,7 +83,7 @@ Data dan password tidak berubah. Halaman pilihan di installer menampilkan piliha
 **Dari versi 1.0 atau 1.1 ke 1.2 (satu kali, manual).** Versi sebelum 1.2 tidak bisa memperbarui dirinya sendiri, jadi pasang 1.2 sekali dengan installer seperti di atas (klik ganda dan tekan Berikutnya; pilihan lama sudah terisi). Setelah itu EZI memperbarui diri otomatis (lihat [ADMIN-GUIDE.md](ADMIN-GUIDE.md) bagian 4). Tanpa jendela, dari PowerShell **Administrator**:
 
 ```powershell
-.\EZI-Setup-1.2.0.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /LOG="C:\Windows\Temp\ezi-upgrade.log"
+.\EZI-Setup-1.2.1.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /LOG="C:\Windows\Temp\ezi-upgrade.log"
 ```
 
 Hasilnya sama dengan cara biasa: backup "Before update", port, akses jaringan, dan data lama dipakai lagi. Periksa dengan membuka EZI dan melihat versi di **Cadangan data**.

@@ -1590,7 +1590,7 @@ dependencies = [
 
 [[package]]
 name = "ezi-app"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "ezi-core",
  "gpui-kit",
@@ -1598,7 +1598,7 @@ dependencies = [
 
 [[package]]
 name = "ezi-core"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "png 0.17.16",
  "qrcode",

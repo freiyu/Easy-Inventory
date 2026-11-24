@@ -91,6 +91,11 @@ cp "$ISL" "$OUT/Indonesian.isl"
   done | sort -u | while read -r pkg; do
     node -e 'const p=require(process.argv[1]+"/package.json");console.log(`- ${p.name} ${p.version}: ${typeof p.license==="string"?p.license:"see package"}`)' "$pkg"
   done | sort -u
+  # The desktop GUI statically links its Rust crates: list them (name, version, license from each crate's manifest).
+  echo
+  echo "## Rust crates in EZI Desktop (desktop/ezi.exe)"
+  echo
+  (cd "$ROOT/desktop" && cargo tree -p ezi-app -e normal --target x86_64-pc-windows-msvc --prefix none --format '{p}: {l}') | sed 's/ (\*)$//; /^ezi-/d; s/^/- /' | sort -u
 } > "$OUT/THIRD-PARTY-NOTICES.txt"
 cp "$OUT/THIRD-PARTY-NOTICES.txt" "$STAGE/THIRD-PARTY-NOTICES.txt"
 echo "#define AppVersion \"$(v app)\"" > "$OUT/version.iss"

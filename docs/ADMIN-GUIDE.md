@@ -66,9 +66,11 @@ Jika restore gagal, jendela menyebut nama file backup "Before restore". Jalankan
 3. **Restore dari backup**, lalu pilih file backup **"Before update"** terbaru.
 4. Periksa data. Jangan pernah memulihkan database tanpa backup "Before update".
 
-### Barcode dan foto barang
+### QR code dan foto barang
 
-Halaman detail barang menampilkan **foto** barang (satu foto, JPEG, PNG, atau WebP, diunggah dari form barang) dan **barcode Code 128** dari kode barang di bawah foto. Arahkan mouse ke barcode: ikon **unduh** menyimpan file PNG bernama `barcode-<nama barang>.png`, ikon **cetak** mencetak label. Foto ikut dalam backup dan kembali saat restore. Aplikasi desktop memiliki fungsi yang sama (unduhan masuk folder Unduhan). Staff melihat barcode tetapi tidak melihat kode sebagai teks (lihat [USER-ACCESS.md](USER-ACCESS.md) bagian 5).
+Halaman detail barang menampilkan **foto** barang (satu foto, JPEG, PNG, atau WebP, diunggah dari form barang) dan **QR code** dari kode barang di bawah foto (isinya teks kode barang; pindai dengan kamera HP). Arahkan mouse ke QR code: ikon **unduh** menyimpan file PNG bernama `qr-<nama barang>.png`, ikon **cetak** mencetak label. Foto ikut dalam backup dan kembali saat restore. Aplikasi desktop memiliki fungsi yang sama (unduhan masuk folder Unduhan). Staff melihat QR code tetapi tidak melihat kode sebagai teks (lihat [USER-ACCESS.md](USER-ACCESS.md) bagian 5).
+
+**Label lama (versi 1.2.0 ke bawah).** Sebelum 1.2.1 label memakai barcode Code 128. Label itu tidak terbaca kamera HP dan tidak ada lagi di aplikasi, jadi **cetak ulang** label barang dari halaman detail barang.
 
 ## 5. Admin kedua
 
