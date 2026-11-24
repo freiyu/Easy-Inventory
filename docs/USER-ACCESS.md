@@ -41,7 +41,11 @@ Router kantor bisa memberi IP berbeda setelah PC host restart. Ini tidak merusak
 - Solusi cepat: lihat alamat baru (langkah 1) dan beri tahu pengguna.
 - Solusi tetap: minta pengelola jaringan memberi **IP tetap** (DHCP reservation) untuk PC host. Lihat [ADMIN-GUIDE.md](ADMIN-GUIDE.md).
 
-## 5. Keamanan
+## 5. Barcode barang untuk Staff
+
+Di halaman detail barang, **Staff juga bisa melihat barcode** barang (untuk dipindai), mencetak labelnya, dan mengunduhnya sebagai file PNG (arahkan mouse ke barcode, lalu pilih ikon unduh atau cetak). Ini pengecualian yang disengaja dari aturan "Staff tidak melihat kode barang": **kode barang sebagai teks tetap tidak ditampilkan ke Staff**. Di label Staff hanya ada garis barcode tanpa tulisan kode, dan nama file PNG memakai nama barang, bukan kodenya. Admin melihat barcode beserta kodenya.
+
+## 6. Keamanan
 
 - EZI hanya bisa dibuka dari jaringan kantor, bukan dari internet.
 - Database EZI tidak pernah bisa diakses dari perangkat lain; hanya aplikasi EZI di PC host yang memakainya.

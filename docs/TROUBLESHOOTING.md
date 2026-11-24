@@ -27,6 +27,14 @@ Jika install gagal, installer membatalkan perubahannya sendiri (service, firewal
 | Backup gagal dibuat | Lihat `ezi-error.log`. Pastikan disk tidak penuh |
 | Halaman tampil aneh setelah update | Tekan Ctrl+F5 di browser untuk memuat ulang |
 
+### Update otomatis
+
+| Gejala | Cara mengatasi |
+|---|---|
+| Spanduk "Pembaruan gagal dipasang" | EZI sudah dinyalakan lagi. Tekan **Coba lagi**. Bila gagal lagi, kirim `C:\ProgramData\EZI\logs\update-setup.log` dan log `auto-update-*.log` ke pengelola IT; data aman di backup "Before update" |
+| Versi baru tidak kunjung terpasang | Ada yang memakai EZI terus-menerus (pemasangan menunggu 10 menit sepi), saklar otomatis dimatikan di Cadangan data, atau PC tidak punya internet. Tombol **Perbarui sekarang** memasang tanpa menunggu |
+| Tidak ada kartu atau spanduk update | Hanya Admin yang melihatnya. PC versi 1.0 atau 1.1 perlu dipasang 1.2 sekali secara manual |
+
 ## 3. Saat restore
 
 | Gejala | Cara mengatasi |

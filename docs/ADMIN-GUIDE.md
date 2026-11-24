@@ -46,7 +46,18 @@ Jika restore gagal, jendela menyebut nama file backup "Before restore". Jalankan
 
 ## 4. Update dan rollback
 
-**Update:** jalankan installer versi baru di PC host. Installer membuat backup "Before update" sebelum mengganti apa pun (lihat [INSTALLATION.md](INSTALLATION.md) bagian 7).
+**Update otomatis (mulai versi 1.2):** EZI memeriksa rilis baru sendiri, memasangnya saat tidak ada yang memakai EZI, tanpa bertanya. Cara kerjanya:
+
+- Sebuah tugas Windows (`EZI Updater`, berjalan sebagai SYSTEM) memeriksa repo rilis publik lewat HTTPS paling sering tiap 12 jam. Tidak ada data kantor yang dikirim: hanya dua permintaan GET ke GitHub.
+- Berkas installer diunduh dan **SHA-256**-nya harus cocok dengan `SHA256SUMS.txt` dari rilis yang sama. Yang tidak cocok dihapus dan tidak pernah dijalankan.
+- Pemasangan menunggu EZI **sepi**: tidak ada permintaan yang berjalan dan 10 menit tanpa aktivitas. Installer membuat backup "Before update" lebih dulu; data tidak diubah.
+- EZI restart sekitar satu menit saat pemasangan. Tanpa internet, tidak ada yang terjadi dan tidak ada pesan yang mengganggu.
+- Di **Cadangan data** ada kartu **Pembaruan program**: versi terpasang dan terbaru, kapan terakhir diperiksa, kotak **Pasang pembaruan otomatis** (matikan bila ingin memasang sendiri; Anda tetap diberi tahu ada versi baru), dan tombol **Perbarui sekarang**. Spanduk yang sama muncul di atas halaman untuk Admin (Staff tidak melihatnya). Perbarui sekarang berjalan paling lama 5 menit kemudian, tidak menunggu EZI sepi, dan EZI restart: semua pengguna terputus sebentar.
+- Bila pemasangan gagal, EZI dinyalakan lagi otomatis dan spanduk menampilkan pesan dengan tombol **Coba lagi**. Pemasangan otomatis yang gagal diulang setelah 24 jam, paling banyak 3 kali per versi. Tidak ada pemulihan otomatis file program; data aman di backup "Before update" (lihat Rollback di bawah).
+
+**PC yang masih versi 1.0 atau 1.1 tidak punya pemeriksa update.** Pasang versi 1.2 **satu kali secara manual** (lihat [INSTALLATION.md](INSTALLATION.md) bagian 7). Data, port, dan opsi lama dipertahankan; setelah itu PC tersebut ikut update otomatis.
+
+**Update manual:** jalankan installer versi baru di PC host. Installer membuat backup "Before update" sebelum mengganti apa pun (lihat [INSTALLATION.md](INSTALLATION.md) bagian 7).
 
 **Rollback** (jika versi baru bermasalah). Perubahan database tidak bisa dibatalkan begitu saja, jadi rollback memakai backup sebelum update:
 
@@ -54,6 +65,10 @@ Jika restore gagal, jendela menyebut nama file backup "Before restore". Jalankan
 2. Jalankan installer **versi sebelumnya**.
 3. **Restore dari backup**, lalu pilih file backup **"Before update"** terbaru.
 4. Periksa data. Jangan pernah memulihkan database tanpa backup "Before update".
+
+### Barcode dan foto barang
+
+Halaman detail barang menampilkan **foto** barang (satu foto, JPEG, PNG, atau WebP, diunggah dari form barang) dan **barcode Code 128** dari kode barang di bawah foto. Arahkan mouse ke barcode: ikon **unduh** menyimpan file PNG bernama `barcode-<nama barang>.png`, ikon **cetak** mencetak label. Foto ikut dalam backup dan kembali saat restore. Aplikasi desktop memiliki fungsi yang sama (unduhan masuk folder Unduhan). Staff melihat barcode tetapi tidak melihat kode sebagai teks (lihat [USER-ACCESS.md](USER-ACCESS.md) bagian 5).
 
 ## 5. Admin kedua
 

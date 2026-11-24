@@ -72,7 +72,15 @@ Unduh installer versi baru, lalu jalankan seperti biasa. Installer mengenali EZI
 4. memperbarui struktur database,
 5. menyalakan EZI dan menjalankan smoke test.
 
-Data dan password tidak berubah. Halaman Pengaturan menampilkan pilihan Anda yang sekarang; ubah hanya jika memang perlu. Jika update bermasalah, ikuti bagian "Rollback" di [ADMIN-GUIDE.md](ADMIN-GUIDE.md).
+Data dan password tidak berubah. Halaman pilihan di installer menampilkan pilihan Anda yang sekarang; ubah hanya jika memang perlu. Jika update bermasalah, ikuti bagian "Rollback" di [ADMIN-GUIDE.md](ADMIN-GUIDE.md).
+
+**Dari versi 1.0 atau 1.1 ke 1.2 (satu kali, manual).** Versi sebelum 1.2 tidak bisa memperbarui dirinya sendiri, jadi pasang 1.2 sekali dengan installer seperti di atas (klik ganda dan tekan Berikutnya; pilihan lama sudah terisi). Setelah itu EZI memperbarui diri otomatis (lihat [ADMIN-GUIDE.md](ADMIN-GUIDE.md) bagian 4). Tanpa jendela, dari PowerShell **Administrator**:
+
+```powershell
+.\EZI-Setup-1.2.0.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /LOG="C:\Windows\Temp\ezi-upgrade.log"
+```
+
+Hasilnya sama dengan cara biasa: backup "Before update", port, akses jaringan, dan data lama dipakai lagi. Periksa dengan membuka EZI dan melihat versi di **Cadangan data**.
 
 ## 8. Uninstall
 
