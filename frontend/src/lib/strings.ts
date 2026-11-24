@@ -424,9 +424,9 @@ export const en = {
     photoRemove: "Remove photo",
     photoSelected: "New photo selected. It is saved with the item.",
     photoSaveFailed: "The item was saved, but its photo could not be saved. Choose the photo again.",
-    barcodeCard: "Barcode",
+    qrCard: "QR code",
     printLabel: "Print label",
-    barcodeDownload: "Download PNG",
+    qrDownload: "Download PNG",
     staffStockNote: "Availability only. Ask an Admin for stock numbers.",
     // form
     addTitle: "Add item",

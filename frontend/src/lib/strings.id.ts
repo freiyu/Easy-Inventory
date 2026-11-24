@@ -425,9 +425,9 @@ export const id: Strings = {
     photoRemove: "Hapus foto",
     photoSelected: "Foto baru dipilih. Foto disimpan bersama barang.",
     photoSaveFailed: "Barang tersimpan, tetapi fotonya gagal disimpan. Pilih fotonya lagi.",
-    barcodeCard: "Barcode",
+    qrCard: "Kode QR",
     printLabel: "Cetak label",
-    barcodeDownload: "Unduh PNG",
+    qrDownload: "Unduh PNG",
     staffStockNote: "Hanya ketersediaan. Tanyakan ke Admin untuk jumlah stok.",
     // form
     addTitle: "Tambah barang",

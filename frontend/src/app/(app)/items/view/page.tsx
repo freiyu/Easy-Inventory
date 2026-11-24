@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Barcode } from "@/components/shared/barcode";
+import { QrCode } from "@/components/shared/qr-code";
 import { ItemPhoto } from "@/components/items/item-photo";
 import { ConfirmDialog } from "@/components/shared/dialogs";
 import { PageHeader } from "@/components/shared/page-header";
@@ -17,7 +17,7 @@ import { LoadGate, RecordNotFound, TableSkeleton } from "@/components/shared/sta
 import { useQueryId } from "@/hooks/use-query-id";
 import { api, useCurrentUser, useGet } from "@/lib/api";
 import type { ItemDto } from "@/lib/api/master";
-import { downloadBarcodePng } from "@/lib/barcode-png";
+import { downloadQrPng } from "@/lib/qr-png";
 import { formatDate, formatDateTime, formatIDR, formatNumber } from "@/lib/format";
 import { t } from "@/lib/strings";
 import type { Role } from "@/lib/types";
@@ -75,11 +75,11 @@ function ItemDetail({ item, role }: { item: ItemDto; role: Role }) {
               // The label to print is this block alone; the two icon buttons show on hover or keyboard focus, always on touch screens.
               <div className="print-label group relative">
                 <p className="hidden text-(length:--text-body) font-(weight:--weight-strong) print:block">{item.name}</p>
-                {/* Staff scan the bars but never read the code: no printed code line for them. */}
-                <Barcode value={barcodeValue} showText={isAdmin} label={`${t.items.barcodeCard}: ${item.name}`} className="w-full border" />
+                {/* Staff scan the QR but never read the code: no printed code line for them. */}
+                <QrCode value={barcodeValue} showText={isAdmin} label={`${t.items.qrCard}: ${item.name}`} className="w-full border" />
                 <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-lg bg-black/50 opacity-0 transition-opacity duration-(--duration-hover) group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 print:hidden">
                   {/* The file name uses the item name, never the code: Staff must not learn the code from it. */}
-                  <Button size="icon" variant="secondary" aria-label={t.items.barcodeDownload} title={t.items.barcodeDownload} onClick={() => downloadBarcodePng(barcodeValue, `barcode-${item.name}.png`, isAdmin ? barcodeValue : undefined)}><Download aria-hidden="true" /></Button>
+                  <Button size="icon" variant="secondary" aria-label={t.items.qrDownload} title={t.items.qrDownload} onClick={() => downloadQrPng(barcodeValue, `qr-${item.name}.png`, isAdmin ? barcodeValue : undefined)}><Download aria-hidden="true" /></Button>
                   <Button size="icon" variant="secondary" aria-label={t.items.printLabel} title={t.items.printLabel} onClick={() => window.print()}><Printer aria-hidden="true" /></Button>
                 </div>
               </div>

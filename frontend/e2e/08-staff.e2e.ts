@@ -30,12 +30,12 @@ test("item pages show availability only: no code, price, supplier or stock numbe
   const main = page.getByRole("main");
   await expect(main.getByText("Availability only. Ask an Admin for stock numbers.")).toBeVisible();
   await expect(main).not.toContainText(/GDU-|Rp|Toko Contoh|Current stock|Last purchase price/);
-  // v1.2: Staff may see the barcode (decision 2026-11-22) but its code is not printed as text.
-  await expect(main.getByRole("img", { name: /Barcode: Proyektor Uji/ })).toBeVisible();
+  // v1.2: Staff may see the QR code (decision 2026-11-22) but its code is not printed as text.
+  await expect(main.getByRole("img", { name: /QR code: Proyektor Uji/ })).toBeVisible();
   await expect(main.getByRole("figure")).not.toContainText(/[A-Z]{3}-[A-Z]{3}-\d{4}/);
   // The PNG download works for Staff too, and its file name does not reveal the code.
   const [download] = await Promise.all([page.waitForEvent("download"), main.getByRole("button", { name: "Download PNG" }).click()]);
-  expect(download.suggestedFilename()).toBe("barcode-Proyektor Uji.png");
+  expect(download.suggestedFilename()).toBe("qr-Proyektor Uji.png");
 });
 
 test("Staff see an item's photo but have no control to change it", async ({ page }) => {
