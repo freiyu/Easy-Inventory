@@ -11,8 +11,8 @@ const status = (patch: Record<string, unknown>) => {
   writeFileSync(path.join(DIR, "status.json"), JSON.stringify({ checkedAt: "2026-12-01T00:00:00.000Z", releaseId: 1, ...patch }));
 };
 const NEWER = { latest: "9.9.9" };
-const REQUEST = path.join(DIR, "install-now");
-const OFF = path.join(DIR, "auto-update.off");
+const REQUEST = path.join(DIR, "flags", "install-now");
+const OFF = path.join(DIR, "flags", "auto-update.off");
 
 test.beforeEach(() => rmSync(DIR, { recursive: true, force: true }));
 test.afterAll(() => rmSync(DIR, { recursive: true, force: true }));
