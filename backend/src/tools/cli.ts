@@ -5,7 +5,8 @@
 //   restore [file.sql.gz]                        asks for confirmation, takes a "Before restore" backup first
 //   final-backup <folder>                        uninstaller: a last backup copied to a folder
 //   remove                                       uninstaller: services and firewall rule (data stays)
-//   auto-update                                  the hourly SYSTEM task: check, download, verify, wait for idle, install silently
+//   auto-update                                  one round of the 5-minute SYSTEM task: check, download, verify, wait for idle, start the silent installer
+//   register-updater | unregister-updater        the two scheduled tasks of the automatic update (install and update call them)
 // Modules that read env.ts are imported only after the config exists (env.ts refuses to load without it).
 import { execFile } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -17,10 +18,10 @@ import { createInterface } from "node:readline/promises";
 import { promisify } from "node:util";
 import mariadb from "mariadb";
 import {
-  addresses, APP_SERVICE, DB_NAME, DB_PORT, DB_SERVICE, DB_USER, formatEnv, layout, newConfig, optionsOf, parsePort, readEnv, secret,
-  withOptions, withServerSettings, type Layout, type Options,
+  addresses, APP_SERVICE, DB_NAME, DB_PORT, DB_SERVICE, DB_USER, formatEnv, layout, newConfig, optionsOf, parsePort, readEnv, runInstallerCmd,
+  runUpdaterCmd, secret, taskXml, UPDATER_INSTALL_TASK, UPDATER_TASK, updatePaths, utf16, withOptions, withServerSettings, type Layout, type Options,
 } from "./host";
-import { defaultSource, isIdle, runAutoUpdate } from "../services/update";
+import { flagsDirOf, isIdle, runAutoUpdate, sourceFromConfig } from "../services/update";
 import { VERSION } from "../version";
 
 const exec = promisify(execFile);
@@ -122,8 +123,13 @@ async function lockFolders() {
   const ADMINS = "*S-1-5-32-544", SYSTEM = "*S-1-5-18", LOCAL_SERVICE = "*S-1-5-19";
   await sh("icacls.exe", [L.dataDir, "/inheritance:r", "/grant:r", `${ADMINS}:(OI)(CI)F`, `${SYSTEM}:(OI)(CI)F`, `${LOCAL_SERVICE}:(RX)`]);
   await sh("icacls.exe", [L.config, "/grant:r", `${LOCAL_SERVICE}:(OI)(CI)RX`]);
-  mkdirSync(L.update, { recursive: true }); // installs made before v1.2 do not have it
-  for (const dir of [L.backups, L.logs, L.update]) await sh("icacls.exe", [dir, "/grant:r", `${LOCAL_SERVICE}:(OI)(CI)M`]);
+  for (const dir of [L.backups, L.logs]) await sh("icacls.exe", [dir, "/grant:r", `${LOCAL_SERVICE}:(OI)(CI)M`]);
+  // Update folder: the web service may READ the status and write only the two switches in `flags`. Nothing else in it is writable by
+  // LocalService, because SYSTEM runs the scripts and the installer found there (writable would mean a way to take over the PC).
+  const flags = flagsDirOf(L.update);
+  mkdirSync(flags, { recursive: true }); // installs made before v1.2 do not have these
+  await sh("icacls.exe", [L.update, "/inheritance:r", "/grant:r", `${ADMINS}:(OI)(CI)F`, `${SYSTEM}:(OI)(CI)F`, `${LOCAL_SERVICE}:(OI)(CI)RX`]);
+  await sh("icacls.exe", [flags, "/grant:r", `${LOCAL_SERVICE}:(OI)(CI)M`]);
   await sh("icacls.exe", [L.mysqlData, "/grant:r", `NT SERVICE\\${DB_SERVICE}:(OI)(CI)F`]);
 }
 
@@ -243,6 +249,7 @@ async function install(args: Map<string, string>) {
     await setFirewall(o);
     await startService(APP_SERVICE);
     await smoke(o.port);
+    await registerUpdater();
     showAddress(o);
   } catch (err) {
     say(`GAGAL: ${(err as Error).message}`);
@@ -269,6 +276,7 @@ async function update(o: Options, backupFirst: boolean) {
   await setFirewall(o);
   await startService(APP_SERVICE);
   await smoke(o.port);
+  await registerUpdater();
   showAddress(o);
 }
 
@@ -335,7 +343,8 @@ async function remove() {
   await stopService(DB_SERVICE);
   if ((await serviceState(DB_SERVICE)) !== "missing") await sh("sc.exe", ["delete", DB_SERVICE]);
   await sh("netsh.exe", ["advfirewall", "firewall", "delete", "rule", `name=${FIREWALL}`]).catch(() => undefined);
-  say("Service dan aturan firewall EZI sudah dihapus.");
+  await unregisterUpdater();
+  say("Service, aturan firewall dan tugas pembaruan otomatis EZI sudah dihapus.");
 }
 
 function showAddress(o: Options = optionsOf(readConfig())) {
@@ -344,14 +353,48 @@ function showAddress(o: Options = optionsOf(readConfig())) {
   if (!o.lan) say("(Akses dari perangkat lain dimatikan saat install.)");
 }
 
-/** One round of the hourly update task (never run by hand unless testing). Not run on Windows yet. */
+const U = updatePaths(L.update);
+
+async function taskExists(name: string) {
+  return sh("schtasks.exe", ["/Query", "/TN", name]).then(() => true, () => false);
+}
+
+/**
+ * Makes the two scheduled tasks (once; an existing one is left alone, because an update runs while the on-demand task is the
+ * one doing it) and rewrites the script the 5-minute task runs, which holds this installation's program folder.
+ * A failure never fails the install: EZI works without automatic update, and the log says what happened.
+ */
+async function registerUpdater() {
+  try {
+    mkdirSync(L.update, { recursive: true });
+    writeFileSync(U.runUpdater, runUpdaterCmd(path.join(L.programDir, "node", "node.exe"), path.join(L.app, "cli.mjs"), L.update));
+    const tasks = [
+      { name: UPDATER_TASK, file: U.updaterXml, cmd: U.runUpdater, opts: { description: "EZI automatic update: checks for a new version every 5 minutes (installs it only when nobody is using EZI).", repeatMinutes: 5, timeLimit: "PT1H" } },
+      { name: UPDATER_INSTALL_TASK, file: U.installerXml, cmd: U.runInstaller, opts: { description: "EZI automatic update: runs the silent installer when the updater starts it.", timeLimit: "PT1H" } },
+    ];
+    for (const t of tasks) {
+      if (await taskExists(t.name)) continue;
+      writeFileSync(t.file, utf16(taskXml(t.cmd, t.opts)));
+      await sh("schtasks.exe", ["/Create", "/TN", t.name, "/XML", t.file, "/F"]);
+      say(`Tugas terjadwal dibuat: ${t.name}`);
+    }
+  } catch (err) {
+    say(`Pembaruan otomatis TIDAK aktif: ${(err as Error).message.split("\n")[0]}`);
+  }
+}
+
+async function unregisterUpdater() {
+  for (const name of [UPDATER_TASK, UPDATER_INSTALL_TASK]) await sh("schtasks.exe", ["/Delete", "/TN", name, "/F"]).catch(() => undefined);
+}
+
+/** One round of the update task (every 5 minutes). Not run on Windows yet. (never run by hand unless testing). Not run on Windows yet. */
 async function autoUpdate() {
   startLog("auto-update");
   const port = optionsOf(readConfig()).port;
   const result = await runAutoUpdate({
     dir: L.update,
     current: VERSION,
-    source: defaultSource(),
+    source: sourceFromConfig(readConfig()),
     now: Date.now,
     isIdle: () => isIdle(async () => {
       try {
@@ -360,11 +403,28 @@ async function autoUpdate() {
         return null; // the program does not answer: nobody is using it
       }
     }),
-    // The installer takes the "Before update" backup itself (PrepareToInstall) and stops EZI before replacing files.
-    install: (file) => new Promise((resolve) => {
-      const args = ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/NOCANCEL", `/LOG=${path.join(L.logs, "update-setup.log")}`];
-      execFile(file, args, { windowsHide: true, timeout: 30 * 60 * 1000 }, (err) => resolve(err ? (typeof (err as { code?: unknown }).code === "number" ? (err as { code: number }).code : -1) : 0));
-    }),
+    // The installer takes the "Before update" backup itself (PrepareToInstall) and stops EZI before replacing files. It runs in
+    // its own scheduled task, not as a child of this process: this process runs from the program folder the installer replaces.
+    startInstaller: async (file) => {
+      writeFileSync(U.installing, new Date().toISOString());
+      rmSync(U.exit, { force: true });
+      try {
+        writeFileSync(U.runInstaller, runInstallerCmd(file, path.join(L.logs, "update-setup.log"), L.update));
+        await sh("schtasks.exe", ["/Run", "/TN", UPDATER_INSTALL_TASK]);
+      } catch (err) {
+        rmSync(U.installing, { force: true });
+        throw err;
+      }
+    },
+    installerExit: async () => {
+      try {
+        const n = Number.parseInt(readFileSync(U.exit, "utf8").trim(), 10);
+        return Number.isNaN(n) ? -3 : n;
+      } catch {
+        return null; // not finished (or never started)
+      }
+    },
+    clearInstaller: async () => { rmSync(U.installing, { force: true }); rmSync(U.exit, { force: true }); },
     startServices: async () => { await startService(DB_SERVICE); await startService(APP_SERVICE); await smoke(port); },
     log: say,
   });
@@ -386,6 +446,8 @@ async function main() {
     case "remove": return remove();
     case "address": return showAddress();
     case "auto-update": return autoUpdate();
+    case "register-updater": startLog("register-updater"); return registerUpdater();
+    case "unregister-updater": startLog("unregister-updater"); return unregisterUpdater();
     default: throw new Error(`Perintah tidak dikenal: ${cmd ?? "(kosong)"}`);
   }
 }

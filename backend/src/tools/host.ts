@@ -95,3 +95,89 @@ export function withServerSettings(ini: string, settings: string[]) {
   lines.splice(at + 1, 0, ...settings);
   return lines.join("\r\n");
 }
+
+// ---- Automatic update on Windows (docs/docs-1.2/UPDATE-DESIGN.md) ---------------------------------------------------------
+// Two Task Scheduler tasks run as SYSTEM: "EZI Updater" every 5 minutes (one round of `cli.mjs auto-update`) and
+// "EZI Updater Install" on demand (runs the silent installer in its own process, so the updater is not holding the program files
+// the installer replaces). Both only run .cmd files in the update folder, which only SYSTEM and Administrators can write.
+
+export const UPDATER_TASK = "EZI Updater";
+export const UPDATER_INSTALL_TASK = "EZI Updater Install";
+/** The installer takes at most this long to finish before the updater calls it failed (minutes). Keep in step with update.ts. */
+const BLOCK_MINUTES = 50;
+
+export function updatePaths(updateDir: string) {
+  return {
+    runUpdater: path.join(updateDir, "run-updater.cmd"),
+    runInstaller: path.join(updateDir, "run-installer.cmd"),
+    installing: path.join(updateDir, "installing.flag"),
+    exit: path.join(updateDir, "installer-exit.txt"),
+    updaterXml: path.join(updateDir, "task-updater.xml"),
+    installerXml: path.join(updateDir, "task-installer.xml"),
+  };
+}
+
+/** A value that is safe inside a .cmd file and inside the PowerShell one-liner: no quotes, percent signs or shell characters. */
+export function cmdSafe(value: string): string {
+  if (/["'%&|<>^`$\r\n]/.test(value)) throw new Error(`Path not allowed in an update script: ${value}`);
+  return value;
+}
+
+const crlf = (lines: string[]) => lines.join("\r\n") + "\r\n";
+
+/** One round of the update task. It does nothing while an installer started by the last round is still working (or for 50 minutes at most). */
+export function runUpdaterCmd(nodeExe: string, cliMjs: string, updateDir: string): string {
+  const p = updatePaths(cmdSafe(updateDir));
+  return crlf([
+    "@echo off",
+    "rem Written by the EZI installer. One round of the automatic-update task, run as SYSTEM.",
+    "rem While the installer works it replaces the program files this round would start, so the round waits.",
+    `powershell.exe -NoProfile -NonInteractive -Command "$f='${p.installing}'; if ((Test-Path $f) -and -not (Test-Path '${p.exit}') -and ((Get-Date) - (Get-Item $f).LastWriteTime).TotalMinutes -lt ${BLOCK_MINUTES}) { exit 1 }"`,
+    "if errorlevel 1 exit /b 0",
+    `"${cmdSafe(nodeExe)}" "${cmdSafe(cliMjs)}" auto-update`,
+  ]);
+}
+
+/** Runs the downloaded installer silently, waits for it, and writes its exit code for the next round. */
+export function runInstallerCmd(installer: string, logFile: string, updateDir: string): string {
+  const p = updatePaths(cmdSafe(updateDir));
+  return crlf([
+    "@echo off",
+    "rem Written by the EZI updater for one installation, run as SYSTEM by the on-demand task.",
+    `del "${p.exit}" 2>nul`,
+    `start "" /wait "${cmdSafe(installer)}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /NOCANCEL "/LOG=${cmdSafe(logFile)}"`,
+    `>"${p.exit}" echo %errorlevel%`,
+  ]);
+}
+
+const xml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/**
+ * Task Scheduler definition (schtasks /Create /XML). `repeatMinutes` makes it run again and again from the moment it is made;
+ * without it the task has no trigger and only runs when started (`schtasks /Run`).
+ */
+export function taskXml(cmdFile: string, opts: { description: string; repeatMinutes?: number; timeLimit: string }): string {
+  const trigger = opts.repeatMinutes
+    ? `<Triggers><TimeTrigger><Repetition><Interval>PT${opts.repeatMinutes}M</Interval></Repetition><StartBoundary>2026-01-01T00:00:00</StartBoundary><Enabled>true</Enabled></TimeTrigger></Triggers>`
+    : "<Triggers />";
+  return `<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo><Description>${xml(opts.description)}</Description></RegistrationInfo>
+  ${trigger}
+  <Principals><Principal id="Author"><UserId>S-1-5-18</UserId><RunLevel>HighestAvailable</RunLevel></Principal></Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Hidden>true</Hidden>
+    <ExecutionTimeLimit>${opts.timeLimit}</ExecutionTimeLimit>
+  </Settings>
+  <Actions Context="Author"><Exec><Command>cmd.exe</Command><Arguments>/c ""${xml(cmdSafe(cmdFile))}""</Arguments></Exec></Actions>
+</Task>
+`;
+}
+
+/** schtasks wants UTF-16 with a byte order mark for /XML files. */
+export const utf16 = (text: string) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]);

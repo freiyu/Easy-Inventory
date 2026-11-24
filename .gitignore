@@ -58,8 +58,12 @@ proof-of-work/
 # Thesis work: private, never commit or push (human request)
 /thesis-work/
 
-# Installer downloads (Node, MariaDB, WinSW; installer/stage.sh)
+# Installer downloads (Node, MariaDB, WinSW; installer/stage.sh) and everything the build makes: no installer binary is ever committed
 /installer/cache/
+/installer/stage/
+/installer/output/
+/installer/version.iss
+/installer/*.exe
 
 # Internal project files (agent rules, PRD, logs, map, design notes, checklists): kept on this PC only, never pushed (P140-P141)
 /.claude/

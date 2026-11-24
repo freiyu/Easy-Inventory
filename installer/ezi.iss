@@ -1,6 +1,9 @@
 ; EZI Inventory installer (PRD 11). Built by build.ps1 from the folder installer/stage.sh prepared.
 ; Program files go to {app} and are replaced by updates; data lives in {commonappdata}\EZI and is never replaced (PRD 11.3).
 ; The real work (database, services, firewall, smoke test) is done by app\cli.mjs, so its log explains every failure.
+; Silent update (v1.2): EZI-Setup-<version>.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /NOCANCEL /LOG="<file>"
+; An existing install is detected from {commonappdata}\EZI\config\ezi.env: port, LAN and autostart are read from it (the wizard page is
+; skipped in silent mode but still starts from those values), "Before update" backup first, data never touched.
 #include "version.iss"
 
 [Setup]

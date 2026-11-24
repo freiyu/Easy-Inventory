@@ -7,7 +7,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   autoEnabled, downloadVerified, fetchLatest, idleReading, isIdle, isNewer, parseSums, parseVersion, pickRelease, readStatus, runAutoUpdate,
-  installRequested, requestInstall, setAutoEnabled, summary, UpdateError, type RunDeps, type Source,
+  installRequested, requestInstall, setAutoEnabled, sourceFromConfig, summary, UpdateError, type RunDeps, type Source,
 } from "./update";
 
 const REPO = "someone/Easy-Releases";
@@ -51,18 +51,34 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-function deps(src: Source, over: Partial<RunDeps> = {}) {
+/** A pretend installer: it only records that it was started and reports the exit code the test chose. */
+interface Fake { exit: number | null; code: number; throwOnStart: boolean }
+const fakes = new WeakMap<RunDeps, Fake>();
+
+function deps(src: Source, over: Partial<RunDeps> = {}, code = 0, throwOnStart = false) {
   const installed: string[] = [];
   const started: number[] = [];
   const logs: string[] = [];
+  const fake: Fake = { exit: null, code, throwOnStart };
   const d: RunDeps = {
     dir, current: "1.2.0", source: src, now: () => now, isIdle: async () => true,
-    install: async (f) => { installed.push(f); return 0; },
+    startInstaller: async (f) => { if (fake.throwOnStart) throw new Error("cannot start"); installed.push(f); fake.exit = null; },
+    installerExit: async () => fake.exit,
+    clearInstaller: async () => { fake.exit = null; },
     startServices: async () => { started.push(1); },
     log: (l) => logs.push(l),
     ...over,
   };
-  return { d, installed, started, logs };
+  fakes.set(d, fake);
+  return { d, installed, started, logs, fake };
+}
+
+/** One round, and when it started the installer, the next round after the installer finished with the chosen exit code. */
+async function finish(d: RunDeps) {
+  const first = await runAutoUpdate(d);
+  if (first !== "started") return first;
+  fakes.get(d)!.exit = fakes.get(d)!.code;
+  return runAutoUpdate(d);
 }
 const good = (version = "1.2.1") => source({ latest: release(version), sums: `${sha(BYTES)}  EZI-Setup-${version}.exe\n` });
 const HOUR = 3600_000;
@@ -131,7 +147,7 @@ describe("check and download", () => {
   it("newer: downloads, verifies and installs when idle", async () => {
     const { src } = good();
     const { d, installed } = deps(src);
-    expect(await runAutoUpdate(d)).toBe("installed");
+    expect(await finish(d)).toBe("installed");
     expect(installed).toEqual([path.join(dir, "EZI-Setup-1.2.1.exe")]);
     const s = await readStatus(dir);
     expect(s).toMatchObject({ latest: "1.2.1", lastError: null, downloadedSha256: null });
@@ -234,7 +250,7 @@ describe("the checksum rule", () => {
     expect(existsSync(path.join(dir, "EZI-Setup-1.2.1.exe"))).toBe(false);
     // the next round downloads and verifies a fresh copy
     now += HOUR;
-    expect(await runAutoUpdate(again.d)).toBe("installed");
+    expect(await finish(again.d)).toBe("installed");
   });
 });
 
@@ -273,7 +289,7 @@ describe("the off switch", () => {
     await setAutoEnabled(dir, true);
     expect(await autoEnabled(dir)).toBe(true);
     now += HOUR;
-    expect(await runAutoUpdate(d)).toBe("installed");
+    expect(await finish(d)).toBe("installed");
   });
 });
 
@@ -296,7 +312,7 @@ describe("the idle rule", () => {
     expect(existsSync(path.join(dir, "EZI-Setup-1.2.1.exe"))).toBe(true);
     idle = true;
     now += HOUR;
-    expect(await runAutoUpdate(d)).toBe("installed");
+    expect(await finish(d)).toBe("installed");
   });
   it("counts running requests", () => {
     const r = idleReading();
@@ -308,26 +324,28 @@ describe("the idle rule", () => {
 describe("when the installer fails", () => {
   it("starts EZI again, waits 24 hours, tries again, and gives up after 3 tries until a new release", async () => {
     const { src } = good();
-    const { d, started } = deps(src, { install: async () => 5 });
-    expect(await runAutoUpdate(d)).toBe("failed");
+    const { d, started } = deps(src, {}, 5);
+    expect(await finish(d)).toBe("failed");
     expect(started).toHaveLength(1);
     expect((await readStatus(dir)).installError).toMatch(/code 5/);
     now += 2 * HOUR;
     expect(await runAutoUpdate(d)).toBe("waiting-retry");
     now += 24 * HOUR;
-    expect(await runAutoUpdate(d)).toBe("failed");
+    expect(await finish(d)).toBe("failed");
     now += 25 * HOUR;
-    expect(await runAutoUpdate(d)).toBe("failed");
+    expect(await finish(d)).toBe("failed");
     now += 25 * HOUR;
     expect(await runAutoUpdate(d)).toBe("gave-up");
     expect(started).toHaveLength(3);
   });
 
-  it("a thrown installer counts as a failure and the services are started again", async () => {
+  it("an installer that cannot even start is a failure; EZI was never stopped, so nothing is restarted", async () => {
     const { src } = good();
-    const { d, started } = deps(src, { install: async () => { throw new Error("cannot start"); } });
-    expect(await runAutoUpdate(d)).toBe("failed");
-    expect(started).toHaveLength(1);
+    const { d, started } = deps(src, {}, 0, true);
+    expect(await finish(d)).toBe("failed");
+    expect(started).toHaveLength(0);
+    expect((await readStatus(dir)).installError).toMatch(/could not be started/);
+    expect((await readStatus(dir)).phase).toBeNull();
   });
 
   it("a verified installer is still installed when the next check has no internet", async () => {
@@ -337,7 +355,7 @@ describe("when the installer fails", () => {
     expect(await runAutoUpdate(d)).toBe("waiting-idle");
     const offline = deps({ repo: REPO, fetch: (async () => { throw new Error("offline"); }) as typeof fetch }, { isIdle: async () => (idle = true) });
     now += 13 * HOUR;
-    expect(await runAutoUpdate(offline.d)).toBe("installed");
+    expect(await finish(offline.d)).toBe("installed");
     expect(offline.installed).toHaveLength(1);
     expect(installed).toEqual([]);
   });
@@ -358,17 +376,16 @@ describe("Update now", () => {
     const { src } = good();
     await setAutoEnabled(dir, false);
     await requestInstall(dir);
-    let phaseWhileInstalling: string | null = null;
-    const { d, installed } = deps(src, {
-      isIdle: async () => false,
-      install: async (f) => { phaseWhileInstalling = (await readStatus(dir)).phase; installed2.push(f); return 0; },
-    });
-    const installed2: string[] = [];
-    expect(await runAutoUpdate(d)).toBe("installed");
-    expect(installed2).toHaveLength(1);
-    expect(phaseWhileInstalling).toBe("installing");
+    let phaseWhileStarting: string | null = null;
+    const t = deps(src, { isIdle: async () => false });
+    const original = t.d.startInstaller;
+    t.d.startInstaller = async (f) => { phaseWhileStarting = (await readStatus(dir)).phase; await original(f); };
+    expect(await runAutoUpdate(t.d)).toBe("started");
+    expect(t.installed).toHaveLength(1);
+    expect(phaseWhileStarting).toBe("installing");
     expect(await installRequested(dir)).toBe(false);
-    expect(installed).toEqual([]);
+    t.fake.exit = 0;
+    expect(await runAutoUpdate(t.d)).toBe("installed");
     expect((await readStatus(dir)).phase).toBeNull();
   });
 
@@ -385,14 +402,14 @@ describe("Update now", () => {
 
   it("tries again on request after the automatic retries ran out, and reports a failure to the Admin", async () => {
     const { src } = good();
-    const { d } = deps(src, { install: async () => 7 });
+    const { d } = deps(src, {}, 7);
     for (let i = 0; i < 3; i++) {
-      await runAutoUpdate(d);
+      await finish(d);
       now += 25 * HOUR;
     }
     expect(await runAutoUpdate(d)).toBe("gave-up");
     await requestInstall(dir);
-    expect(await runAutoUpdate(d)).toBe("failed");
+    expect(await finish(d)).toBe("failed");
     expect((await readStatus(dir)).installError).toMatch(/code 7/);
     expect(await installRequested(dir)).toBe(false);
   });
@@ -420,3 +437,41 @@ async function writeStatus_(d: string) {
   const { writeStatus } = await import("./update");
   await writeStatus(d, { latest: "1.2.1", releaseId: 41, checkedAt: new Date(now).toISOString() });
 }
+
+describe("the installer runs on its own", () => {
+  it("the updater does not wait: it starts the installer and later rounds only watch for the result", async () => {
+    const { src } = good();
+    const t = deps(src);
+    expect(await runAutoUpdate(t.d)).toBe("started");
+    expect(await readStatus(dir)).toMatchObject({ phase: "installing", attempts: 1 });
+    now += 5 * 60_000;
+    expect(await runAutoUpdate(t.d)).toBe("installing");
+    expect(await runAutoUpdate(t.d)).toBe("installing");
+    expect(t.installed).toHaveLength(1); // not started twice
+    t.fake.exit = 0;
+    expect(await runAutoUpdate(t.d)).toBe("installed");
+    const s = await readStatus(dir);
+    expect(s).toMatchObject({ phase: null, attempts: 0, installError: null });
+    expect(existsSync(path.join(dir, "EZI-Setup-1.2.1.exe"))).toBe(false);
+  });
+
+  it("an installer that never reports back for 45 minutes is a failure, and EZI is started again", async () => {
+    const { src } = good();
+    const t = deps(src);
+    await runAutoUpdate(t.d);
+    now += 44 * 60_000;
+    expect(await runAutoUpdate(t.d)).toBe("installing");
+    now += 2 * 60_000;
+    expect(await runAutoUpdate(t.d)).toBe("failed");
+    expect(t.started).toHaveLength(1);
+    expect((await readStatus(dir)).installError).toMatch(/code -2/);
+  });
+});
+
+describe("the releases repo", () => {
+  it("is the public one unless the config names another owner/name", () => {
+    expect(sourceFromConfig({}).repo).toBe("freiyu/Easy-Inventory-Releases");
+    expect(sourceFromConfig({ EZI_UPDATE_REPO: "someone/test-releases" }).repo).toBe("someone/test-releases");
+    for (const bad of ["no-slash", "a/b/c", "a b/c", "https://evil.example/x", "../x/y", ""]) expect(sourceFromConfig({ EZI_UPDATE_REPO: bad }).repo, bad).toBe("freiyu/Easy-Inventory-Releases");
+  });
+});

@@ -34,7 +34,7 @@ describe("update status and the off switch", () => {
       expect([read.status, read.body.error.code], who).toEqual([who === "staff" ? 403 : 401, code]);
       expect([write.status, write.body.error.code], who).toEqual([who === "staff" ? 403 : 401, code]);
     }
-    expect(existsSync(path.join(dir, "auto-update.off"))).toBe(false);
+    expect(existsSync(path.join(dir, "flags", "auto-update.off"))).toBe(false);
   });
 
   it("Admin sees the installed version and that automatic update is on", async () => {
@@ -53,11 +53,11 @@ describe("update status and the off switch", () => {
   it("Admin switches it off and on; the switch is a file the updater reads, and each change is logged", async () => {
     const off = await admin.ok("PUT", "/admin/update", { autoEnabled: false });
     expect(off.autoEnabled).toBe(false);
-    expect(existsSync(path.join(dir, "auto-update.off"))).toBe(true);
+    expect(existsSync(path.join(dir, "flags", "auto-update.off"))).toBe(true);
     expect((await admin.ok("GET", "/admin/update")).autoEnabled).toBe(false);
     const on = await admin.ok("PUT", "/admin/update", { autoEnabled: true });
     expect(on.autoEnabled).toBe(true);
-    expect(existsSync(path.join(dir, "auto-update.off"))).toBe(false);
+    expect(existsSync(path.join(dir, "flags", "auto-update.off"))).toBe(false);
     const actions = (await prisma.activityLog.findMany({ where: { action: { startsWith: "Automatic update" } }, orderBy: { id: "asc" } })).map((a) => a.action);
     expect(actions).toEqual(["Automatic update off", "Automatic update on"]);
   });
@@ -77,7 +77,7 @@ describe("Update now", () => {
     expect((await new Client(server.base).post("/admin/update/install")).status).toBe(401);
     const none = await admin.post("/admin/update/install");
     expect([none.status, none.body.error.code]).toEqual([422, "BUSINESS_RULE_VIOLATION"]);
-    expect(existsSync(path.join(dir, "install-now"))).toBe(false);
+    expect(existsSync(path.join(dir, "flags", "install-now"))).toBe(false);
   });
 
   it("leaves one request for the updater and logs it once", async () => {
@@ -85,10 +85,10 @@ describe("Update now", () => {
     const first = await admin.post("/admin/update/install");
     expect(first.status).toBe(202);
     expect(first.body.data).toMatchObject({ available: true, requested: true, phase: null, installError: null });
-    expect(existsSync(path.join(dir, "install-now"))).toBe(true);
+    expect(existsSync(path.join(dir, "flags", "install-now"))).toBe(true);
     await admin.post("/admin/update/install");
     expect(await prisma.activityLog.count({ where: { action: "Update requested" } })).toBe(1);
-    rmSync(path.join(dir, "install-now"));
+    rmSync(path.join(dir, "flags", "install-now"));
     expect((await admin.ok("GET", "/admin/update")).requested).toBe(false);
   });
 });
