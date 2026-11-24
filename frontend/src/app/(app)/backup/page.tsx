@@ -4,6 +4,11 @@ import { useState } from "react";
 import { Archive, CalendarClock, CircleCheck, Hand, Info, RefreshCw, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { UpdateNowButton } from "@/components/layout/update-notice";
+import { useUpdate } from "@/components/layout/update-context";
 import { DownloadButton } from "@/components/shared/download-button";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { KpiCard } from "@/components/shared/kpi-card";
@@ -15,6 +20,52 @@ import { BACKUP_RETENTION } from "@/lib/constants";
 import { formatDateTime, formatSize } from "@/lib/format";
 import { t } from "@/lib/strings";
 import type { BackupFile } from "@/lib/types";
+
+/** Program updates: the installed and newest versions, the automatic-update switch and "Update now". */
+function UpdateCard() {
+  const u = useUpdate();
+  const [busy, setBusy] = useState(false);
+  if (!u?.info) return null;
+  const { info, view } = u;
+  const toggle = async (on: boolean) => {
+    setBusy(true);
+    const r = await u.setAuto(on);
+    setBusy(false);
+    if (r.success) toast.success(on ? t.update.autoOn : t.update.autoOff);
+    else toast.error(r.error.message);
+  };
+  return (
+    <Card size="sm" className="mb-6 gap-3">
+      <h2 className="px-4 text-(length:--text-section) leading-tight font-(weight:--weight-strong)">{t.update.cardTitle}</h2>
+      <dl className="grid gap-x-6 gap-y-3 px-4 sm:grid-cols-3">
+        <div>
+          <dt className="text-(length:--text-table) text-muted-foreground">{t.update.installed}</dt>
+          <dd className="tabular text-(length:--text-body) font-(weight:--weight-strong)">{info.current}</dd>
+        </div>
+        <div>
+          <dt className="text-(length:--text-table) text-muted-foreground">{t.update.newest}</dt>
+          <dd className="tabular text-(length:--text-body) font-(weight:--weight-strong)">{info.latest ?? t.update.notChecked}</dd>
+        </div>
+        <div>
+          <dt className="sr-only">{t.update.cardTitle}</dt>
+          <dd className="text-(length:--text-table) text-muted-foreground">{info.checkedAt ? t.update.checked(formatDateTime(info.checkedAt)) : t.update.notChecked}</dd>
+        </div>
+      </dl>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4">
+        <div className="flex min-w-0 basis-72 items-start gap-3">
+          <Checkbox id="auto-update" checked={info.autoEnabled} disabled={busy} onCheckedChange={(on) => void toggle(on === true)} className="mt-0.5" />
+          <div className="min-w-0">
+            <Label htmlFor="auto-update" className="leading-snug">{t.update.autoLabel}</Label>
+            <p className="mt-1 text-(length:--text-table) text-muted-foreground">{t.update.autoHelp}</p>
+          </div>
+        </div>
+        {view.kind === "available" || (view.kind === "failed" && info.latest)
+          ? <UpdateNowButton version={info.latest ?? ""} />
+          : !info.available && <p className="text-(length:--text-table) text-muted-foreground">{t.update.upToDate}</p>}
+      </div>
+    </Card>
+  );
+}
 
 const kindIcon = { Automatic: RefreshCw, Manual: Hand, "Before update": CircleCheck, "Before import": CircleCheck, "Before restore": CircleCheck } as const;
 
@@ -50,6 +101,7 @@ export default function BackupPage() {
         <TriangleAlert className="mt-0.5 size-5 shrink-0 text-warning-icon" aria-hidden="true" />
         {t.backup.warning}
       </p>
+      <UpdateCard />
       <LoadGate load={list}>
         <div className="mb-6 grid gap-4 sm:grid-cols-2">
           <KpiCard label={t.backup.lastBackup} value={latest ? formatDateTime(latest.createdAt) : "-"} caption={t.backup.lastCaption} icon={CalendarClock} />

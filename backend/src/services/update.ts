@@ -208,12 +208,18 @@ export interface UpdateStatus {
   attempts: number;
   lastAttemptAt: string | null;
   installedAt: string | null;
+  /** Why the last check or download failed (no internet, a wrong checksum...). Never shown as a warning: it is only a detail. */
   lastError: string | null;
+  /** What the updater is doing right now, for the "Update now" progress. */
+  phase: "downloading" | "installing" | null;
+  /** Why the last installation failed. This one is shown to the Admin. */
+  installError: string | null;
 }
 
-const EMPTY: UpdateStatus = { checkedAt: null, latest: null, releaseId: null, downloadedSha256: null, blockedRelease: null, attempts: 0, lastAttemptAt: null, installedAt: null, lastError: null };
+const EMPTY: UpdateStatus = { checkedAt: null, latest: null, releaseId: null, downloadedSha256: null, blockedRelease: null, attempts: 0, lastAttemptAt: null, installedAt: null, lastError: null, phase: null, installError: null };
 const statusFile = (dir: string) => path.join(dir, "status.json");
 const offFile = (dir: string) => path.join(dir, "auto-update.off");
+const requestFile = (dir: string) => path.join(dir, "install-now");
 
 export async function readStatus(dir: string): Promise<UpdateStatus> {
   try {
@@ -241,6 +247,13 @@ export async function setAutoEnabled(dir: string, enabled: boolean): Promise<voi
   await writeFile(offFile(dir), "Automatic update is off. Delete this file, or switch it on in EZI > Backup, to turn it on again.\n");
 }
 
+/** "Update now": the web service (LocalService) leaves this file, the SYSTEM task picks it up within 5 minutes. */
+export const installRequested = (dir: string) => stat(requestFile(dir)).then(() => true, () => false);
+export async function requestInstall(dir: string): Promise<void> {
+  await mkdir(dir, { recursive: true });
+  await writeFile(requestFile(dir), new Date().toISOString());
+}
+
 /** What the Admin page shows. `available` is only true for a version newer than the installed one. */
 export async function summary(dir: string, current: string) {
   const s = await readStatus(dir);
@@ -251,6 +264,10 @@ export async function summary(dir: string, current: string) {
     autoEnabled: await autoEnabled(dir),
     checkedAt: s.checkedAt,
     lastError: s.lastError,
+    requested: await installRequested(dir),
+    phase: s.phase,
+    installError: s.installError,
+    installedAt: s.installedAt,
   };
 }
 
@@ -322,17 +339,24 @@ async function withLock<T>(dir: string, now: number, work: () => Promise<T>): Pr
   }
 }
 
-/** One round of the hourly task: check (at most every 12 hours), download, verify, wait for idle, install. */
+/**
+ * One round of the update task (every 5 minutes; it only does real work when something is due): check (at most every
+ * 12 hours), download, verify, wait for idle, install. An Admin's "Update now" (the request file) skips the off switch,
+ * the idle wait and the retry limits: a person decided, and the page warned them that EZI restarts.
+ */
 export async function runAutoUpdate(d: RunDeps): Promise<RunResult> {
   return withLock(d.dir, d.now(), async (): Promise<RunResult> => {
+    const requested = await installRequested(d.dir);
     const auto = await autoEnabled(d.dir);
     let status = await readStatus(d.dir);
     const newer = (x: UpdateStatus) => !!x.latest && isNewer(x.latest, d.current);
-    // A file is wanted when an update is due and no verified installer waits (never again for a release that failed its checksum).
-    const wantsFile = (x: UpdateStatus) => auto && newer(x) && !x.downloadedSha256 && x.attempts < MAX_ATTEMPTS && x.blockedRelease !== x.releaseId;
+    // A file is wanted when an update is due and no verified installer waits (never again for a release that failed its
+    // checksum, unless an Admin asks again).
+    const wantsFile = (x: UpdateStatus) =>
+      (auto || requested) && newer(x) && !x.downloadedSha256 && (requested || (x.attempts < MAX_ATTEMPTS && x.blockedRelease !== x.releaseId));
     const checkedAgo = status.checkedAt ? d.now() - Date.parse(status.checkedAt) : Infinity;
 
-    if (checkedAgo >= CHECK_EVERY_MS || wantsFile(status)) {
+    if (checkedAgo >= CHECK_EVERY_MS || wantsFile(status) || requested) {
       try {
         const release = await fetchLatest(d.source);
         const changed = status.releaseId !== release.releaseId;
@@ -340,20 +364,31 @@ export async function runAutoUpdate(d: RunDeps): Promise<RunResult> {
           checkedAt: new Date(d.now()).toISOString(), latest: release.version, releaseId: release.releaseId, lastError: null,
           ...(changed ? { attempts: 0, lastAttemptAt: null, downloadedSha256: null, blockedRelease: null } : {}),
         });
-        if (wantsFile(status)) status = await writeStatus(d.dir, { downloadedSha256: (await downloadVerified(d.source, release, d.dir)).sha256 });
+        if (wantsFile(status)) {
+          await writeStatus(d.dir, { phase: "downloading" });
+          status = await writeStatus(d.dir, { downloadedSha256: (await downloadVerified(d.source, release, d.dir)).sha256, phase: null });
+        }
       } catch (err) {
         const blocked = err instanceof UpdateError && err.kind === "checksum" ? { blockedRelease: status.releaseId } : {};
-        status = await writeStatus(d.dir, { checkedAt: new Date(d.now()).toISOString(), lastError: (err as Error).message, ...blocked });
+        status = await writeStatus(d.dir, { checkedAt: new Date(d.now()).toISOString(), lastError: (err as Error).message, phase: null, ...blocked });
         d.log(`Update check failed: ${(err as Error).message}`);
-        // Without internet a installer that was already downloaded and verified can still be installed.
-        if (!newer(status) || !status.downloadedSha256) return "check-failed";
+        // Without internet an installer that was already downloaded and verified can still be installed.
+        if (!newer(status) || !status.downloadedSha256) {
+          if (requested) await writeStatus(d.dir, { installError: `Could not get the update: ${(err as Error).message}` }).then(() => rm(path.join(d.dir, "install-now"), { force: true }));
+          return "check-failed";
+        }
       }
     }
 
-    if (!newer(status)) return "current";
-    if (!auto) return "off";
-    if (status.attempts >= MAX_ATTEMPTS) return "gave-up";
-    if (status.lastAttemptAt && d.now() - Date.parse(status.lastAttemptAt) < RETRY_AFTER_MS) return "waiting-retry";
+    if (!newer(status)) {
+      if (requested) await rm(path.join(d.dir, "install-now"), { force: true });
+      return "current";
+    }
+    if (!auto && !requested) return "off";
+    if (!requested) {
+      if (status.attempts >= MAX_ATTEMPTS) return "gave-up";
+      if (status.lastAttemptAt && d.now() - Date.parse(status.lastAttemptAt) < RETRY_AFTER_MS) return "waiting-retry";
+    }
 
     const file = path.join(d.dir, `EZI-Setup-${status.latest}.exe`);
     // The file on disk must still be the verified one: a changed or missing file is never run, the next round downloads it again.
@@ -363,18 +398,19 @@ export async function runAutoUpdate(d: RunDeps): Promise<RunResult> {
       await writeStatus(d.dir, { downloadedSha256: null });
       return "no-file";
     }
-    if (!(await d.isIdle())) return "waiting-idle";
+    if (!requested && !(await d.isIdle())) return "waiting-idle";
 
-    await writeStatus(d.dir, { attempts: status.attempts + 1, lastAttemptAt: new Date(d.now()).toISOString() });
+    await writeStatus(d.dir, { attempts: status.attempts + 1, lastAttemptAt: new Date(d.now()).toISOString(), phase: "installing", installError: null });
+    await rm(path.join(d.dir, "install-now"), { force: true });
     d.log(`Installing ${status.latest} silently`);
     const code = await d.install(file).catch(() => -1);
     if (code === 0) {
       await rm(file, { force: true });
-      await writeStatus(d.dir, { installedAt: new Date(d.now()).toISOString(), downloadedSha256: null, attempts: 0, lastAttemptAt: null, lastError: null });
+      await writeStatus(d.dir, { installedAt: new Date(d.now()).toISOString(), downloadedSha256: null, attempts: 0, lastAttemptAt: null, lastError: null, phase: null });
       return "installed";
     }
     await d.startServices().catch((err) => d.log(`Could not start EZI again: ${(err as Error).message}`));
-    await writeStatus(d.dir, { lastError: `The installer stopped with code ${code}. EZI was started again; it will try again in 24 hours.` });
+    await writeStatus(d.dir, { phase: null, installError: `The installer stopped with code ${code}. EZI was started again.${requested ? "" : " It will try again in 24 hours."}` });
     return "failed";
   });
 }

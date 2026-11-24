@@ -1,7 +1,7 @@
 // REST endpoints under /api, exactly as PRD 6.6. Routes stay thin (PRD 7.2): parse input, call a service, send.
 import express, { Router, type Request, type Response } from "express";
 import { changePassword, createFirstAdmin, login, logout, requireAdmin as admin, requireAuth, setupStatus } from "./auth";
-import { notFound, parse, send, sendList } from "./http";
+import { fail, notFound, parse, send, sendList } from "./http";
 import { s } from "./schemas";
 import { activityModules, createUser, listActivity, listUsers, oneUser, resetUserPassword, setUserStatus, updateUser } from "./services/admin";
 import { z } from "zod";
@@ -9,7 +9,7 @@ import { prisma } from "./db";
 import { env } from "./env";
 import { VERSION } from "./version";
 import { backupPath, createBackup, listBackups } from "./services/backup";
-import { idleReading, setAutoEnabled, summary, updateDirOf } from "./services/update";
+import { idleReading, installRequested, requestInstall, setAutoEnabled, summary, updateDirOf } from "./services/update";
 import { reader } from "./services/core";
 import * as loans from "./services/loans";
 import * as m from "./services/master";
@@ -161,6 +161,18 @@ api.put("/admin/update", admin, async (req, res) => {
   await setAutoEnabled(updateDirOf(env.dataDir), autoEnabled);
   await prisma.activityLog.create({ data: { userId: me(req).id, action: autoEnabled ? "Automatic update on" : "Automatic update off", module: "Backup", reference: VERSION } });
   send(res, await summary(updateDirOf(env.dataDir), VERSION));
+});
+
+api.post("/admin/update/install", admin, async (req, res) => {
+  const dir = updateDirOf(env.dataDir);
+  const now = await summary(dir, VERSION);
+  // The page only offers the button for an available version, so this is a guard for a stale page or another tool.
+  if (!now.available) throw fail("BUSINESS_RULE_VIOLATION", "There is no newer version to install.");
+  if (!(await installRequested(dir))) {
+    await requestInstall(dir);
+    await prisma.activityLog.create({ data: { userId: me(req).id, action: "Update requested", module: "Backup", reference: now.latest ?? "" } });
+  }
+  send(res, await summary(dir, VERSION), 202);
 });
 
 // Users and activity log

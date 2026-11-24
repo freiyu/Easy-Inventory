@@ -135,6 +135,27 @@ export const activity = {
   modules: () => get<string[]>("/activity-log/modules"),
 };
 
+/** The program update status (Admin): what the SYSTEM update task found and is doing. */
+export interface UpdateInfo {
+  current: string;
+  latest: string | null;
+  available: boolean;
+  autoEnabled: boolean;
+  checkedAt: string | null;
+  lastError: string | null;
+  /** "Update now" was pressed and the task has not started yet. */
+  requested: boolean;
+  phase: "downloading" | "installing" | null;
+  installError: string | null;
+  installedAt: string | null;
+}
+
+export const update = {
+  get: () => get<UpdateInfo>("/admin/update"),
+  setAuto: (autoEnabled: boolean) => put<UpdateInfo>("/admin/update", { autoEnabled }),
+  install: () => post<UpdateInfo>("/admin/update/install"),
+};
+
 export const backup = {
   list: (q: Query) => get<BackupFile[]>("/backup/database", clean(q)),
   create: () => post<BackupFile>("/backup/database"),

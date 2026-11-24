@@ -14,6 +14,8 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { Skeleton } from "@/components/ui/skeleton";
 import { Logo } from "@/components/shared/logo";
 import { NoAccess } from "@/components/shared/states";
+import { UpdateProvider } from "@/components/layout/update-context";
+import { UpdateNotice } from "@/components/layout/update-notice";
 import { useMounted } from "@/hooks/use-mounted";
 import { initials } from "@/lib/format";
 import { canAccess, isActivePath, navGroups } from "@/lib/nav";
@@ -51,7 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!mounted || !loaded || !user || user.mustChangePassword) return <ShellSkeleton />;
 
-  return (
+  const shell = (
     <div className="flex min-h-screen">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground">
         {t.nav.skipToContent}
@@ -77,12 +79,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <main id="main" className="mx-auto w-full max-w-(--content-max) flex-1 px-4 pt-6 pb-24 sm:px-6 lg:px-6 lg:pt-8">
           <div key={pathname} className={animateRoute ? "ezi-route" : undefined}>
+            {user.role === "Admin" && <UpdateNotice />}
             {canAccess(user.role, pathname) ? children : <NoAccess />}
           </div>
         </main>
       </div>
     </div>
   );
+  // Only an Admin gets the update state: Staff never see the notice and never call the update endpoints.
+  return user.role === "Admin" ? <UpdateProvider>{shell}</UpdateProvider> : shell;
 }
 
 function ShellSkeleton() {

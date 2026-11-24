@@ -39,7 +39,7 @@ describe("update status and the off switch", () => {
 
   it("Admin sees the installed version and that automatic update is on", async () => {
     const s = await admin.ok("GET", "/admin/update");
-    expect(s).toEqual({ current: VERSION, latest: null, available: false, autoEnabled: true, checkedAt: null, lastError: null });
+    expect(s).toEqual({ current: VERSION, latest: null, available: false, autoEnabled: true, checkedAt: null, lastError: null, requested: false, phase: null, installError: null, installedAt: null });
   });
 
   it("shows an available version once the updater has found one", async () => {
@@ -67,6 +67,29 @@ describe("update status and the off switch", () => {
       const r = await admin.put("/admin/update", body);
       expect([r.status, r.body.error.code]).toEqual([422, "VALIDATION_ERROR"]);
     }
+  });
+});
+
+describe("Update now", () => {
+  it("is Admin only, and refused when there is nothing newer", async () => {
+    await writeStatus(dir, { latest: VERSION });
+    expect((await staff.post("/admin/update/install")).status).toBe(403);
+    expect((await new Client(server.base).post("/admin/update/install")).status).toBe(401);
+    const none = await admin.post("/admin/update/install");
+    expect([none.status, none.body.error.code]).toEqual([422, "BUSINESS_RULE_VIOLATION"]);
+    expect(existsSync(path.join(dir, "install-now"))).toBe(false);
+  });
+
+  it("leaves one request for the updater and logs it once", async () => {
+    await writeStatus(dir, { latest: "9.0.0" });
+    const first = await admin.post("/admin/update/install");
+    expect(first.status).toBe(202);
+    expect(first.body.data).toMatchObject({ available: true, requested: true, phase: null, installError: null });
+    expect(existsSync(path.join(dir, "install-now"))).toBe(true);
+    await admin.post("/admin/update/install");
+    expect(await prisma.activityLog.count({ where: { action: "Update requested" } })).toBe(1);
+    rmSync(path.join(dir, "install-now"));
+    expect((await admin.ok("GET", "/admin/update")).requested).toBe(false);
   });
 });
 

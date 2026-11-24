@@ -7,7 +7,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   autoEnabled, downloadVerified, fetchLatest, idleReading, isIdle, isNewer, parseSums, parseVersion, pickRelease, readStatus, runAutoUpdate,
-  setAutoEnabled, summary, UpdateError, type RunDeps, type Source,
+  installRequested, requestInstall, setAutoEnabled, summary, UpdateError, type RunDeps, type Source,
 } from "./update";
 
 const REPO = "someone/Easy-Releases";
@@ -311,7 +311,7 @@ describe("when the installer fails", () => {
     const { d, started } = deps(src, { install: async () => 5 });
     expect(await runAutoUpdate(d)).toBe("failed");
     expect(started).toHaveLength(1);
-    expect((await readStatus(dir)).lastError).toMatch(/code 5/);
+    expect((await readStatus(dir)).installError).toMatch(/code 5/);
     now += 2 * HOUR;
     expect(await runAutoUpdate(d)).toBe("waiting-retry");
     now += 24 * HOUR;
@@ -352,3 +352,71 @@ describe("two rounds at once", () => {
     expect(await runAutoUpdate(d)).toBe("locked");
   });
 });
+
+describe("Update now", () => {
+  it("installs at once even with the switch off and people using EZI, then removes the request", async () => {
+    const { src } = good();
+    await setAutoEnabled(dir, false);
+    await requestInstall(dir);
+    let phaseWhileInstalling: string | null = null;
+    const { d, installed } = deps(src, {
+      isIdle: async () => false,
+      install: async (f) => { phaseWhileInstalling = (await readStatus(dir)).phase; installed2.push(f); return 0; },
+    });
+    const installed2: string[] = [];
+    expect(await runAutoUpdate(d)).toBe("installed");
+    expect(installed2).toHaveLength(1);
+    expect(phaseWhileInstalling).toBe("installing");
+    expect(await installRequested(dir)).toBe(false);
+    expect(installed).toEqual([]);
+    expect((await readStatus(dir)).phase).toBeNull();
+  });
+
+  it("still verifies the SHA-256: a wrong file is not run even when an Admin asked", async () => {
+    const { src } = source({ latest: release("1.2.1"), sums: `${"0".repeat(64)}  EZI-Setup-1.2.1.exe\n` });
+    await requestInstall(dir);
+    const { d, installed } = deps(src);
+    expect(await runAutoUpdate(d)).toBe("check-failed");
+    expect(installed).toEqual([]);
+    const s = await readStatus(dir);
+    expect(s.installError).toMatch(/Could not get the update/);
+    expect(await installRequested(dir)).toBe(false);
+  });
+
+  it("tries again on request after the automatic retries ran out, and reports a failure to the Admin", async () => {
+    const { src } = good();
+    const { d } = deps(src, { install: async () => 7 });
+    for (let i = 0; i < 3; i++) {
+      await runAutoUpdate(d);
+      now += 25 * HOUR;
+    }
+    expect(await runAutoUpdate(d)).toBe("gave-up");
+    await requestInstall(dir);
+    expect(await runAutoUpdate(d)).toBe("failed");
+    expect((await readStatus(dir)).installError).toMatch(/code 7/);
+    expect(await installRequested(dir)).toBe(false);
+  });
+
+  it("with no internet and nothing downloaded the Admin is told, quietly and once", async () => {
+    await requestInstall(dir);
+    await writeStatus_(dir);
+    const { d, installed } = deps({ repo: REPO, fetch: (async () => { throw new Error("offline"); }) as typeof fetch });
+    expect(await runAutoUpdate(d)).toBe("check-failed");
+    expect(installed).toEqual([]);
+    expect((await readStatus(dir)).installError).toMatch(/offline/);
+  });
+
+  it("a request when there is nothing newer is dropped", async () => {
+    const { src } = good("1.2.0");
+    await requestInstall(dir);
+    const { d, installed } = deps(src);
+    expect(await runAutoUpdate(d)).toBe("current");
+    expect(installed).toEqual([]);
+    expect(await installRequested(dir)).toBe(false);
+  });
+});
+
+async function writeStatus_(d: string) {
+  const { writeStatus } = await import("./update");
+  await writeStatus(d, { latest: "1.2.1", releaseId: 41, checkedAt: new Date(now).toISOString() });
+}
